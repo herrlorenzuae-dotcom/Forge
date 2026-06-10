@@ -1,0 +1,25 @@
+{
+  "comment": "Q&A retrieval eval over the seeded Vulcan corpus. expectedIds must appear in retrievedObligationIds for full retrieval recall.",
+  "questions": [
+    {
+      "question": "We have a time-sensitive new deal in sub-Saharan Africa. What obligations do we have?",
+      "expectedIds": ["obl-01", "obl-02", "obl-04"]
+    },
+    {
+      "question": "Which investors hold MFN election rights?",
+      "expectedIds": ["obl-10", "obl-21"]
+    },
+    {
+      "question": "What do we have to send Hokuriku every quarter?",
+      "expectedIds": ["obl-19"]
+    },
+    {
+      "question": "What happens if a key person leaves Fund II?",
+      "expectedIds": ["obl-12"]
+    },
+    {
+      "question": "Can a limited partner in Fund I sell its interest to someone else?",
+      "expectedIds": ["obl-16"]
+    }
+  ]
+}

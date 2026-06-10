@@ -44,11 +44,18 @@ privacy-related changes.
 ## Before you open a PR
 
 ```bash
-npm test            # 48 unit tests, no network
+npm test            # unit tests, no network
 npm run typecheck   # tsc on the API (the web UI is typechecked by its build)
 npm run smoke       # end-to-end through every stage (needs ANTHROPIC_API_KEY;
                     # SMOKE_SKIP_DRAFTING=1 to skip the slow drafting stage)
+npm run eval        # recall eval: blind re-extraction + unseen labeled docs +
+                    # Q&A retrieval, scored against hand labels. Exits non-zero
+                    # below the 80% recall bar. (SKIP_QA=1 for extraction only)
 ```
+
+If you touch extraction, retrieval, or prompts, run `npm run eval` before and
+after — recall (missed duties) is the failure mode that matters most here,
+and it's invisible to the citation verifier.
 
 - Keep the seed corpus (`seed/`) fictional — it's the public demo data.
 - Match the surrounding style; no formatter config to fight.

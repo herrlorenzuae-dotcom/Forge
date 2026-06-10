@@ -1,0 +1,75 @@
+{
+  "comment": "Hand-labeled ground truth for the eval-only documents. sourceClause strings are verbatim substrings of the doc text. Tricky cases on purpose: Paragraph 1 of eval-a carries TWO duties; the Acknowledgment and Recitals create none.",
+  "docs": [
+    {
+      "file": "eval-a-side-letter.md",
+      "matter": "Eval — Halcyon Industrial Fund II",
+      "investors": ["Meridian Bay Insurance Company"],
+      "labels": [
+        {
+          "type": "notice",
+          "investorName": "Meridian Bay Insurance Company",
+          "noticeDays": 12,
+          "sourceClause": "The General Partner shall notify Meridian Bay Insurance Company in writing no fewer than twelve (12) Business Days prior to the closing of any Portfolio Investment in the gaming sector"
+        },
+        {
+          "type": "reporting",
+          "investorName": "Meridian Bay Insurance Company",
+          "noticeDays": 30,
+          "sourceClause": "shall deliver a written risk memorandum describing such investment no later than thirty (30) days after such closing"
+        },
+        {
+          "type": "consent",
+          "investorName": "Meridian Bay Insurance Company",
+          "sourceClause": "The General Partner shall not amend the Fund's valuation policy in a manner adverse to Meridian Bay Insurance Company without the prior written consent of Meridian Bay Insurance Company"
+        },
+        {
+          "type": "reporting",
+          "investorName": "Meridian Bay Insurance Company",
+          "noticeDays": 40,
+          "sourceClause": "The General Partner shall deliver to Meridian Bay Insurance Company a statement of Solvency II look-through data within forty (40) days after the end of each fiscal quarter"
+        },
+        {
+          "type": "excuse",
+          "investorName": "Meridian Bay Insurance Company",
+          "sourceClause": "Meridian Bay Insurance Company shall be excused from participation in any Portfolio Investment in tobacco or gambling enterprises to the extent such participation would violate its written investment policy"
+        }
+      ]
+    },
+    {
+      "file": "eval-b-lpa.md",
+      "matter": "Eval — Aurora Catalyst Partners Fund",
+      "investors": [],
+      "labels": [
+        {
+          "type": "notice",
+          "noticeDays": 10,
+          "sourceClause": "Each drawdown notice shall be delivered to the Limited Partners no fewer than ten (10) Business Days prior to the due date for the related capital contribution"
+        },
+        {
+          "type": "notice",
+          "noticeDays": 5,
+          "sourceClause": "Upon the death or disability of any Principal, the General Partner shall give written notice to the Limited Partners within five (5) Business Days of becoming aware of such event"
+        },
+        {
+          "type": "investment_restriction",
+          "sourceClause": "The General Partner shall not cause the Partnership to invest more than 25% of aggregate Commitments in any single Portfolio Company without the prior written consent of the Advisory Committee"
+        },
+        {
+          "type": "reporting",
+          "noticeDays": 60,
+          "sourceClause": "The General Partner shall furnish unaudited financial statements to each Limited Partner within sixty (60) days after the end of each of the first three fiscal quarters"
+        },
+        {
+          "type": "reporting",
+          "noticeDays": 90,
+          "sourceClause": "The General Partner shall publish an annual sustainability report and deliver it to the Limited Partners within ninety (90) days after each fiscal year end"
+        },
+        {
+          "type": "transfer_restriction",
+          "sourceClause": "No Limited Partner may pledge its interest in the Partnership without the prior written consent of the General Partner"
+        }
+      ]
+    }
+  ]
+}

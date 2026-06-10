@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "version": "0.1.0",
-  "description": "Forge — a fund formation engine. Institutional knowledge at every lawyer's fingertips.",
+  "description": "Forge \u2014 a fund formation engine. Institutional knowledge at every lawyer's fingertips.",
   "type": "module",
   "private": true,
   "scripts": {
@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "seed": "tsx --env-file-if-exists=.env src/seed/seed.ts",
     "smoke": "tsx --env-file-if-exists=.env scripts/smoke.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval": "tsx --env-file-if-exists=.env scripts/eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

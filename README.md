@@ -112,6 +112,10 @@ Dev UI with hot reload: `cd web && npm run dev` → http://localhost:5173.
 npm test          # unit tests — no network
 npm run smoke     # end-to-end through all five stages + degraded pass
                   # (needs ANTHROPIC_API_KEY; SMOKE_SKIP_DRAFTING=1 to skip the slow stage)
+npm run eval      # the honesty check: extraction recall/precision against
+                  # hand-labeled documents (including unseen ones) + Q&A
+                  # retrieval recall. Citation verification proves what the
+                  # engine SAYS; the eval measures what it MISSES.
 ```
 
 ## Layout
