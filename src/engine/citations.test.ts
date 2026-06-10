@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type Database from 'better-sqlite3';
 import { openDb, setDb } from '../db/db.js';
 import { seedDatabase } from '../seed/seed.js';
-import { verifyCitation, verifyCitationsDeep } from './citations.js';
+import { quoteAppearsIn, verifyCitation, verifyCitationsDeep } from './citations.js';
 import { callStructured, setAnthropicClient } from '../ai/claude.js';
 import { resetGateway } from '../ai/gateway.js';
 import { resetHealthCache } from '../ai/ollama.js';
@@ -63,6 +63,28 @@ describe('citation verifier', () => {
     expect(
       verifyCitation(db, { sourceType: 'provision', sourceId: 'p-sl-norr-1', quote: '[INVESTOR_3] shall buy a yacht' }, mappings),
     ).toBe(false);
+  });
+
+  it('rejects content-free quotes made only of masked name slots (review finding)', () => {
+    // a quote that is just party placeholders carries no legal language and
+    // must not wildcard-match any source mentioning that party
+    const mappings = [{ placeholder: '[INVESTOR_1]', original: 'Norrland Pension AB', type: 'investor' as const }];
+    expect(
+      verifyCitation(db, { sourceType: 'provision', sourceId: 'p-sl-norr-1', quote: '[INVESTOR_1] [INVESTOR_1]' }, mappings),
+    ).toBe(false);
+    expect(verifyCitation(db, { sourceType: 'provision', sourceId: 'p-sl-norr-1', quote: 'Norrland Pension AB' }, mappings)).toBe(false);
+    // but a real clause with a slot in it still verifies
+    expect(
+      verifyCitation(db, { sourceType: 'provision', sourceId: 'p-sl-norr-1', quote: '[INVESTOR_1] shall be excused from participation' }, mappings),
+    ).toBe(true);
+  });
+
+  it('does not let a spliced quote skip intervening text between adjacent slots', () => {
+    // collapse must keep slots as space-delimited words, not fuse neighbours
+    const mappings = [{ placeholder: '[X_1]', original: 'Acme Corp', type: 'party' as const }];
+    const source = 'the obligations of Acme Corp Beta Corp may terminate';
+    // a quote that drops "Beta Corp" entirely should NOT verify
+    expect(quoteAppearsIn(source, 'obligations of [X_1] may terminate', mappings)).toBe(false);
   });
 
   it('rejects fabricated quotes and unknown sources', () => {

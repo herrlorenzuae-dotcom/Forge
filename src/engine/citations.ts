@@ -41,15 +41,30 @@ function normalize(s: string, mappings?: EntityMapping[]): string {
     const byLen = [...mappings].sort((a, b) => b.original.length - a.original.length);
     for (const m of byLen) {
       if (m.original.length < 3) continue;
-      out = out.replace(new RegExp(escapeRe(m.original), 'gi'), SLOT);
+      out = out.replace(new RegExp(escapeRe(m.original), 'gi'), ` ${SLOT} `);
     }
   }
-  out = out.replace(/\[[A-Z]+_\d+\]/g, SLOT);
-  out = out.replace(/\s+/g, ' ').trim().toLowerCase();
+  out = out.replace(/\[[A-Z]+_\d+\]/g, ` ${SLOT} `);
+  out = out.toLowerCase();
+  // punctuation → space (keeps words separate); preserves Unicode letters
+  out = out.replace(/[^\p{L}\p{N} ]+/gu, ' ');
+  out = out.replace(/\s+/g, ' ').trim();
+  // collapse runs of consecutive slot tokens to one — but each slot stays a
+  // space-delimited WORD, so "slot shall" can never fuse into "slotshall"
+  // and let a spliced quote skip intervening text
   const slot = SLOT.toLowerCase();
-  out = out.replace(new RegExp('\\s*' + slot + '(?:\\s*' + slot + ')*\\s*', 'g'), slot);
+  out = out.replace(new RegExp(`(?:${slot} )+`, 'g'), `${slot} `).replace(new RegExp(`(?: ${slot})+$`), ` ${slot}`).trim();
   return out;
 }
+
+/** Real (non-slot) content of a normalized quote — guards against quotes
+ *  made up entirely of masked name slots, which would wildcard-match anything. */
+function meaningfulLength(normalizedQuote: string): number {
+  const slot = SLOT.toLowerCase();
+  return normalizedQuote.split(' ').filter((w) => w && w !== slot).join('').length;
+}
+
+const MIN_MEANINGFUL = 6;
 
 /** Fetch the text a citation must quote from. */
 function sourceText(db: Database.Database, c: Citation): string | null {
@@ -97,7 +112,11 @@ function sourceText(db: Database.Database, c: Citation): string | null {
  *  slots treated as wildcards)? The reusable core of citation verification. */
 export function quoteAppearsIn(source: string, quote: string, mappings?: EntityMapping[]): boolean {
   if (!quote || quote.trim().length === 0) return false;
-  return normalize(source, mappings).includes(normalize(quote, mappings));
+  const nq = normalize(quote, mappings);
+  // a quote that's only masked name slots (no real legal language) would
+  // wildcard-match any source mentioning that party — reject it
+  if (meaningfulLength(nq) < MIN_MEANINGFUL) return false;
+  return normalize(source, mappings).includes(nq);
 }
 
 /** Verify one citation: the quote must appear (whitespace-normalized, with
@@ -106,7 +125,7 @@ export function verifyCitation(db: Database.Database, c: Citation, mappings?: En
   if (!c.quote || c.quote.trim().length === 0) return false;
   const text = sourceText(db, c);
   if (text === null) return false;
-  return normalize(text, mappings).includes(normalize(c.quote, mappings));
+  return quoteAppearsIn(text, c.quote, mappings);
 }
 
 /**

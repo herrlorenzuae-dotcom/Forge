@@ -4,7 +4,7 @@
  */
 
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { getDb } from '../db/db.js';
+import { getDb, withDbOp } from '../db/db.js';
 import { config } from '../config.js';
 import * as ollama from '../ai/ollama.js';
 import { answerObligationQuery, extractObligations } from '../engine/obligations.js';
@@ -282,13 +282,11 @@ export function registerRoutes(app: FastifyInstance): void {
     if (!fundId) return reply.code(400).send({ error: 'fundId field required' });
     try {
       const buffer = await file.toBuffer();
-      return await ingestDocument(getDb(), {
-        fundId,
-        buffer,
-        filename: file.filename,
-        mimeType: file.mimetype,
-        title,
-      });
+      const db = getDb();
+      // hold the workspace open for the whole parse → store → embed chain
+      return await withDbOp(() =>
+        ingestDocument(db, { fundId, buffer, filename: file.filename, mimeType: file.mimetype, title }),
+      );
     } catch (err) {
       return reply.code(400).send({ error: errMessage(err) });
     }
@@ -389,7 +387,11 @@ export function registerRoutes(app: FastifyInstance): void {
               ? await sideLettersDocx(payload as Parameters<typeof sideLettersDocx>[0])
               : null;
         if (!buffer) return reply.code(400).send({ error: `unknown kind: ${kind}` });
-        const filename = (req.body.filename ?? `forge-${kind}.docx`).replace(/[^\w.\- ]/g, '');
+        // keep Unicode letters/numbers; strip only the double-quote, path
+        // separators and control chars (the value is an HTTP header, never a path)
+        // eslint-disable-next-line no-control-regex
+        const filename =
+          (req.body.filename ?? `forge-${kind}.docx`).replace(/["/\\\x00-\x1f]/g, '').trim() || `forge-${kind}.docx`;
         return reply
           .header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
           .header('Content-Disposition', `attachment; filename="${filename}"`)

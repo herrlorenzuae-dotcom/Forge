@@ -12,7 +12,7 @@
  */
 
 import { z } from 'zod';
-import { getDb, genId } from '../db/db.js';
+import { getDb, genId, withDbOp } from '../db/db.js';
 import { callStructured } from '../ai/claude.js';
 import { citationSchema } from './citations.js';
 import { hybridSearch } from '../search/hybrid.js';
@@ -83,7 +83,9 @@ export interface DraftingResult {
 export function startDraftingPipeline(fundId: string, termSheetText: string): string {
   const runId = genId('run');
   createRun(runId, 'drafting');
-  void executePipeline(runId, fundId, termSheetText)
+  // hold the workspace open for the whole (minutes-long) pipeline so a
+  // matter switch mid-draft is refused rather than closing our db handle
+  void withDbOp(() => executePipeline(runId, fundId, termSheetText))
     .then((result) => finishRun(runId, result))
     .catch((err) => failRun(runId, err instanceof Error ? err.message : String(err)))
     .finally(() => releaseRun(runId));
@@ -183,20 +185,30 @@ async function executePipeline(runId: string, fundId: string, termSheetText: str
   // ── Persist as a draft document ─────────────────────────────────────
   emit(runId, 'feedback-integrator', 'start', 'Saving draft into the ontology');
   const documentId = genId('doc');
-  db.prepare(`INSERT INTO documents (id, fund_id, type, status, title, content) VALUES (?, ?, 'lpa', 'draft', ?, ?)`).run(
-    documentId,
-    fundId,
-    `${fund.name} — Engine Working Draft (${runId})`,
-    drafted.data.sections.map((s) => `${s.heading}\n\n${s.text}`).join('\n\n'),
+  const insertDoc = db.prepare(
+    `INSERT INTO documents (id, fund_id, type, status, title, content) VALUES (?, ?, 'lpa', 'draft', ?, ?)`,
   );
   const insertProvision = db.prepare(
     `INSERT INTO provisions (id, document_id, topic, heading, text, position) VALUES (?, ?, ?, ?, ?, ?)`,
   );
-  const sections = drafted.data.sections.map((s, i) => {
-    const provisionId = genId('p');
-    insertProvision.run(provisionId, documentId, s.topic, s.heading, s.text, i + 1);
-    return { provisionId, heading: s.heading, topic: s.topic, text: s.text, citations: s.citations };
-  });
+  // document + provisions are one unit — never leave an orphaned draft doc
+  const sections = drafted.data.sections.map((s, i) => ({
+    provisionId: genId('p'),
+    heading: s.heading,
+    topic: s.topic,
+    text: s.text,
+    citations: s.citations,
+    position: i + 1,
+  }));
+  db.transaction(() => {
+    insertDoc.run(
+      documentId,
+      fundId,
+      `${fund.name} — Engine Working Draft (${runId})`,
+      drafted.data.sections.map((s) => `${s.heading}\n\n${s.text}`).join('\n\n'),
+    );
+    for (const s of sections) insertProvision.run(s.provisionId, documentId, s.topic, s.heading, s.text, s.position);
+  })();
   await embedAll(
     db,
     sections.map((s) => ({ ownerType: 'provision' as const, ownerId: s.provisionId, text: `${s.heading}\n${s.text}` })),

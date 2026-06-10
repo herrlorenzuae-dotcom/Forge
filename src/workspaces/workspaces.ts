@@ -16,7 +16,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { config } from '../config.js';
-import { genId, openDb, setDb } from '../db/db.js';
+import { genId, isDbBusy, openDb, setDb } from '../db/db.js';
 
 export interface WorkspaceMeta {
   id: string;
@@ -104,6 +104,9 @@ export function activateWorkspace(id: string): WorkspaceMeta {
   const r = readRegistry();
   const ws = find(r, id);
   if (ws.locked) throw new Error('Workspace is locked — unlock it with its passphrase first.');
+  if (id !== r.activeId && isDbBusy()) {
+    throw new Error('An operation is still running in the current matter — wait for it to finish before switching.');
+  }
   setDb(openDb(ws.file));
   r.activeId = id;
   writeRegistry(r);
@@ -137,6 +140,9 @@ export function lockWorkspace(id: string, passphrase: string): WorkspaceMeta {
   const ws = find(r, id);
   if (ws.id === 'default') throw new Error('The demo workspace cannot be locked.');
   if (ws.locked) throw new Error('Workspace is already locked.');
+  if (isDbBusy()) {
+    throw new Error('An operation is still running — wait for it to finish before locking.');
+  }
   if (r.activeId === id) {
     // close the case file before locking it — switch back to the demo
     setDb(openDb(find(r, 'default').file));

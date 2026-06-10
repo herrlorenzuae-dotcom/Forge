@@ -6,6 +6,26 @@ import { config } from '../config.js';
 import { initSchema } from './schema.js';
 
 let _db: Database.Database | null = null;
+let _inFlight = 0;
+
+/**
+ * Long, multi-stage engine operations (uploads, the drafting pipeline) hold
+ * a captured db handle across awaits. Swapping workspaces mid-operation
+ * closes that handle and fails the op. Bracket such operations with these so
+ * a workspace switch is refused — cleanly — while one is in flight.
+ */
+export async function withDbOp<T>(fn: () => Promise<T>): Promise<T> {
+  _inFlight += 1;
+  try {
+    return await fn();
+  } finally {
+    _inFlight -= 1;
+  }
+}
+
+export function isDbBusy(): boolean {
+  return _inFlight > 0;
+}
 
 /** Open (or create) a database at the given path and initialize the schema. */
 export function openDb(dbPath: string): Database.Database {

@@ -31,7 +31,10 @@ export function createRun(id: string, kind: string): Run {
   runs.set(id, run);
   if (runs.size > MAX_RUNS) {
     const oldest = [...runs.values()].sort((a, b) => a.startedAt - b.startedAt)[0];
-    if (oldest && oldest.id !== id) runs.delete(oldest.id);
+    if (oldest && oldest.id !== id) {
+      runs.delete(oldest.id);
+      listeners.delete(oldest.id); // don't strand subscriber sets for evicted runs
+    }
   }
   return run;
 }

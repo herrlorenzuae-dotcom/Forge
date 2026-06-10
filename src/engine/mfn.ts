@@ -66,13 +66,14 @@ const WORD_NUMBERS: Record<string, number> = {
 };
 
 export function parseThresholdUsd(clause: string): number | null {
-  const m = clause.match(/\$\s?([\d,]+)(?:\s?(million|billion))?/i);
+  // capture decimals too — "$2.5 million" must not truncate to "$2"
+  const m = clause.match(/\$\s?([\d,]+(?:\.\d+)?)(?:\s?(million|billion))?/i);
   if (!m) return null;
-  let n = Number.parseInt(m[1].replace(/,/g, ''), 10);
+  let n = Number.parseFloat(m[1].replace(/,/g, ''));
   if (!Number.isFinite(n)) return null;
   if (m[2]?.toLowerCase() === 'million') n *= 1_000_000;
   if (m[2]?.toLowerCase() === 'billion') n *= 1_000_000_000;
-  return n;
+  return Math.round(n);
 }
 
 export function parseWindowDays(clause: string): number | null {

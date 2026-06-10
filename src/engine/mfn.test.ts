@@ -8,9 +8,12 @@ import { seedDatabase } from '../seed/seed.js';
 import { assembleCompendiumData, findMfnBasis, parseThresholdUsd, parseWindowDays } from './mfn.js';
 
 describe('MFN clause parsing', () => {
-  it('parses dollar thresholds', () => {
+  it('parses dollar thresholds, including decimals (review finding)', () => {
     expect(parseThresholdUsd('Commitment equals or exceeds $75,000,000')).toBe(75_000_000);
     expect(parseThresholdUsd('at least $50 million')).toBe(50_000_000);
+    expect(parseThresholdUsd('a commitment of $2.5 million')).toBe(2_500_000);
+    expect(parseThresholdUsd('$7.5 million')).toBe(7_500_000);
+    expect(parseThresholdUsd('$1.25 billion')).toBe(1_250_000_000);
     expect(parseThresholdUsd('no monetary test')).toBeNull();
   });
 
