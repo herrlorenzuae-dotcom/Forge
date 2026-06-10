@@ -7,7 +7,7 @@ import type Database from 'better-sqlite3';
 import { config } from '../config.js';
 import * as ollama from '../ai/ollama.js';
 
-export type OwnerType = 'provision' | 'comment' | 'obligation' | 'side_letter';
+export type OwnerType = 'provision' | 'comment' | 'obligation' | 'side_letter' | 'precedent';
 
 export function vectorToBlob(vec: number[]): Buffer {
   return Buffer.from(new Float32Array(vec).buffer);

@@ -9,7 +9,7 @@ import type Database from 'better-sqlite3';
 import type { EntityMapping } from '../privacy/anonymize.js';
 
 export const citationSchema = z.object({
-  sourceType: z.enum(['provision', 'document', 'comment', 'side_letter', 'obligation']),
+  sourceType: z.enum(['provision', 'document', 'comment', 'side_letter', 'obligation', 'precedent']),
   sourceId: z.string(),
   quote: z.string(),
 });
@@ -83,6 +83,12 @@ function sourceText(db: Database.Database, c: Citation): string | null {
         | { summary: string; source_clause: string }
         | undefined;
       return row ? `${row.summary}\n${row.source_clause}` : null;
+    }
+    case 'precedent': {
+      const row = db.prepare(`SELECT title, text FROM precedents WHERE id = ?`).get(c.sourceId) as
+        | { title: string; text: string }
+        | undefined;
+      return row ? `${row.title}\n${row.text}` : null;
     }
   }
 }

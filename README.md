@@ -48,7 +48,20 @@ The full demo arc, each stage thin but real:
    sets export as clean .docx with a numbered Sources annex: every in-text
    [n] marker resolves to the verbatim quoted clause, its ontology id, and
    its verification mark, so the trust story survives the export.
-8. **Deadlines — obligations that act.** Concrete due dates computed for
+8. **Matter workspaces — ethical walls.** Each matter is a separate database
+   file; only the open one is readable, so cross-matter contamination is
+   impossible by construction. Closed matters can be locked — encrypted at
+   rest (AES-256-GCM, scrypt-derived key) under a passphrase.
+9. **Scanned PDFs work.** When a PDF has no text layer (a real scanner's
+   output), pages are rendered and OCR'd entirely on-device. The only
+   network access is a one-time ~15 MB download of Tesseract's public
+   English model; document content never leaves the machine.
+10. **The compounding loop.** Comment resolutions a lawyer accepted or
+    edited, clauses from executed side letters, and sections revised under
+    feedback are promoted to weighted house precedent — and feed the next
+    suggestion, citably. Every engagement makes the next one smarter, and
+    the Overview shows exactly what's been learned.
+11. **Deadlines — obligations that act.** Concrete due dates computed for
    every recurring duty (quarterly/annual anchors, business-day math read
    from the clause itself), an event planner ("closing July 15 → notice to
    Norrland due June 24"), drafted reminder emails with verified citations,

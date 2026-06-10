@@ -11,6 +11,7 @@ import { getDb } from '../db/db.js';
 import { callStructured } from '../ai/claude.js';
 import { citationSchema } from './citations.js';
 import { hybridSearch } from '../search/hybrid.js';
+import { markPrecedentsUsed, precedentPromptBlock, searchPrecedents } from './precedent.js';
 
 const TIER1_THRESHOLD = 0.75;
 const TIER2_THRESHOLD = 0.3;
@@ -54,12 +55,16 @@ export async function generateSideLetterDrafts(opts: {
   if (!investor || !fund) throw new Error('Unknown investor or fund');
   if (opts.agreedTerms.length === 0) throw new Error('At least one agreed term required');
 
-  // Per-term retrieval: model library + precedent side letters, tiered by score
+  // Per-term retrieval: model library + precedent side letters + weighted
+  // house precedent (the compounding loop), tiered by score
   const termBundles: string[] = [];
   const termRetrieval: Array<{ term: string; suggestedTier: string }> = [];
+  const usedPrecedentIds = new Set<string>();
   for (const term of opts.agreedTerms) {
     const modelHits = await hybridSearch(db, { query: term, table: 'provisions', docStatus: 'model', topK: 2 });
     const precedentHits = await hybridSearch(db, { query: term, table: 'provisions', docType: 'side_letter', topK: 2 });
+    const houseHits = await searchPrecedents(db, { query: term, topK: 2 });
+    for (const h of houseHits) usedPrecedentIds.add(h.id);
 
     const bestModel = modelHits[0]?.score ?? 0;
     const bestPrecedent = precedentHits[0]?.score ?? 0;
@@ -70,9 +75,10 @@ export async function generateSideLetterDrafts(opts: {
     const fmt = (hits: typeof modelHits): string =>
       hits.map((h) => `[sourceType: provision, sourceId: ${h.id}] ${h.heading} (score ${h.score.toFixed(2)})\n"${h.text}"`).join('\n\n') || 'none';
     termBundles.push(
-      `AGREED TERM: "${term}"\nsuggested tier from retrieval: ${suggestedTier}\nMODEL LANGUAGE CANDIDATES:\n${fmt(modelHits)}\nPRECEDENT SIDE LETTER CANDIDATES:\n${fmt(precedentHits)}`,
+      `AGREED TERM: "${term}"\nsuggested tier from retrieval: ${suggestedTier}\nMODEL LANGUAGE CANDIDATES:\n${fmt(modelHits)}\nPRECEDENT SIDE LETTER CANDIDATES:\n${fmt(precedentHits)}\n${precedentPromptBlock(houseHits) || 'HOUSE PRECEDENT: none yet'}`,
     );
   }
+  markPrecedentsUsed(db, [...usedPrecedentIds]);
 
   const result = await callStructured({
     stage: 'side-letters.generate',

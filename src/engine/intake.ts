@@ -9,6 +9,7 @@ import type Database from 'better-sqlite3';
 import { genId } from '../db/db.js';
 import { extractText, chunkIntoProvisions, guessDocType } from '../documents/parser.js';
 import { embedAll } from '../search/embeddings.js';
+import { promotePrecedent } from './precedent.js';
 
 export interface Matter {
   id: string;
@@ -89,6 +90,24 @@ export async function ingestDocument(
     db,
     provisionIds.map((p) => ({ ownerType: 'provision' as const, ownerId: p.id, text: `${p.heading}\n${p.text}` })),
   );
+
+  // executed side letters are how this firm actually papers terms — promote
+  // their clauses into house precedent (the compounding loop)
+  if (docType === 'side_letter') {
+    for (let i = 0; i < provisionIds.length; i++) {
+      const p = provisionIds[i];
+      await promotePrecedent(db, {
+        kind: 'side_letter_clause',
+        topic: provisions[i].topic,
+        title: `${title} — ${p.heading}`,
+        text: p.text,
+        sourceType: 'provision',
+        sourceId: p.id,
+        fundId: opts.fundId,
+        weight: 1.2,
+      });
+    }
+  }
 
   return {
     documentId,

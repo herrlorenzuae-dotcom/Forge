@@ -107,12 +107,27 @@ CREATE TABLE IF NOT EXISTS ai_calls (
 );
 
 CREATE TABLE IF NOT EXISTS embeddings (
-  owner_type TEXT NOT NULL CHECK (owner_type IN ('provision', 'comment', 'obligation', 'side_letter')),
+  owner_type TEXT NOT NULL CHECK (owner_type IN ('provision', 'comment', 'obligation', 'side_letter', 'precedent')),
   owner_id TEXT NOT NULL,
   model TEXT NOT NULL,
   dims INTEGER NOT NULL,
   vector BLOB NOT NULL,
   PRIMARY KEY (owner_type, owner_id)
+);
+
+CREATE TABLE IF NOT EXISTS precedents (
+  id TEXT PRIMARY KEY,
+  fund_id TEXT REFERENCES funds(id),
+  kind TEXT NOT NULL CHECK (kind IN ('resolution', 'side_letter_clause', 'draft_section')),
+  topic TEXT NOT NULL,
+  title TEXT NOT NULL,
+  text TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  weight REAL NOT NULL DEFAULT 1.0,
+  uses INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (source_type, source_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_provisions_document ON provisions(document_id);
@@ -148,9 +163,21 @@ const FTS_STATEMENTS = [
      INSERT INTO obligations_fts(obligations_fts, rowid, summary, source_clause) VALUES ('delete', old.rowid, old.summary, old.source_clause);
      INSERT INTO obligations_fts(rowid, summary, source_clause) VALUES (new.rowid, new.summary, new.source_clause);
    END`,
+  `CREATE VIRTUAL TABLE precedents_fts USING fts5(title, text, content='precedents', content_rowid='rowid')`,
+  `CREATE TRIGGER precedents_ai AFTER INSERT ON precedents BEGIN
+     INSERT INTO precedents_fts(rowid, title, text) VALUES (new.rowid, new.title, new.text);
+   END`,
+  `CREATE TRIGGER precedents_ad AFTER DELETE ON precedents BEGIN
+     INSERT INTO precedents_fts(precedents_fts, rowid, title, text) VALUES ('delete', old.rowid, old.title, old.text);
+   END`,
+  `CREATE TRIGGER precedents_au AFTER UPDATE ON precedents BEGIN
+     INSERT INTO precedents_fts(precedents_fts, rowid, title, text) VALUES ('delete', old.rowid, old.title, old.text);
+     INSERT INTO precedents_fts(rowid, title, text) VALUES (new.rowid, new.title, new.text);
+   END`,
 ];
 
 export function initSchema(db: Database.Database): void {
+  migrateEmbeddingsCheck(db);
   db.exec(TABLES);
   for (const stmt of FTS_STATEMENTS) {
     try {
@@ -160,4 +187,28 @@ export function initSchema(db: Database.Database): void {
       if (!/already exists/i.test(msg)) throw err;
     }
   }
+}
+
+/** Databases created before the precedent loop have an embeddings CHECK
+ *  constraint that rejects owner_type 'precedent'. SQLite can't ALTER a
+ *  CHECK, so rebuild the table once, preserving rows. */
+function migrateEmbeddingsCheck(db: Database.Database): void {
+  const row = db
+    .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'embeddings'`)
+    .get() as { sql: string } | undefined;
+  if (!row || row.sql.includes(`'precedent'`)) return;
+  const rebuild = db.transaction(() => {
+    db.exec(`ALTER TABLE embeddings RENAME TO embeddings_old`);
+    db.exec(`CREATE TABLE embeddings (
+      owner_type TEXT NOT NULL CHECK (owner_type IN ('provision', 'comment', 'obligation', 'side_letter', 'precedent')),
+      owner_id TEXT NOT NULL,
+      model TEXT NOT NULL,
+      dims INTEGER NOT NULL,
+      vector BLOB NOT NULL,
+      PRIMARY KEY (owner_type, owner_id)
+    )`);
+    db.exec(`INSERT INTO embeddings SELECT * FROM embeddings_old`);
+    db.exec(`DROP TABLE embeddings_old`);
+  });
+  rebuild();
 }

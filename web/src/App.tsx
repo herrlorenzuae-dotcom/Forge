@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Intro, shouldPlayIntro } from './Intro.js';
-import { StatusBadge, PrivacyPanel } from './components.js';
+import { StatusBadge, PrivacyPanel, WorkspaceSwitcher } from './components.js';
 import { Ontology } from './pages/Ontology.js';
 import { Intake } from './pages/Intake.js';
 import { Drafting } from './pages/Drafting.js';
@@ -90,6 +90,7 @@ export default function App() {
             <SegmentedNav active={tab} onSelect={setTab} />
           </div>
           <div className="ml-auto flex items-center gap-2.5">
+            <WorkspaceSwitcher />
             <StatusBadge />
             <button onClick={() => setPrivacyOpen(true)} className="btn-ghost whitespace-nowrap">
               <span className="text-ember">●</span> What left your machine

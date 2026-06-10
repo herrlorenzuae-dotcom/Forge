@@ -121,6 +121,49 @@ function AttentionStrip({ onNavigate }: { onNavigate: (tab: string) => void }) {
   );
 }
 
+interface PrecedentRow {
+  id: string;
+  kind: string;
+  topic: string;
+  title: string;
+  weight: number;
+  uses: number;
+}
+
+/** The compounding loop, visible: what lawyer decisions have taught it. */
+function LearnedCard() {
+  const [precedents, setPrecedents] = useState<PrecedentRow[]>([]);
+  useEffect(() => {
+    get<PrecedentRow[]>('/precedents').then(setPrecedents).catch(() => {});
+  }, []);
+  if (precedents.length === 0) return null;
+  return (
+    <div className="card animate-fade-up mb-10 p-6">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-sm font-semibold text-bone">What the engine has learned here</h3>
+        <span className="font-mono text-[10px] text-fog tabular-nums">{precedents.length} precedents</span>
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-fog">
+        Resolutions you accepted, clauses from executed side letters, and sections you revised — weighted by your
+        decisions, and used to shape the next suggestion. Every engagement makes the next one smarter.
+      </p>
+      <div className="mt-3 divide-y divide-black/[0.05]">
+        {precedents.slice(0, 5).map((p) => (
+          <div key={p.id} className="flex items-center gap-3 py-2 text-xs">
+            <span className="rounded-md bg-black/[0.05] px-2 py-0.5 font-mono text-[10px] text-fog">
+              {p.kind.replace(/_/g, ' ')}
+            </span>
+            <span className="flex-1 truncate">{p.title}</span>
+            <span className="font-mono text-[10px] text-fog tabular-nums" title="weight × times used">
+              w {p.weight.toFixed(1)} · {p.uses}×
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Ontology({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const [funds, setFunds] = useState<Fund[]>([]);
   const [selected, setSelected] = useState<string>('fund-2');
@@ -147,6 +190,8 @@ export function Ontology({ onNavigate }: { onNavigate: (tab: string) => void }) 
       </SectionTitle>
 
       <AttentionStrip onNavigate={onNavigate} />
+
+      <LearnedCard />
 
       <div className="stagger mb-10 grid gap-4 md:grid-cols-3">
         {funds.map((f) => (

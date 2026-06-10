@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { getDb } from './db/db.js';
 import { registerRoutes } from './api/routes.js';
+import { activateOnBoot } from './workspaces/workspaces.js';
 
 const app = Fastify({ logger: { level: 'info' } });
 
@@ -34,7 +35,8 @@ if (fs.existsSync(webDist)) {
   });
 }
 
-getDb(); // open + init schema up front
+activateOnBoot(); // open the active matter workspace (falls back to demo if locked)
+getDb();
 
 try {
   await app.listen({ port: config.port, host: config.host });

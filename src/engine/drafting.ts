@@ -19,6 +19,7 @@ import { hybridSearch } from '../search/hybrid.js';
 import { embedAll } from '../search/embeddings.js';
 import { releaseRun } from '../ai/gateway.js';
 import { createRun, emit, finishRun, failRun } from './progress.js';
+import { promotePrecedent } from './precedent.js';
 
 const MAX_TERMS = 6;
 
@@ -251,6 +252,21 @@ export async function integrateFeedback(provisionId: string, feedback: string): 
   });
 
   db.prepare(`UPDATE provisions SET text = ? WHERE id = ?`).run(result.data.revisedText, provisionId);
+
+  // language a lawyer shaped by hand is the strongest house-style signal
+  const doc = db.prepare(`SELECT fund_id FROM documents WHERE id = ?`).get(provision.document_id) as
+    | { fund_id: string | null }
+    | undefined;
+  await promotePrecedent(db, {
+    kind: 'draft_section',
+    topic: provision.topic,
+    title: `${provision.heading} (lawyer-revised)`,
+    text: result.data.revisedText,
+    sourceType: 'provision',
+    sourceId: provisionId,
+    fundId: doc?.fund_id ?? null,
+    weight: 1.3,
+  });
 
   return { ...result.data, provisionId, citationsVerified: result.citations };
 }

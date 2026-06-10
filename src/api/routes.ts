@@ -14,8 +14,17 @@ import { generateSideLetterDrafts } from '../engine/side-letters.js';
 import { startDraftingPipeline, integrateFeedback } from '../engine/drafting.js';
 import { createMatter, ingestDocument } from '../engine/intake.js';
 import { computeUpcomingDeadlines, deadlinesToICS, draftReminderEmail, planEvent } from '../engine/deadlines.js';
+import { listPrecedents } from '../engine/precedent.js';
 import { buildCompendium } from '../engine/mfn.js';
 import { mfnCompendiumDocx, sideLettersDocx } from '../export/docx.js';
+import {
+  activateWorkspace,
+  createWorkspace,
+  getActiveWorkspace,
+  listWorkspaces,
+  lockWorkspace,
+  unlockWorkspace,
+} from '../workspaces/workspaces.js';
 import { getRun, subscribe } from '../engine/progress.js';
 
 function errMessage(err: unknown): string {
@@ -26,16 +35,56 @@ export function registerRoutes(app: FastifyInstance): void {
   // ── Health & degradation flags ─────────────────────────────────────
   app.get('/api/health', async () => {
     const ollamaUp = await ollama.isUp();
+    const workspace = getActiveWorkspace();
     return {
       ok: true,
       model: config.anthropic.model,
       anthropicKey: Boolean(config.anthropic.apiKey),
       ollama: ollamaUp ? 'up' : 'down',
+      workspace: { id: workspace.id, name: workspace.name },
       degraded: {
         anonymization: ollamaUp ? null : 'regex-only (no local NER assist)',
         search: ollamaUp ? null : 'keyword-only (no embeddings)',
       },
     };
+  });
+
+  // ── Matter workspaces — ethical walls ──────────────────────────────
+  app.get('/api/workspaces', async () => listWorkspaces());
+
+  app.post<{ Body: { name: string } }>('/api/workspaces', async (req, reply) => {
+    if (!req.body?.name?.trim()) return reply.code(400).send({ error: 'name required' });
+    try {
+      return createWorkspace(req.body.name);
+    } catch (err) {
+      return reply.code(400).send({ error: errMessage(err) });
+    }
+  });
+
+  app.post<{ Params: { id: string } }>('/api/workspaces/:id/activate', async (req, reply) => {
+    try {
+      return activateWorkspace(req.params.id);
+    } catch (err) {
+      return reply.code(400).send({ error: errMessage(err) });
+    }
+  });
+
+  app.post<{ Params: { id: string }; Body: { passphrase: string } }>('/api/workspaces/:id/lock', async (req, reply) => {
+    if (!req.body?.passphrase) return reply.code(400).send({ error: 'passphrase required' });
+    try {
+      return lockWorkspace(req.params.id, req.body.passphrase);
+    } catch (err) {
+      return reply.code(400).send({ error: errMessage(err) });
+    }
+  });
+
+  app.post<{ Params: { id: string }; Body: { passphrase: string } }>('/api/workspaces/:id/unlock', async (req, reply) => {
+    if (!req.body?.passphrase) return reply.code(400).send({ error: 'passphrase required' });
+    try {
+      return unlockWorkspace(req.params.id, req.body.passphrase);
+    } catch (err) {
+      return reply.code(400).send({ error: errMessage(err) });
+    }
   });
 
   // ── Ontology reads ─────────────────────────────────────────────────
@@ -191,7 +240,7 @@ export function registerRoutes(app: FastifyInstance): void {
       const action = req.body?.action;
       if (action !== 'accept' && action !== 'edit') return reply.code(400).send({ error: 'action must be accept or edit' });
       try {
-        resolveComment(req.params.id, action, req.body?.text);
+        await resolveComment(req.params.id, action, req.body?.text);
         return { ok: true };
       } catch (err) {
         return reply.code(400).send({ error: errMessage(err) });
@@ -312,6 +361,9 @@ export function registerRoutes(app: FastifyInstance): void {
       .header('Content-Disposition', 'attachment; filename="forge-obligations.ics"')
       .send(deadlinesToICS(deadlines));
   });
+
+  // ── House precedent — what the engine has learned ──────────────────
+  app.get('/api/precedents', async () => listPrecedents(getDb()));
 
   // ── MFN compendium ──────────────────────────────────────────────────
   app.post<{ Body: { fundId: string; deliveryDate?: string } }>('/api/mfn/compendium', async (req, reply) => {

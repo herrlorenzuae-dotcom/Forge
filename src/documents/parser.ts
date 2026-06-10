@@ -45,10 +45,14 @@ export async function extractText(buffer: Buffer, filename: string, mimeType: st
 
   if (isPdf) {
     const { default: pdfParse } = (await import('pdf-parse/lib/pdf-parse.js')) as {
-      default: (b: Buffer) => Promise<{ text: string }>;
+      default: (b: Buffer) => Promise<{ text: string; numpages: number }>;
     };
-    const { text } = await pdfParse(buffer);
-    return text;
+    const { text, numpages } = await pdfParse(buffer);
+    const { isLikelyScanned, ocrPdf } = await import('./ocr.js');
+    if (!isLikelyScanned(text, numpages)) return text;
+    // a scan — fall back to on-device OCR, keep whichever read got more
+    const ocrText = await ocrPdf(buffer).catch(() => '');
+    return ocrText.replace(/\s+/g, '').length > text.replace(/\s+/g, '').length ? ocrText : text;
   }
   if (isDocx) {
     const mammoth = (await import('mammoth')) as unknown as {

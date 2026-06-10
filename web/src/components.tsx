@@ -29,6 +29,133 @@ export function CountUpUsd({ value }: { value: number }) {
   return <span className="tabular-nums">{usd(Math.round(v))}</span>;
 }
 
+// ── WorkspaceSwitcher — one case file open at a time ─────────────────────
+
+interface WorkspaceMeta {
+  id: string;
+  name: string;
+  locked: boolean;
+}
+
+export function WorkspaceSwitcher() {
+  const [open, setOpen] = useState(false);
+  const [activeId, setActiveId] = useState('');
+  const [workspaces, setWorkspaces] = useState<WorkspaceMeta[]>([]);
+  const [newName, setNewName] = useState('');
+  const [passFor, setPassFor] = useState<{ id: string; mode: 'lock' | 'unlock' } | null>(null);
+  const [passphrase, setPassphrase] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () =>
+    fetch('/api/workspaces')
+      .then((r) => r.json())
+      .then((d: { activeId: string; workspaces: WorkspaceMeta[] }) => {
+        setActiveId(d.activeId);
+        setWorkspaces(d.workspaces);
+      })
+      .catch(() => {});
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const act = async (path: string, body?: unknown) => {
+    setError(null);
+    const res = await fetch(`/api${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      setError(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
+      return false;
+    }
+    return true;
+  };
+
+  const active = workspaces.find((w) => w.id === activeId);
+
+  return (
+    <span className="relative">
+      <button onClick={() => setOpen((v) => !v)} className="btn-ghost max-w-52" title="Matter workspaces — each is a separate, walled-off file">
+        <span className="text-fog">⊟</span>
+        <span className="truncate">{active?.name ?? 'Workspace'}</span>
+        <span className="text-fog">▾</span>
+      </button>
+      {open && (
+        <div className="animate-pop-in absolute right-0 top-full z-40 mt-2 w-80 rounded-2xl border border-black/[0.08] bg-surface p-3 shadow-[0_8px_24px_rgba(0,0,0,0.10),0_28px_70px_rgba(0,0,0,0.16)]">
+          <p className="px-2 pb-2 pt-1 text-[11px] leading-relaxed text-fog">
+            Matter workspaces are separate files — an ethical wall. Only the open one is readable.
+          </p>
+          {workspaces.map((w) => (
+            <div key={w.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-black/[0.03]">
+              <button
+                disabled={w.locked}
+                onClick={async () => {
+                  if (await act(`/workspaces/${w.id}/activate`)) window.location.reload();
+                }}
+                className={`flex-1 text-left ${w.locked ? 'text-fog/60' : 'font-medium text-bone'}`}
+              >
+                {w.id === activeId ? '● ' : ''}
+                {w.name}
+                {w.locked ? ' 🔒' : ''}
+              </button>
+              {w.id !== 'default' && (
+                <button
+                  onClick={() => {
+                    setPassFor({ id: w.id, mode: w.locked ? 'unlock' : 'lock' });
+                    setPassphrase('');
+                  }}
+                  className="text-[11px] text-fog hover:text-ember"
+                >
+                  {w.locked ? 'Unlock' : 'Lock'}
+                </button>
+              )}
+            </div>
+          ))}
+          {passFor && (
+            <div className="mt-2 flex gap-2 border-t border-black/[0.06] px-2 pt-3">
+              <input
+                type="password"
+                autoFocus
+                value={passphrase}
+                onChange={(e) => setPassphrase(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter' && passphrase) {
+                    if (await act(`/workspaces/${passFor.id}/${passFor.mode}`, { passphrase })) {
+                      setPassFor(null);
+                      await load();
+                    }
+                  }
+                }}
+                placeholder={`Passphrase to ${passFor.mode}… (Enter)`}
+                className="field w-full flex-1 py-1.5 text-xs"
+              />
+            </div>
+          )}
+          <div className="mt-2 flex gap-2 border-t border-black/[0.06] px-2 pt-3">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && newName.trim()) {
+                  if (await act('/workspaces', { name: newName.trim() })) {
+                    setNewName('');
+                    await load();
+                  }
+                }
+              }}
+              placeholder="New matter workspace… (Enter)"
+              className="field w-full flex-1 py-1.5 text-xs"
+            />
+          </div>
+          {error && <p className="px-2 pt-2 text-[11px] text-warn">{error}</p>}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // ── StatusBadge ──────────────────────────────────────────────────────────
 
 export function StatusBadge() {
