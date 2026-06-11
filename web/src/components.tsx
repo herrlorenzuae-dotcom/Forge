@@ -536,7 +536,7 @@ export function SectionTitle({
           {eyebrow}
         </p>
       )}
-      <h1 className="text-4xl font-semibold tracking-[-0.03em] text-bone md:text-5xl">{children}</h1>
+      <h1 className="font-display text-[2.75rem] leading-[1.05] tracking-[-0.01em] text-bone md:text-[3.4rem]">{children}</h1>
       {sub && <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-fog">{sub}</p>}
     </div>
   );

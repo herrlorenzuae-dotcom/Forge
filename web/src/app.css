@@ -1,21 +1,21 @@
 @import 'tailwindcss';
 
 @theme {
-  /* warm paper surfaces (Claude-like) */
-  --color-page: #faf9f6;
+  /* alabaster stone, not cream: paper with the yellow taken out */
+  --color-page: #f4f3ef;
   --color-surface: #ffffff;
   --color-coal: #0a0a0b; /* intro veil only */
   /* ink scale */
-  --color-bone: #1d1d1f; /* primary text */
-  --color-fog: #6b6b70; /* secondary text */
-  /* brand + system colors, tuned for light backgrounds */
-  --color-ember: #c45f3f;
-  --color-ember-dim: #a94e31;
-  --color-verdant: #1a7f37;
-  --color-warn: #9a6700;
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --color-bone: #1b1a18; /* primary text, warm ink */
+  --color-fog: #6d6a63; /* secondary text */
+  /* bordeaux accent: leather-bound, legal, decidedly not terracotta */
+  --color-ember: #7d2f3f;
+  --color-ember-dim: #682636;
+  --color-verdant: #1f5f3c;
+  --color-warn: #8f6a08;
+  --font-display: 'Libre Caslon Display', 'Libre Caslon Text', Georgia, serif;
+  --font-sans: 'Schibsted Grotesk', -apple-system, system-ui, sans-serif;
+  --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
 }
 
 html {
@@ -33,7 +33,7 @@ html {
 }
 
 :focus-visible {
-  outline: 2px solid rgba(196, 95, 63, 0.7);
+  outline: 2px solid rgba(125, 47, 63, 0.7);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -61,7 +61,7 @@ html {
 /* faint warm glow at the top of the page — barely there, but felt */
 .app-bg {
   background:
-    radial-gradient(ellipse 90% 480px at 50% -120px, rgba(196, 95, 63, 0.055), transparent 70%),
+    radial-gradient(ellipse 90% 480px at 50% -120px, rgba(125, 47, 63, 0.055), transparent 70%),
     var(--color-page);
 }
 
@@ -99,7 +99,7 @@ html {
     0 1px 2px rgba(0, 0, 0, 0.03),
     0 6px 16px rgba(0, 0, 0, 0.05),
     0 24px 60px rgba(0, 0, 0, 0.09),
-    0 48px 120px rgba(196, 95, 63, 0.05);
+    0 48px 120px rgba(125, 47, 63, 0.05);
 }
 
 .glass {
@@ -147,11 +147,11 @@ html {
 }
 
 .field:focus {
-  border-color: rgba(196, 95, 63, 0.65);
+  border-color: rgba(125, 47, 63, 0.65);
   box-shadow:
     inset 0 1px 2px rgba(0, 0, 0, 0.02),
-    0 0 0 4px rgba(196, 95, 63, 0.13),
-    0 2px 10px rgba(196, 95, 63, 0.08);
+    0 0 0 4px rgba(125, 47, 63, 0.13),
+    0 2px 10px rgba(125, 47, 63, 0.08);
 }
 
 select.field {
@@ -168,7 +168,7 @@ select.field {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 9999px;
-  background: linear-gradient(180deg, #cf6b47 0%, #bc5536 100%);
+  background: linear-gradient(180deg, #8e3a4c 0%, #75293a 100%);
   color: #fff;
   padding: 0.5rem 1.25rem;
   font-size: 0.875rem;
@@ -177,7 +177,7 @@ select.field {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 1px 2px rgba(0, 0, 0, 0.12),
-    0 4px 12px rgba(196, 95, 63, 0.25);
+    0 4px 12px rgba(125, 47, 63, 0.25);
   transition:
     transform 0.18s cubic-bezier(0.32, 0.72, 0, 1),
     box-shadow 0.25s ease,
@@ -191,7 +191,7 @@ select.field {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 2px 4px rgba(0, 0, 0, 0.12),
-    0 8px 20px rgba(196, 95, 63, 0.32);
+    0 8px 20px rgba(125, 47, 63, 0.32);
 }
 
 .btn:active:not(:disabled) {
@@ -489,10 +489,10 @@ select.field {
 /* soft expanding halo around the active pipeline node */
 @keyframes halo {
   0% {
-    box-shadow: 0 0 0 0 rgba(196, 95, 63, 0.35);
+    box-shadow: 0 0 0 0 rgba(125, 47, 63, 0.35);
   }
   100% {
-    box-shadow: 0 0 0 9px rgba(196, 95, 63, 0);
+    box-shadow: 0 0 0 9px rgba(125, 47, 63, 0);
   }
 }
 
@@ -514,9 +514,9 @@ select.field {
   border-radius: 9999px;
   background: linear-gradient(
     90deg,
-    rgba(196, 95, 63, 0.1) 25%,
-    rgba(196, 95, 63, 0.45) 50%,
-    rgba(196, 95, 63, 0.1) 75%
+    rgba(125, 47, 63, 0.1) 25%,
+    rgba(125, 47, 63, 0.45) 50%,
+    rgba(125, 47, 63, 0.1) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s linear infinite;
