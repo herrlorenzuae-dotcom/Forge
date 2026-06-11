@@ -138,17 +138,26 @@ ontology after de-anonymization. Unverified citations are flagged in the UI.
 
 ## Run it
 
+Three steps from clone to a working firm:
+
 ```bash
-npm install && (cd web && npm install)
-
+npm install && npm run setup  # installs the UI, builds it, seeds the demo corpus
 cp .env.example .env          # add your ANTHROPIC_API_KEY
+npm run dev                   # → http://localhost:3000
+```
 
-# optional but recommended — the local model
+Then try the demo moment: open **Obligations** and ask the prefilled
+question — *"We have a time-sensitive new deal in sub-Saharan Africa. What
+obligations do we have?"* Thirty seconds later you have an urgency-ordered
+checklist where every step quotes the clause that created the duty, each
+quote machine-verified against the document. Then go to **Documents**,
+upload one of your own contracts, and watch the same thing happen to it.
+
+Optional but recommended — the local model for the privacy gateway and
+semantic search (everything degrades gracefully without it):
+
+```bash
 ollama pull gemma2:2b && ollama pull nomic-embed-text
-
-npm run seed                  # load the Vulcan corpus (+ embeddings if Ollama is up)
-(cd web && npm run build)     # build the UI once
-npm run dev                   # http://localhost:3000
 ```
 
 Dev UI with hot reload: `cd web && npm run dev` → http://localhost:5173.

@@ -5,6 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "setup": "npm --prefix web install && npm --prefix web run build && npm run seed",
     "dev": "tsx --env-file-if-exists=.env src/server.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",

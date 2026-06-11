@@ -187,6 +187,29 @@ export function StatusBadge() {
   );
 }
 
+/** A first-run without an API key should explain itself, not 400. */
+export function EngineKeyBanner() {
+  const [keyMissing, setKeyMissing] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const poll = () => get<Health>('/health').then((h) => alive && setKeyMissing(!h.anthropicKey)).catch(() => {});
+    poll();
+    const t = setInterval(poll, 10_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+  if (!keyMissing) return null;
+  return (
+    <div className="border-b border-warn/25 bg-warn/[0.07] px-6 py-2.5 text-center text-xs leading-relaxed text-warn">
+      The engine is asleep — no <code className="font-mono">ANTHROPIC_API_KEY</code> in <code className="font-mono">.env</code>.
+      Browsing, search and the register work; drafting, Q&A and extraction need the key. Add it and restart{' '}
+      <code className="font-mono">npm run dev</code>.
+    </div>
+  );
+}
+
 // ── CitationChip ─────────────────────────────────────────────────────────
 
 export function CitationChip({ citation }: { citation: Citation }) {

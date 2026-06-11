@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Intro, shouldPlayIntro } from './Intro.js';
-import { StatusBadge, PrivacyPanel, WorkspaceSwitcher } from './components.js';
+import { StatusBadge, PrivacyPanel, WorkspaceSwitcher, EngineKeyBanner } from './components.js';
 import { Ontology } from './pages/Ontology.js';
 import { Intake } from './pages/Intake.js';
 import { Drafting } from './pages/Drafting.js';
@@ -112,6 +112,7 @@ export default function App() {
           ))}
         </nav>
       </header>
+      <EngineKeyBanner />
 
       <main key={tab} className="animate-fade-up mx-auto max-w-6xl px-6 py-12">
         {tab === 'ontology' && <Ontology onNavigate={setTab} />}

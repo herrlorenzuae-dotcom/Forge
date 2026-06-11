@@ -100,6 +100,7 @@ export async function seedDatabase(db: Database.Database, opts: { embeddings?: b
     for (const table of [
       'embeddings',
       'ai_calls',
+      'precedents',
       'obligations',
       'side_letters',
       'comments',
