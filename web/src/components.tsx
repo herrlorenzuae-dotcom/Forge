@@ -191,6 +191,37 @@ export function StatusBadge() {
   );
 }
 
+/** One privacy control: the dot is the live status (green breathing =
+ *  local masking active, amber = degraded to regex-only, grey =
+ *  connecting), the click opens "What left your machine". */
+export function PrivacyButton({ onClick }: { onClick: () => void }) {
+  const [health, setHealth] = useState<Health | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const poll = () => get<Health>('/health').then((h) => alive && setHealth(h)).catch(() => alive && setHealth(null));
+    poll();
+    const t = setInterval(poll, 10_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+  const degraded = health?.ollama === 'down';
+  const dot = health == null ? 'bg-fog/50' : degraded ? 'bg-warn' : 'animate-breathe bg-verdant';
+  const title =
+    health == null
+      ? 'Connecting…'
+      : degraded
+        ? `Degraded: ${health.degraded.anonymization}; ${health.degraded.search}. Click to see exactly what left your machine.`
+        : `On-device privacy active (local model connected). Click to see exactly what left your machine.`;
+  return (
+    <button onClick={onClick} className="btn-ghost whitespace-nowrap" title={title}>
+      <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />
+      Privacy
+    </button>
+  );
+}
+
 /** A first-run without an API key should explain itself, not 400. */
 export function EngineKeyBanner() {
   const [keyMissing, setKeyMissing] = useState(false);

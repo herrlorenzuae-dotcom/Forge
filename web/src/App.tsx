@@ -2,7 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { get, type Fund } from './api.js';
 import { FundContext } from './fund-context.js';
 import { Intro, shouldPlayIntro } from './Intro.js';
-import { StatusBadge, PrivacyPanel, WorkspaceSwitcher, EngineKeyBanner } from './components.js';
+import { PrivacyButton, PrivacyPanel, WorkspaceSwitcher, EngineKeyBanner } from './components.js';
 import { Ontology } from './pages/Ontology.js';
 import { Intake } from './pages/Intake.js';
 import { Drafting } from './pages/Drafting.js';
@@ -93,7 +93,7 @@ function SegmentedNav({ active, onSelect }: { active: string; onSelect: (key: st
   }, [active]);
 
   return (
-    <div className="relative min-w-0">
+    <div className="relative mx-auto w-max min-w-0 max-w-full">
       <span aria-hidden className={`seg-fade seg-fade-l ${fade.left ? 'is-on' : ''}`} />
       <span aria-hidden className={`seg-fade seg-fade-r ${fade.right ? 'is-on' : ''}`} />
       <nav ref={(el) => { trackRef.current = el; }} onScroll={updateFades} className="seg-track" aria-label="Sections">
@@ -154,11 +154,8 @@ export default function App() {
     <div className="app-bg min-h-screen overflow-x-hidden">
       {intro && <Intro onDone={() => setIntro(false)} />}
       <header className={`glass hairline-b sticky top-0 z-20 transition-shadow duration-300 ${elevated ? 'header-elevated' : ''}`}>
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-3 px-6 py-3">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-6 pb-2 pt-3">
           <div className="shrink-0 font-display text-2xl tracking-[0.25em] text-bone">FORGE</div>
-          <div className="hidden min-w-0 flex-1 md:block">
-            <SegmentedNav active={tab} onSelect={setTab} />
-          </div>
           <div className="ml-auto flex shrink-0 items-center gap-2.5">
             {funds.length > 0 && (
               <select
@@ -176,30 +173,12 @@ export default function App() {
               </select>
             )}
             <WorkspaceSwitcher />
-            <span className="hidden lg:inline-flex">
-              <StatusBadge />
-            </span>
-            <button onClick={() => setPrivacyOpen(true)} className="btn-ghost whitespace-nowrap">
-              <span className="animate-breathe text-ember">●</span>
-              <span className="hidden lg:inline"> What left your machine</span>
-              <span className="lg:hidden"> Privacy</span>
-            </button>
+            <PrivacyButton onClick={() => setPrivacyOpen(true)} />
           </div>
         </div>
-        {/* mobile tabs */}
-        <nav className="flex gap-1 overflow-x-auto px-4 pb-3 md:hidden" aria-label="Sections">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all ${
-                tab === t.key ? 'bg-surface text-bone shadow-sm' : 'text-fog'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        <div className="mx-auto max-w-6xl px-4 pb-3 sm:px-6">
+          <SegmentedNav active={tab} onSelect={setTab} />
+        </div>
       </header>
       <EngineKeyBanner />
 
