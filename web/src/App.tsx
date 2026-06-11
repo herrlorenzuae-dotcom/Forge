@@ -28,24 +28,70 @@ const TABS = [
 /** Segmented control with a sliding active pill. */
 function SegmentedNav({ active, onSelect }: { active: string; onSelect: (key: string) => void }) {
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const trackRef = useRef<HTMLElement | null>(null);
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+  const [fade, setFade] = useState({ left: false, right: false });
+
+  const updateFades = () => {
+    const t = trackRef.current;
+    if (!t) return;
+    const left = t.scrollLeft > 4;
+    const right = t.scrollLeft + t.clientWidth < t.scrollWidth - 4;
+    setFade((f) => (f.left === left && f.right === right ? f : { left, right }));
+  };
 
   const measure = () => {
     const el = btnRefs.current[active];
-    // offsetWidth is 0 while the nav is display:none (mobile) — skip until visible
+    // offsetWidth is 0 while the nav is display:none (mobile): skip until visible
     if (el && el.offsetWidth > 0) setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+    updateFades();
   };
 
-  useLayoutEffect(measure, [active]);
+  // when the track scrolls, the selected tab must never sit hidden in the dark
+  const reveal = () => {
+    const t = trackRef.current;
+    const el = btnRefs.current[active];
+    if (!t || !el || el.offsetWidth === 0) return;
+    const pad = 32;
+    // instant, not smooth: the tab switch remounts the page content in the
+    // same frame, which cancels an in-flight smooth scroll. The sliding
+    // indicator carries the motion.
+    if (el.offsetLeft < t.scrollLeft + pad) {
+      t.scrollTo({ left: Math.max(0, el.offsetLeft - pad) });
+    } else if (el.offsetLeft + el.offsetWidth > t.scrollLeft + t.clientWidth - pad) {
+      t.scrollTo({ left: el.offsetLeft + el.offsetWidth - t.clientWidth + pad });
+    }
+  };
+
+  useLayoutEffect(() => {
+    measure();
+    // deferred past the same frame's content remount (a timeout, not rAF:
+    // rAF never fires in hidden tabs and the reveal must not depend on it)
+    const id = window.setTimeout(() => {
+      reveal();
+      updateFades();
+    }, 30);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
   useEffect(() => {
     window.addEventListener('resize', measure);
     document.fonts?.ready.then(measure).catch(() => {});
-    return () => window.removeEventListener('resize', measure);
+    // the track can change size without a window resize (header wrap, zoom)
+    const ro = trackRef.current ? new ResizeObserver(() => measure()) : null;
+    if (ro && trackRef.current) ro.observe(trackRef.current);
+    return () => {
+      window.removeEventListener('resize', measure);
+      ro?.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   return (
-    <nav className="seg-track" aria-label="Sections">
+    <div className="relative min-w-0">
+      <span aria-hidden className={`seg-fade seg-fade-l ${fade.left ? 'is-on' : ''}`} />
+      <span aria-hidden className={`seg-fade seg-fade-r ${fade.right ? 'is-on' : ''}`} />
+      <nav ref={(el) => { trackRef.current = el; }} onScroll={updateFades} className="seg-track" aria-label="Sections">
       {indicator && <span className="seg-indicator" style={{ left: indicator.left, width: indicator.width }} />}
       {TABS.map((t) => (
         <button
@@ -60,7 +106,8 @@ function SegmentedNav({ active, onSelect }: { active: string; onSelect: (key: st
           {t.label}
         </button>
       ))}
-    </nav>
+      </nav>
+    </div>
   );
 }
 
@@ -83,9 +130,7 @@ export default function App() {
       {intro && <Intro onDone={() => setIntro(false)} />}
       <header className={`glass hairline-b sticky top-0 z-20 transition-shadow duration-300 ${elevated ? 'header-elevated' : ''}`}>
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-3 px-6 py-3">
-          <div className="shrink-0 font-display text-2xl tracking-[0.25em] text-bone">
-            FORGE<span className="text-ember">.</span>
-          </div>
+          <div className="shrink-0 font-display text-2xl tracking-[0.25em] text-bone">FORGE</div>
           <div className="hidden min-w-0 flex-1 md:block">
             <SegmentedNav active={tab} onSelect={setTab} />
           </div>
@@ -95,7 +140,7 @@ export default function App() {
               <StatusBadge />
             </span>
             <button onClick={() => setPrivacyOpen(true)} className="btn-ghost whitespace-nowrap">
-              <span className="text-ember">●</span>
+              <span className="animate-breathe text-ember">●</span>
               <span className="hidden lg:inline"> What left your machine</span>
               <span className="lg:hidden"> Privacy</span>
             </button>
@@ -138,7 +183,7 @@ export default function App() {
       </main>
 
       <footer className="mx-auto max-w-6xl px-6 pb-10 pt-6 text-xs leading-relaxed text-fog/70">
-        Forge — a fund formation engine. Fictional client: Vulcan Industrial Partners. Not legal advice; a homage built for fun.
+        Forge, a fund formation engine. Fictional client: Vulcan Industrial Partners. Not legal advice; a homage built for fun.
       </footer>
 
       {privacyOpen && <PrivacyPanel onClose={() => setPrivacyOpen(false)} />}

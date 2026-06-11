@@ -54,7 +54,7 @@ let _client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (_client) return _client;
   if (!config.anthropic.apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not set — Forge needs it for engine calls.');
+    throw new Error('ANTHROPIC_API_KEY is not set. Forge needs it for engine calls.');
   }
   _client = new Anthropic();
   return _client;

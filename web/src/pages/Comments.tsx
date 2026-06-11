@@ -99,7 +99,7 @@ export function Comments() {
     <div>
       <SectionTitle
         eyebrow="Negotiation · your call, faster"
-        sub={`Every investor comment, sorted by deal point instead of by inbox. For each one, the engine proposes a response grounded in your model terms and that investor's own precedent — you accept, edit, or ignore it. ${total} comments on ${fundName}, ${open} still open.`}
+        sub={`Every investor comment, sorted by deal point instead of by inbox. For each one, the engine proposes a response grounded in your model terms and that investor's own precedent. You accept, edit, or ignore it. ${total} comments on ${fundName}, ${open} still open.`}
       >
         Investor Comments
       </SectionTitle>
@@ -148,7 +148,7 @@ export function Comments() {
             {ingested.topics.length > 0
               ? ` across ${ingested.topics.length} deal point${ingested.topics.length === 1 ? '' : 's'}: ${ingested.topics.map((t) => t.replace(/_/g, ' ')).join(', ')}`
               : ''}
-            {ingested.skippedDuplicates > 0 ? ` — ${ingested.skippedDuplicates} already in the queue, skipped` : ''}
+            {ingested.skippedDuplicates > 0 ? `; ${ingested.skippedDuplicates} already in the queue, skipped` : ''}
           </p>
         )}
       </div>
@@ -222,7 +222,7 @@ export function Comments() {
           </div>
         ))}
         {total === 0 && (
-          <div className="card p-10 text-center text-sm text-fog">No comments on {fundName} yet — paste a mark-up above to start.</div>
+          <div className="card p-10 text-center text-sm text-fog">No comments on {fundName} yet. Paste a mark-up above to start.</div>
         )}
       </div>
     </div>

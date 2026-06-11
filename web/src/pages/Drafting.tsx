@@ -96,7 +96,7 @@ export function Drafting() {
     <div>
       <SectionTitle
         eyebrow="From term sheet to first draft"
-        sub="Paste the agreed commercial terms. The engine drafts the operative sections from your model documents, your prior funds, and what investors pushed back on last time — and shows you the source of every sentence."
+        sub="Paste the agreed commercial terms. The engine drafts the operative sections from your model documents, your prior funds, and what investors pushed back on last time, and it shows you the source of every sentence."
       >
         Drafting
       </SectionTitle>
@@ -120,7 +120,7 @@ export function Drafting() {
         <Button onClick={run} busy={running} disabled={!termSheet}>
           Generate first draft
         </Button>
-        <span className="text-xs text-fog">takes a few minutes — watch it work below</span>
+        <span className="text-xs text-fog">takes a few minutes; watch it work below</span>
       </div>
       <ErrorNote error={error} />
 
@@ -142,7 +142,7 @@ export function Drafting() {
           </div>
           {result.termsKept < result.termsTotal && (
             <p className="mb-4 rounded-xl border border-warn/25 bg-warn/[0.06] px-4 py-2.5 text-xs leading-relaxed text-warn">
-              {result.termsTotal} commercial terms identified — the {result.termsKept} most important were drafted,{' '}
+              {result.termsTotal} commercial terms identified. The {result.termsKept} most important were drafted,{' '}
               {result.termsTotal - result.termsKept} deferred. Run again with the remaining terms, or draft them by hand.
             </p>
           )}
@@ -156,14 +156,14 @@ export function Drafting() {
                   <CitationRow citations={rev?.citations ?? s.citations} />
                   {rev && (
                     <p className="mt-3 rounded-xl bg-verdant/[0.08] px-3.5 py-2 text-xs leading-relaxed text-verdant">
-                      Revised — {rev.changeSummary}
+                      Revised: {rev.changeSummary}
                     </p>
                   )}
                   <div className="mt-4 flex gap-2.5">
                     <input
                       value={feedback[s.provisionId] ?? ''}
                       onChange={(e) => setFeedback((prev) => ({ ...prev, [s.provisionId]: e.target.value }))}
-                      placeholder="Mark it up in a sentence — e.g. tighten the consent threshold to $75M"
+                      placeholder="Mark it up in a sentence. Tighten the consent threshold to $75M, say."
                       className="field w-full flex-1 py-2 text-xs"
                     />
                     <Button

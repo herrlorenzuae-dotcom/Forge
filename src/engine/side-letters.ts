@@ -138,8 +138,8 @@ export async function executeSideLetter(
 
   const documentId = genId('doc');
   const sideLetterId = genId('sl');
-  const title = `Side Letter — ${investor.name} (${fund.name})`;
-  const content = [title, '', ...opts.draft.clauses.flatMap((c, i) => [`Paragraph ${i + 1} — ${c.term}`, '', c.text, ''])].join('\n');
+  const title = `Side Letter: ${investor.name} (${fund.name})`;
+  const content = [title, '', ...opts.draft.clauses.flatMap((c, i) => [`Paragraph ${i + 1}: ${c.term}`, '', c.text, ''])].join('\n');
 
   // Idempotent on retry: if this exact letter is already on file (a prior
   // attempt that failed after the commit, or a double click), reuse it —
@@ -180,7 +180,7 @@ export async function executeSideLetter(
 
   const provisionRows = opts.draft.clauses.map((c, i) => ({
     id: genId('p'),
-    heading: `Paragraph ${i + 1} — ${c.term}`,
+    heading: `Paragraph ${i + 1}: ${c.term}`,
     topic: classifyClauseTopic(c.term, c.text),
     text: c.text,
     position: i + 1,
@@ -200,7 +200,7 @@ export async function executeSideLetter(
     await promotePrecedent(db, {
       kind: 'side_letter_clause',
       topic: p.topic,
-      title: `${title} — ${p.heading}`,
+      title: `${title} · ${p.heading}`,
       text: p.text,
       sourceType: 'provision',
       sourceId: p.id,

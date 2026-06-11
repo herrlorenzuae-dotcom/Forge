@@ -245,7 +245,7 @@ export async function buildCompendium(
     return {
       ...p,
       classification: c?.classification ?? 'excluded_recipient_specific',
-      rationale: c?.rationale ?? 'Not classified by the model — defaulted to excluded (conservative).',
+      rationale: c?.rationale ?? 'Not classified by the model; defaulted to excluded (conservative).',
       citation: c?.citation ?? { sourceType: 'provision', sourceId: p.provisionId, quote: '' },
       electableBy,
     };

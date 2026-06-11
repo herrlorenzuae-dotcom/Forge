@@ -384,7 +384,7 @@ export function deadlinesToICS(deadlines: Deadline[], calendarName = 'Forge Obli
       `UID:${d.obligationId}-${d.dueDate}@forge.local`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${date}`,
-      `SUMMARY:${icsEscape(`${d.fundName.replace(/, L\.P\.$/, '')} — ${d.summary}`)}`,
+      `SUMMARY:${icsEscape(`${d.fundName.replace(/, L\.P\.$/, '')}: ${d.summary}`)}`,
       `DESCRIPTION:${icsEscape(
         `${d.periodLabel} · owed to ${d.investorName ?? 'all LPs'} · ${d.type}\nSource (${d.obligationId}): "${d.sourceClause}"`,
       )}`,

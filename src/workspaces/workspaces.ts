@@ -49,7 +49,7 @@ function readRegistry(): Registry {
       workspaces: [
         {
           id: 'default',
-          name: 'Demo — Vulcan Industrial Partners',
+          name: 'Demo: Vulcan Industrial Partners',
           file: path.resolve(config.dbPath),
           locked: false,
           createdAt: new Date().toISOString(),
@@ -103,12 +103,12 @@ export function createWorkspace(name: string): WorkspaceMeta {
 export function activateWorkspace(id: string): WorkspaceMeta {
   const r = readRegistry();
   const ws = find(r, id);
-  if (ws.locked) throw new Error('Workspace is locked — unlock it with its passphrase first.');
+  if (ws.locked) throw new Error('Workspace is locked. Unlock it with its passphrase first.');
   // already active: a no-op, NOT a reopen — setDb would close the live
   // handle out from under any in-flight operation
   if (id === r.activeId) return ws;
   if (isDbBusy()) {
-    throw new Error('An operation is still running in the current matter — wait for it to finish before switching.');
+    throw new Error('An operation is still running in the current matter. Wait for it to finish before switching.');
   }
   setDb(openDb(ws.file));
   r.activeId = id;
@@ -144,12 +144,12 @@ export function lockWorkspace(id: string, passphrase: string): WorkspaceMeta {
   if (ws.id === 'default') throw new Error('The demo workspace cannot be locked.');
   if (ws.locked) throw new Error('Workspace is already locked.');
   if (isDbBusy()) {
-    throw new Error('An operation is still running — wait for it to finish before locking.');
+    throw new Error('An operation is still running. Wait for it to finish before locking.');
   }
   // never lock a file that doesn't exist — openDb would create a fresh
   // EMPTY database and we'd encrypt nothing over the real data
   if (!fs.existsSync(ws.file)) {
-    throw new Error('Workspace database file is missing — cannot lock.');
+    throw new Error('Workspace database file is missing, so there is nothing to lock.');
   }
   // a .locked alongside a live plaintext is a stale leftover from an
   // interrupted unlock and is safe to replace; a .locked WITHOUT plaintext

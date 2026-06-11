@@ -168,12 +168,12 @@ export async function seedDatabase(db: Database.Database, opts: { embeddings?: b
       'model',
       null,
       'Vulcan Form of Limited Partnership Agreement (Model Document Library)',
-      composeContent('Vulcan Form LPA — Model Provisions', modelProvisions),
+      composeContent('Vulcan Form LPA: Model Provisions', modelProvisions),
     );
     modelProvisions.forEach((p, i) => insertProvision.run(p.id, modelDocId, p.topic, p.heading, p.text, i + 1));
 
     // Fund III term sheet
-    insertDocument.run('doc-f3-termsheet', 'fund-3', 'term_sheet', 'draft', null, 'Vulcan Industrial Partners III — Summary of Principal Terms', termSheet);
+    insertDocument.run('doc-f3-termsheet', 'fund-3', 'term_sheet', 'draft', null, 'Vulcan Industrial Partners III: Summary of Principal Terms', termSheet);
 
     // LPAs, side letters, Fund III draft
     for (const doc of documents) {
@@ -251,7 +251,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   console.log('Seeded Forge ontology:');
   console.log(`  funds: ${summary.funds}, investors: ${summary.investors}, documents: ${summary.documents}`);
   console.log(`  provisions: ${summary.provisions}, comments: ${summary.comments}, obligations: ${summary.obligations}`);
-  console.log(`  embeddings stored: ${summary.embeddings}${summary.embeddings === 0 ? ' (Ollama unreachable — keyword search only)' : ''}`);
+  console.log(`  embeddings stored: ${summary.embeddings}${summary.embeddings === 0 ? ' (Ollama unreachable; keyword search only)' : ''}`);
   if (summary.unverifiedObligations.length > 0) {
     console.warn(`  ⚠ unverified obligation citations: ${summary.unverifiedObligations.join(', ')}`);
     process.exitCode = 1;

@@ -139,7 +139,7 @@ export async function ingestDocument(
       await promotePrecedent(db, {
         kind: 'side_letter_clause',
         topic: provisions[i].topic,
-        title: `${title} — ${p.heading}`,
+        title: `${title} · ${p.heading}`,
         text: p.text,
         sourceType: 'provision',
         sourceId: p.id,

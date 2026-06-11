@@ -97,7 +97,7 @@ export function Intake({ onUseMatter }: { onUseMatter?: (fundId: string) => void
             </span>
             <h3 className="text-sm font-semibold text-bone">Choose the matter</h3>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-fog">Documents are filed under a fund or client matter — like a deal room.</p>
+          <p className="mt-2 text-xs leading-relaxed text-fog">Documents are filed under a fund or client matter, like a deal room.</p>
           {matters.length > 0 && (
             <select value={matterId} onChange={(e) => setMatterId(e.target.value)} className="field mt-4 w-full">
               <option value="">Choose an existing engagement…</option>
@@ -134,7 +134,7 @@ export function Intake({ onUseMatter }: { onUseMatter?: (fundId: string) => void
           <input
             value={investorName}
             onChange={(e) => setInvestorName(e.target.value)}
-            placeholder="Investor / counterparty name (optional — links side letters to their LP)"
+            placeholder="Investor / counterparty name (optional; links side letters to their LP)"
             className="field mt-3 w-full py-2 text-xs"
           />
           <label
@@ -188,7 +188,7 @@ export function Intake({ onUseMatter }: { onUseMatter?: (fundId: string) => void
 
       {lastUpload && (
         <p className="animate-fade-up mt-5 text-xs text-fog">
-          Parsed <span className="font-medium text-bone">{lastUpload.title}</span> — {lastUpload.provisionCount} provisions
+          Parsed <span className="font-medium text-bone">{lastUpload.title}</span>: {lastUpload.provisionCount} provisions
           {lastUpload.embedded > 0 ? `, ${lastUpload.embedded} embedded for semantic search` : ''}
           {lastUpload.investorName ? (
             <>
@@ -205,7 +205,7 @@ export function Intake({ onUseMatter }: { onUseMatter?: (fundId: string) => void
         <div className="animate-fade-up mt-6">
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-sm font-semibold text-bone">
-              This document creates {extracted.obligations.length} ongoing dut{extracted.obligations.length === 1 ? 'y' : 'ies'} — now on file
+              This document creates {extracted.obligations.length} ongoing dut{extracted.obligations.length === 1 ? 'y' : 'ies'}, now on file
             </h3>
             <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-fog tabular-nums">
               <span className={`h-1.5 w-1.5 rounded-full ${verifiedCount === extracted.obligations.length ? 'bg-verdant' : 'bg-warn'}`} />

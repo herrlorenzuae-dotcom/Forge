@@ -41,7 +41,7 @@ getDb();
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1']);
 if (!LOOPBACK.has(config.host)) {
   app.log.warn(
-    `FORGE_HOST=${config.host} binds beyond loopback. Forge has NO authentication — every matter, document and API ` +
+    `FORGE_HOST=${config.host} binds beyond loopback. Forge has NO authentication, so every matter, document and API ` +
       `action becomes available to anyone who can reach this machine on port ${config.port}. Only do this behind a ` +
       `firewall or reverse proxy that adds auth.`,
   );
@@ -53,7 +53,7 @@ try {
     funds: number;
     obligations: number;
   };
-  app.log.info(`Forge up at http://${config.host}:${config.port} — ${counts.funds} funds, ${counts.obligations} obligations${counts.funds === 0 ? ' (run `npm run seed`)' : ''}`);
+  app.log.info(`Forge up at http://${config.host}:${config.port}. ${counts.funds} funds, ${counts.obligations} obligations${counts.funds === 0 ? ' (run `npm run seed`)' : ''}`);
 } catch (err) {
   app.log.error(err);
   process.exit(1);

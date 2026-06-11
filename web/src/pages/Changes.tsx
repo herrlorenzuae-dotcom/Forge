@@ -85,7 +85,7 @@ export function Changes() {
     <div>
       <SectionTitle
         eyebrow="When the deal changes"
-        sub="The client wants to change a term mid-raise. Pick the provision, say what's changing — the engine reads what it currently says, shows how your prior funds and side letters handled the same ground, and gives you drafting alternatives, most conservative first."
+        sub="The client wants to change a term mid-raise. Pick the provision and say what's changing. The engine reads what it currently says, shows how your prior funds and side letters handled the same ground, and gives you drafting alternatives, most conservative first."
       >
         Term Changes
       </SectionTitle>
@@ -97,7 +97,7 @@ export function Changes() {
             {docs.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.title}
-                {fundName(d.fund_id) ? ` — ${fundName(d.fund_id)}` : ''}
+                {fundName(d.fund_id) ? ` · ${fundName(d.fund_id)}` : ''}
               </option>
             ))}
           </select>
@@ -112,7 +112,7 @@ export function Changes() {
           {current && <p className="card mt-3 p-4 text-xs leading-relaxed text-fog">{current.text}</p>}
           {docs.length === 0 && (
             <p className="card mt-3 p-4 text-xs leading-relaxed text-fog">
-              No documents on file yet — add one under Documents first.
+              No documents on file yet. Add one under Documents first.
             </p>
           )}
         </div>
@@ -151,7 +151,7 @@ export function Changes() {
 
           <div>
             <div className="mb-3 flex items-baseline justify-between">
-              <h3 className="text-sm font-semibold text-bone">Menu of alternatives — most conservative first</h3>
+              <h3 className="text-sm font-semibold text-bone">Menu of alternatives, most conservative first</h3>
               <span className="font-mono text-[10px] text-fog tabular-nums">
                 {result.citationsVerified.verified}/{result.citationsVerified.total} citations verified
               </span>

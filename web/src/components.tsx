@@ -80,7 +80,7 @@ export function WorkspaceSwitcher() {
       <button
         onClick={() => setOpen((v) => !v)}
         className="btn-ghost max-w-52"
-        title={`${active?.name ?? 'Workspace'} — matter workspaces are separate, walled-off files`}
+        title={`${active?.name ?? 'Workspace'}. Matter workspaces are separate, walled-off files`}
       >
         <span className="text-fog">⊟</span>
         <span className="truncate">{active?.name ?? 'Workspace'}</span>
@@ -89,7 +89,7 @@ export function WorkspaceSwitcher() {
       {open && (
         <div className="animate-pop-in absolute right-0 top-full z-40 mt-2 w-80 rounded-2xl border border-black/[0.08] bg-surface p-3 shadow-[0_8px_24px_rgba(0,0,0,0.10),0_28px_70px_rgba(0,0,0,0.16)]">
           <p className="px-2 pb-2 pt-1 text-[11px] leading-relaxed text-fog">
-            Matter workspaces are separate files — an ethical wall. Only the open one is readable.
+            Matter workspaces are separate files, each its own ethical wall. Only the open one is readable.
           </p>
           {workspaces.map((w) => (
             <div key={w.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-black/[0.03]">
@@ -207,7 +207,7 @@ export function EngineKeyBanner() {
   if (!keyMissing) return null;
   return (
     <div className="border-b border-warn/25 bg-warn/[0.07] px-6 py-2.5 text-center text-xs leading-relaxed text-warn">
-      The engine is asleep — no <code className="font-mono">ANTHROPIC_API_KEY</code> in <code className="font-mono">.env</code>.
+      The engine is asleep: no <code className="font-mono">ANTHROPIC_API_KEY</code> in <code className="font-mono">.env</code>.
       Browsing, search and the register work; drafting, Q&A and extraction need the key. Add it and restart{' '}
       <code className="font-mono">npm run dev</code>.
     </div>
@@ -413,8 +413,8 @@ export function PrivacyPanel({ onClose }: { onClose: () => void }) {
           sent; <mark className="rounded bg-ember/15 px-0.5 text-ember">placeholders</mark> are restored locally on the way back.
         </p>
         <p className="mb-6 max-w-md rounded-xl border border-black/[0.07] bg-black/[0.025] px-4 py-3 text-xs leading-relaxed text-fog">
-          What this does <span className="font-semibold text-bone">not</span> mask: the legal text itself — amounts, dates, clause
-          language — travels in clear, because that's what makes verbatim citations checkable. Names the ontology doesn't know
+          What this does <span className="font-semibold text-bone">not</span> mask: the legal text itself (amounts, dates, clause
+          language) travels in clear, because that's what makes verbatim citations checkable. Names the ontology doesn't know
           (counterparties, individuals inside documents) are caught by the local model's NER pass when it's running; the badge
           above goes amber when it isn't.
         </p>

@@ -177,7 +177,7 @@ export function Deadlines() {
     <div>
       <SectionTitle
         eyebrow="Never miss a date"
-        sub="Every recurring duty turned into a real due date — quarterly and annual anchors, business-day counting taken from the clause itself. Plan around a deal, draft the reminder email, or push the lot to your calendar."
+        sub="Every recurring duty turned into a real due date: quarterly and annual anchors, business-day counting taken from the clause itself. Plan around a deal, draft the reminder email, or push the lot to your calendar."
       >
         Deadlines
       </SectionTitle>
@@ -206,7 +206,7 @@ export function Deadlines() {
       <div className="card-elevated mb-10 p-7">
         <h3 className="text-sm font-semibold text-bone">Planning a deal or a closing?</h3>
         <p className="mt-1 text-xs leading-relaxed text-fog">
-          Describe it and set the date — you get every notice, consent and report it triggers, each with its own latest-action date counted from the clause. Instant; no AI involved in the dates.
+          Describe it and set the date. You get every notice, consent and report it triggers, each with its own latest-action date counted from the clause. Instant; no AI involved in the dates.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <input
@@ -261,7 +261,7 @@ export function Deadlines() {
               <p className="font-mono text-[10px] text-fog/80 tabular-nums">
                 Matched {planScope.matchedCount} of {planScope.totalEventDuties} event-triggered obligations on file
                 {planScope.matchedCount < planScope.totalEventDuties
-                  ? ' — the rest didn’t match this event’s description; reword it if something you expected is missing'
+                  ? '. The rest didn’t match this event’s description, so reword it if something you expected is missing'
                   : ''}
                 .
               </p>
@@ -321,7 +321,7 @@ export function Deadlines() {
       )}
 
       <p className="mt-6 text-[11px] leading-relaxed text-fog/80">
-        Assumes a calendar fiscal year. Business-day math skips weekends but not public holidays — verify critical dates.
+        Assumes a calendar fiscal year. Business-day math skips weekends but not public holidays, so verify critical dates.
       </p>
     </div>
   );

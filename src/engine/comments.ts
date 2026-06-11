@@ -167,7 +167,7 @@ export async function resolveComment(commentId: string, action: 'accept' | 'edit
     | undefined;
   if (!comment) throw new Error(`Unknown comment: ${commentId}`);
   const resolution = action === 'accept' ? comment.suggested_resolution : text;
-  if (!resolution) throw new Error(action === 'accept' ? 'Nothing to accept — no suggestion yet' : 'Edited resolution text required');
+  if (!resolution) throw new Error(action === 'accept' ? 'Nothing to accept: no suggestion yet' : 'Edited resolution text required');
   db.prepare(
     `UPDATE comments SET status = 'resolved', resolution_text = ?, resolved_by = ?, updated_at = datetime('now') WHERE id = ?`,
   ).run(resolution, action === 'accept' ? 'lawyer_accepted' : 'lawyer_edited', commentId);
@@ -175,7 +175,7 @@ export async function resolveComment(commentId: string, action: 'accept' | 'edit
   await promotePrecedent(db, {
     kind: 'resolution',
     topic: comment.provision_topic,
-    title: `${comment.provision_topic.replace(/_/g, ' ')} resolution — ${comment.investor_type.replace(/_/g, ' ')} comment`,
+    title: `${comment.provision_topic.replace(/_/g, ' ')} resolution (${comment.investor_type.replace(/_/g, ' ')} comment)`,
     text: resolution,
     sourceType: 'comment',
     sourceId: commentId,

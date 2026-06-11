@@ -65,7 +65,7 @@ export function Mfn() {
     <div>
       <SectionTitle
         eyebrow="Most favored nation"
-        sub="The compendium, assembled for you: every side-letter provision in the fund, who is entitled to elect it, what's excluded as investor-specific — with the reasoning written out and cited — and the election deadline counted from your delivery date."
+        sub="The compendium, assembled for you: every side-letter provision in the fund, who is entitled to elect it, what's excluded as investor-specific (with the reasoning written out and cited), and the election deadline counted from your delivery date."
       >
         MFN Compendium
       </SectionTitle>
@@ -99,7 +99,7 @@ export function Mfn() {
           <div className="card-elevated animate-pop-in p-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h3 className="text-sm font-semibold text-bone">MFN basis — {result.fundName}</h3>
+                <h3 className="text-sm font-semibold text-bone">MFN basis · {result.fundName}</h3>
                 {result.basis && (
                   <p className="mt-2 max-w-2xl text-xs leading-relaxed text-fog">“{result.basis.sourceClause}”</p>
                 )}
@@ -113,12 +113,12 @@ export function Mfn() {
             <div className="mt-5 grid gap-4 sm:grid-cols-4">
               <div>
                 <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                  {result.thresholdUsd != null ? usd(result.thresholdUsd) : '—'}
+                  {result.thresholdUsd != null ? usd(result.thresholdUsd) : '–'}
                 </div>
                 <div className="mt-0.5 text-[11px] text-fog">eligibility threshold</div>
               </div>
               <div>
-                <div className="text-2xl font-semibold tracking-tight tabular-nums">{result.windowDays ?? '—'}d</div>
+                <div className="text-2xl font-semibold tracking-tight tabular-nums">{result.windowDays != null ? `${result.windowDays}d` : '–'}</div>
                 <div className="mt-0.5 text-[11px] text-fog">election window</div>
               </div>
               <div>
@@ -127,7 +127,7 @@ export function Mfn() {
               </div>
               <div>
                 <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                  {result.electionDeadline ?? '—'}
+                  {result.electionDeadline ?? '–'}
                 </div>
                 <div className="mt-0.5 text-[11px] text-fog">
                   {result.electionDeadline ? 'election deadline' : 'set a delivery date for the deadline'}
@@ -136,7 +136,7 @@ export function Mfn() {
             </div>
             {result.thresholdUnparsed && (
               <p className="mt-4 rounded-xl border border-warn/25 bg-warn/[0.06] px-4 py-2.5 text-xs leading-relaxed text-warn">
-                The MFN clause sets a monetary eligibility test that couldn't be read automatically — eligible electors are{' '}
+                The MFN clause sets a monetary eligibility test that couldn't be read automatically, so eligible electors are{' '}
                 <span className="font-semibold">unknown</span>, not zero. Read the basis clause above and determine eligibility by hand.
               </p>
             )}
@@ -157,7 +157,7 @@ export function Mfn() {
               </h3>
               <span className="flex items-center gap-3">
                 <button
-                  onClick={() => void downloadDocx('mfn-compendium', result, `MFN Compendium — ${result.fundName.replace(/, L\.P\.$/, '')}.docx`)}
+                  onClick={() => void downloadDocx('mfn-compendium', result, `MFN Compendium - ${result.fundName.replace(/, L\.P\.$/, '')}.docx`)}
                   className="btn-ghost"
                 >
                   ⤓ Download .docx
@@ -176,7 +176,7 @@ export function Mfn() {
                         e.classification === 'electable' ? 'bg-verdant/12 text-verdant' : 'bg-warn/12 text-warn'
                       }`}
                     >
-                      {e.classification === 'electable' ? 'ELECTABLE' : 'EXCLUDED — RECIPIENT-SPECIFIC'}
+                      {e.classification === 'electable' ? 'ELECTABLE' : 'EXCLUDED · RECIPIENT-SPECIFIC'}
                     </span>
                     <span className="font-mono text-[10px] uppercase tracking-wider text-fog">{e.topic.replace(/_/g, ' ')}</span>
                     <span className="ml-auto text-xs text-fog">

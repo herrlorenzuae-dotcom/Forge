@@ -144,7 +144,7 @@ function LearnedCard() {
         <span className="font-mono text-[10px] text-fog tabular-nums">{precedents.length} precedents</span>
       </div>
       <p className="mt-1 text-xs leading-relaxed text-fog">
-        Resolutions you accepted, clauses from executed side letters, and sections you revised — weighted by your
+        Resolutions you accepted, clauses from executed side letters, and sections you revised, weighted by your
         decisions, and used to shape the next suggestion. Every engagement makes the next one smarter.
       </p>
       <div className="mt-3 divide-y divide-black/[0.05]">
@@ -196,7 +196,7 @@ export function Ontology({ onNavigate }: { onNavigate: (tab: string) => void }) 
     <div>
       <SectionTitle
         eyebrow="Your practice"
-        sub="Your funds, the investors in them, the documents you signed — and everything those documents oblige you to do. Every answer the engine gives is quoted back to what's on file here."
+        sub="Your funds, the investors in them, the documents you signed, and everything those documents oblige you to do. Every answer the engine gives is quoted back to what's on file here."
       >
         Overview
       </SectionTitle>
@@ -305,7 +305,7 @@ export function Ontology({ onNavigate }: { onNavigate: (tab: string) => void }) 
               ))}
               {obligations.length === 0 && (
                 <div className="card p-8 text-center text-xs text-fog">
-                  Nothing on file yet for this fund — upload its documents under <span className="font-medium text-bone">Documents</span>.
+                  Nothing on file yet for this fund. Upload its documents under <span className="font-medium text-bone">Documents</span>.
                 </div>
               )}
             </div>
@@ -315,7 +315,7 @@ export function Ontology({ onNavigate }: { onNavigate: (tab: string) => void }) 
 
       <p className="mt-10 text-[11px] leading-relaxed text-fog/80">
         About the marks: <span className="font-mono text-verdant">✓</span> means the quoted language appears word-for-word in
-        the source document on file. <span className="font-mono text-warn">✗</span> means it doesn't — treat it as unproven and
+        the source document on file. <span className="font-mono text-warn">✗</span> means it doesn't, so treat it as unproven and
         check the source yourself. The engine never hides which is which.
       </p>
     </div>

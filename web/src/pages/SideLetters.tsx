@@ -108,7 +108,7 @@ export function SideLetters() {
     <div>
       <SectionTitle
         eyebrow="Three ways to paper it"
-        sub="List what you've agreed with the investor. You get three complete drafts side by side — one hewing to your model language, one adapted from executed precedent, one drafted fresh — and every clause is labelled with where its words came from. Mark the one you sign as executed and it joins the record: its clauses become precedent, its duties go on the register, and the MFN compendium sees it."
+        sub="List what you've agreed with the investor. You get three complete drafts side by side: one hewing to your model language, one adapted from executed precedent, one drafted fresh. Every clause is labelled with where its words came from. Mark the one you sign as executed and it joins the record: its clauses become precedent, its duties go on the register, and the MFN compendium sees it."
       >
         Side Letters
       </SectionTitle>
@@ -140,7 +140,7 @@ export function SideLetters() {
           </Button>
         </div>
         <div className="md:col-span-2">
-          <label className="mb-2 block text-xs font-medium text-fog">What you've agreed — one term per line, plain English is fine</label>
+          <label className="mb-2 block text-xs font-medium text-fog">What you've agreed. One term per line, plain English is fine</label>
           <textarea
             value={terms}
             onChange={(e) => setTerms(e.target.value)}
@@ -171,7 +171,7 @@ export function SideLetters() {
                   await downloadDocx(
                     'side-letters',
                     { fundName: fund.name, investorName, drafts: result.drafts },
-                    `Side Letter Drafts — ${investorName}.docx`,
+                    `Side Letter Drafts - ${investorName}.docx`,
                   );
                 }}
                 className="btn-ghost"
@@ -210,7 +210,7 @@ export function SideLetters() {
                       disabled={executing !== null}
                       className="btn-ghost w-full text-center"
                     >
-                      {executing === d.label ? 'Filing the executed letter…' : '✓ This is the one we signed — mark as executed'}
+                      {executing === d.label ? 'Filing the executed letter…' : '✓ This is the one we signed. Mark as executed'}
                     </button>
                   </div>
                 )}
@@ -218,12 +218,12 @@ export function SideLetters() {
             ))}
           </div>
 
-          {executing && <ThinkingCard label="Filing — clauses to precedent, duties to the register" />}
+          {executing && <ThinkingCard label="Filing: clauses to precedent, duties to the register" />}
 
           {executed && (
             <div className="card-elevated animate-pop-in mt-8 p-7">
               <h3 className="text-sm font-semibold text-bone">
-                Executed and on file — <span className="font-normal">{executed.title}</span>
+                Executed and on file: <span className="font-normal">{executed.title}</span>
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-fog">
                 {executed.provisionCount} clause{executed.provisionCount === 1 ? '' : 's'} filed as precedent for future drafting. The MFN

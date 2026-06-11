@@ -73,7 +73,7 @@ export function Obligations({ scopeFundId }: { scopeFundId?: string }) {
     <div>
       <SectionTitle
         eyebrow="Ask what you've promised"
-        sub="The fund closes; the promises run for a decade. Ask in plain English — who has excusal rights, what a new deal triggers, what's owed to whom. Every answer quotes the clause that created the duty, checked word-for-word against the document."
+        sub="The fund closes; the promises run for a decade. Ask in plain English: who has excusal rights, what a new deal triggers, what's owed to whom. Every answer quotes the clause that created the duty, checked word-for-word against the document."
       >
         Obligations
       </SectionTitle>
@@ -90,7 +90,7 @@ export function Obligations({ scopeFundId }: { scopeFundId?: string }) {
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !busy && ask()}
           className="field w-full flex-1 py-3 text-[15px]"
-          placeholder="Ask anything — e.g. which investors can opt out of defense deals?"
+          placeholder="Ask anything. Which investors can opt out of defense deals?"
         />
         <Button onClick={ask} busy={busy}>
           Ask
@@ -120,12 +120,12 @@ export function Obligations({ scopeFundId }: { scopeFundId?: string }) {
             </div>
             <p className="mt-3 font-mono text-[10px] text-fog/80 tabular-nums">
               Considered the {answer.consideredCount} most relevant of {answer.totalOnFile} obligations on file
-              {answer.consideredCount < answer.totalOnFile ? ' — narrow the question or scope to a fund for a tighter sweep' : ''}.
+              {answer.consideredCount < answer.totalOnFile ? '; narrow the question or scope to a fund for a tighter sweep' : ''}.
             </p>
           </div>
 
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-bone">Your checklist — most urgent first</h3>
+            <h3 className="mb-3 text-sm font-semibold text-bone">Your checklist, most urgent first</h3>
             <div className="card overflow-hidden">
               <div className="stagger divide-y divide-black/[0.05]">
                 {answer.checklist.map((s, i) => (
@@ -153,7 +153,7 @@ export function Obligations({ scopeFundId }: { scopeFundId?: string }) {
       <div className="mt-14 border-t border-black/[0.07] pt-8">
         <h3 className="text-sm font-semibold text-bone">Pull the duties out of an executed document</h3>
         <p className="mb-4 mt-1 text-xs text-fog">
-          Pick a signed document — every duty it creates is extracted and checked word-for-word against the text before it goes on file.
+          Pick a signed document. Every duty it creates is extracted and checked word-for-word against the text before it goes on file.
         </p>
         <div className="flex gap-3">
           <select value={extractDoc} onChange={(e) => setExtractDoc(e.target.value)} className="field w-full flex-1">
