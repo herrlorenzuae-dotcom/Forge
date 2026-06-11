@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { get, type Fund } from './api.js';
 import { FundContext } from './fund-context.js';
+import { Doodle } from './Doodle.js';
 import { Helper } from './Helper.js';
 import { Intro, shouldPlayIntro } from './Intro.js';
 import { PrivacyButton, PrivacyPanel, WorkspaceSwitcher, EngineKeyBanner } from './components.js';
@@ -207,6 +208,7 @@ export default function App() {
       </footer>
 
       <Helper onNavigate={setTab} />
+      <Doodle />
 
       {privacyOpen && <PrivacyPanel onClose={() => setPrivacyOpen(false)} />}
     </div>
