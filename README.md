@@ -70,10 +70,14 @@ The full demo arc, each stage thin but real:
    write. The lawyer's judgment never leaves the loop.
 4. **Side letters.** Agreed terms in, three complete drafts out, following
    the reuse hierarchy: exact model language, adapted precedent, fresh
-   drafting. Every clause is color-coded by where its words came from. Mark
-   the draft you signed as executed and the loop closes: it is filed
-   against its investor, its clauses become house precedent, its duties
-   land on the register, and the next MFN compendium run sees it.
+   drafting. Every clause is color-coded by where its words came from.
+   Before you sign, the MFN tripwire runs: a deterministic sweep of the
+   register (no model call) that shows which MFN clause these terms
+   trigger, exactly who can elect them, and the estimated annual cost if
+   every eligible elector does. Then mark the signed draft as executed and
+   the loop closes: it is filed against its investor, its clauses become
+   house precedent, its duties land on the register, and the next MFN
+   compendium run sees it.
 5. **Obligations register.** "We have a time-sensitive new deal in
    sub-Saharan Africa. What obligations do we have?" returns an answer, an
    urgency-ordered checklist, and the affected investors, with every step

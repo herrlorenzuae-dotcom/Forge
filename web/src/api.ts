@@ -131,6 +131,14 @@ export interface Obligation {
   document_title: string;
 }
 
+/** Money that is the point of the message keeps its precision: $1.36M,
+ *  never rounded down to $1M. */
+export function usdPrecise(n: number): string {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')}B`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, '')}M`;
+  return `$${n.toLocaleString()}`;
+}
+
 export function usd(n: number): string {
   if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(n % 1_000_000_000 === 0 ? 0 : 1)}B`;
   if (n >= 1_000_000) return `$${Math.round(n / 1_000_000)}M`;

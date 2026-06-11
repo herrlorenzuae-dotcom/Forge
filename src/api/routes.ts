@@ -16,6 +16,7 @@ import { createMatter, ingestDocument } from '../engine/intake.js';
 import { computeUpcomingDeadlines, deadlinesToICS, draftReminderEmail, planEvent } from '../engine/deadlines.js';
 import { listPrecedents } from '../engine/precedent.js';
 import { askHelper, type HelperTurn } from '../engine/helper.js';
+import { assessSideLetterConsequences } from '../engine/tripwire.js';
 import { verifyCitationsDeep } from '../engine/citations.js';
 import { buildCompendium } from '../engine/mfn.js';
 import { mfnCompendiumDocx, sideLettersDocx } from '../export/docx.js';
@@ -323,6 +324,24 @@ export function registerRoutes(app: FastifyInstance): void {
       }
       try {
         return await withDbOp(() => executeSideLetter(getDb(), { fundId, investorId, draft }));
+      } catch (err) {
+        return reply.code(400).send({ error: errMessage(err) });
+      }
+    },
+  );
+
+  // The tripwire: what signing these clauses would trigger. Deterministic,
+  // instant, no model call; the lawyer sees facts with citations before
+  // anything is filed.
+  app.post<{ Body: { fundId: string; investorId: string; clauses: Array<{ term: string; text: string }> } }>(
+    '/api/side-letters/tripwire',
+    async (req, reply) => {
+      const { fundId, investorId, clauses } = req.body ?? ({} as never);
+      if (!fundId || !investorId || !Array.isArray(clauses) || clauses.length === 0) {
+        return reply.code(400).send({ error: 'fundId, investorId and clauses required' });
+      }
+      try {
+        return assessSideLetterConsequences(getDb(), { fundId, investorId, clauses });
       } catch (err) {
         return reply.code(400).send({ error: errMessage(err) });
       }

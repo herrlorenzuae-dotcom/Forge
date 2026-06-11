@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { downloadDocx, get, post, type Citation } from '../api.js';
+import { downloadDocx, get, post, usd, usdPrecise, type Citation } from '../api.js';
 import { useFund } from '../fund-context.js';
-import { SectionTitle, Button, CitationRow, ErrorNote, ThinkingCard } from '../components.js';
+import { SectionTitle, Button, CitationChip, CitationRow, ErrorNote, ThinkingCard } from '../components.js';
 
 interface Drafts {
   drafts: Array<{
@@ -11,6 +11,32 @@ interface Drafts {
   }>;
   termRetrieval: Array<{ term: string; suggestedTier: string }>;
   citationsVerified: { total: number; verified: number };
+}
+
+interface TripwireReport {
+  fundName: string;
+  granteeName: string;
+  mfn: {
+    found: boolean;
+    sourceType?: string;
+    sourceId?: string;
+    clause?: string;
+    thresholdUsd: number | null;
+    thresholdUnparsed: boolean;
+    windowDays: number | null;
+  };
+  electors: Array<{ investorId: string; name: string; commitmentUsd: number; ownMfn: boolean }>;
+  electorCommitmentsUsd: number;
+  clauses: Array<{
+    term: string;
+    topic: string;
+    presumptivelyElectable: boolean;
+    reason: string;
+    feeBps: number | null;
+    estAnnualCostUsd: number | null;
+  }>;
+  totalEstAnnualCostUsd: number | null;
+  triggered: boolean;
 }
 
 interface Executed {
@@ -47,6 +73,8 @@ export function SideLetters() {
   const [error, setError] = useState<string | null>(null);
   const [executing, setExecuting] = useState<string | null>(null);
   const [executed, setExecuted] = useState<Executed | null>(null);
+  const [pendingSign, setPendingSign] = useState<{ draft: Drafts['drafts'][number]; report: TripwireReport } | null>(null);
+  const [tripBusy, setTripBusy] = useState<string | null>(null);
 
   useEffect(() => {
     get<Array<{ id: string; name: string; type: string }>>('/investors')
@@ -77,7 +105,27 @@ export function SideLetters() {
     }
   };
 
-  const execute = async (draft: Drafts['drafts'][number]) => {
+  // step one: the tripwire. Deterministic and instant, no model call: what
+  // does signing this actually trigger across the fund?
+  const requestSign = async (draft: Drafts['drafts'][number]) => {
+    setTripBusy(draft.label);
+    setError(null);
+    try {
+      const report = await post<TripwireReport>('/side-letters/tripwire', {
+        fundId,
+        investorId,
+        clauses: draft.clauses.map((c) => ({ term: c.term, text: c.text })),
+      });
+      setPendingSign({ draft, report });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setTripBusy(null);
+    }
+  };
+
+  const executeNow = async (draft: Drafts['drafts'][number]) => {
+    setPendingSign(null);
     setExecuting(draft.label);
     setError(null);
     try {
@@ -190,17 +238,145 @@ export function SideLetters() {
                 {!executed && (
                   <div className="mt-5 border-t border-black/[0.06] pt-4">
                     <button
-                      onClick={() => execute(d)}
-                      disabled={executing !== null}
+                      onClick={() => void requestSign(d)}
+                      disabled={executing !== null || tripBusy !== null}
                       className="btn-ghost w-full text-center"
                     >
-                      {executing === d.label ? 'Filing the executed letter…' : '✓ This is the one we signed. Mark as executed'}
+                      {executing === d.label
+                        ? 'Filing the executed letter…'
+                        : tripBusy === d.label
+                          ? 'Checking what this triggers…'
+                          : '✓ This is the one we signed. Mark as executed'}
                     </button>
                   </div>
                 )}
               </div>
             ))}
           </div>
+
+          {pendingSign && (
+            <div
+              className="animate-backdrop-in fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-6 backdrop-blur-sm"
+              onClick={() => setPendingSign(null)}
+            >
+              <div
+                className="card-elevated animate-pop-in max-h-[85vh] w-full max-w-xl overflow-y-auto p-7"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="font-display text-2xl text-bone">Before you sign</h3>
+                <p className="mt-1 text-xs text-fog">
+                  {pendingSign.report.granteeName} · {pendingSign.report.fundName}. Checked against the register; no AI in
+                  the math.
+                </p>
+
+                {pendingSign.report.triggered ? (
+                  <>
+                    {pendingSign.report.mfn.found && (
+                      <div className="mt-5 rounded-2xl border border-warn/25 bg-warn/[0.05] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-xs leading-relaxed text-bone/90">
+                            This fund has an MFN clause
+                            {pendingSign.report.mfn.thresholdUsd != null
+                              ? `: every LP at or above ${usd(pendingSign.report.mfn.thresholdUsd)} can elect the benefit of what you grant here`
+                              : ''}
+                            {pendingSign.report.mfn.windowDays != null
+                              ? `, within ${pendingSign.report.mfn.windowDays} days of the compendium`
+                              : ''}
+                            .
+                          </p>
+                          {pendingSign.report.mfn.sourceId && (
+                            <CitationChip
+                              citation={{
+                                sourceType: pendingSign.report.mfn.sourceType as Citation['sourceType'],
+                                sourceId: pendingSign.report.mfn.sourceId,
+                                quote: pendingSign.report.mfn.clause ?? '',
+                              }}
+                            />
+                          )}
+                        </div>
+                        {pendingSign.report.mfn.thresholdUnparsed && (
+                          <p className="mt-2 text-[11px] leading-relaxed text-warn">
+                            The clause sets a monetary test the parser couldn't read, so the eligible electors are unknown.
+                            Read the clause before signing.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {pendingSign.report.electors.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold text-bone">
+                          {pendingSign.report.electors.length} investor{pendingSign.report.electors.length === 1 ? '' : 's'}{' '}
+                          can elect what you grant ({usd(pendingSign.report.electorCommitmentsUsd)} of commitments)
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {pendingSign.report.electors.map((e) => (
+                            <span
+                              key={e.investorId}
+                              className="rounded-full border border-black/[0.09] bg-surface px-2.5 py-1 text-[11px]"
+                            >
+                              {e.name}{' '}
+                              <span className="font-mono text-[10px] text-fog tabular-nums">{usd(e.commitmentUsd)}</span>
+                              {e.ownMfn && <span className="ml-1 font-mono text-[9px] text-ember">own MFN</span>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4 divide-y divide-black/[0.05] rounded-2xl border border-black/[0.07]">
+                      {pendingSign.report.clauses.map((c, i) => (
+                        <div key={i} className="flex items-start gap-3 px-4 py-3 text-xs">
+                          <span className="min-w-0 flex-1">
+                            <span className="font-medium text-bone">{c.term}</span>
+                            <span className="mt-0.5 block text-[11px] leading-relaxed text-fog">{c.reason}</span>
+                          </span>
+                          {c.presumptivelyElectable ? (
+                            <span className="shrink-0 rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[10px] text-warn">
+                              electable
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full bg-black/[0.05] px-2 py-0.5 font-mono text-[10px] text-fog">
+                              recipient-specific
+                            </span>
+                          )}
+                          {c.estAnnualCostUsd != null && (
+                            <span className="shrink-0 font-mono text-[11px] font-semibold text-ember tabular-nums">
+                              {usdPrecise(c.estAnnualCostUsd)}/yr
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {pendingSign.report.totalEstAnnualCostUsd != null && (
+                      <p className="mt-4 text-sm leading-relaxed text-bone">
+                        Estimated cost if every eligible elector takes the economic terms:{' '}
+                        <span className="font-display text-xl text-ember">
+                          {usdPrecise(pendingSign.report.totalEstAnnualCostUsd)}
+                        </span>{' '}
+                        <span className="text-xs text-fog">per year, on current commitments.</span>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="mt-5 rounded-2xl border border-verdant/25 bg-verdant/[0.05] p-4 text-xs leading-relaxed text-bone/90">
+                    No MFN consequences found:{' '}
+                    {pendingSign.report.mfn.found
+                      ? 'nothing in this letter is presumptively electable.'
+                      : 'this fund has no MFN clause on the register.'}
+                  </div>
+                )}
+
+                <div className="mt-6 flex items-center justify-end gap-2.5">
+                  <button onClick={() => setPendingSign(null)} className="btn-ghost">
+                    Cancel
+                  </button>
+                  <Button onClick={() => void executeNow(pendingSign.draft)}>Sign and file</Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {executing && <ThinkingCard label="Filing: clauses to precedent, duties to the register" />}
 
