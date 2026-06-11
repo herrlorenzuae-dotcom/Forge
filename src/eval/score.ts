@@ -25,6 +25,8 @@ export interface ExtractedObligationLike {
   sourceClause: string;
   noticeDays?: number | null;
   investorName?: string | null;
+  /** did the engine's verbatim citation check pass for this extraction? */
+  verified?: boolean;
 }
 
 export interface MatchResult {
@@ -34,6 +36,7 @@ export interface MatchResult {
   typeCorrect: boolean;
   noticeDaysCorrect: boolean;
   investorCorrect: boolean;
+  verified: boolean;
 }
 
 export interface DocScore {
@@ -56,7 +59,9 @@ function tokens(s: string): Set<string> {
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, ' ')
       .split(/\s+/)
-      .filter((w) => w.length >= 3),
+      // numerals stay regardless of length — "30 days" vs "45 days" must
+      // NOT score as identical clauses
+      .filter((w) => w.length >= 3 || /^\d+$/.test(w)),
   );
 }
 
@@ -113,6 +118,7 @@ export function scoreDocument(
       typeCorrect: l.type === e.type,
       noticeDaysCorrect: fieldEq(l.noticeDays, e.noticeDays),
       investorCorrect: nameEq(l.investorName, e.investorName),
+      verified: e.verified !== false,
     });
   }
 
@@ -139,9 +145,12 @@ export interface Aggregate {
   matched: number;
   recall: number;
   precision: number;
-  typeAccuracy: number;
-  noticeDaysAccuracy: number;
-  investorAccuracy: number;
+  /** field accuracies are null — not 100% — when there are no matches */
+  typeAccuracy: number | null;
+  noticeDaysAccuracy: number | null;
+  investorAccuracy: number | null;
+  /** share of matched extractions whose verbatim citation check passed */
+  verifiedShare: number | null;
 }
 
 export function aggregate(scores: DocScore[]): Aggregate {
@@ -149,8 +158,9 @@ export function aggregate(scores: DocScore[]): Aggregate {
   const extracted = scores.reduce((a, s) => a + s.extracted, 0);
   const matched = scores.reduce((a, s) => a + s.matched, 0);
   const allMatches = scores.flatMap((s) => s.matches);
-  const frac = (pred: (m: MatchResult) => boolean): number =>
-    allMatches.length === 0 ? 1 : allMatches.filter(pred).length / allMatches.length;
+  // no matches means "no evidence", never "perfect"
+  const frac = (pred: (m: MatchResult) => boolean): number | null =>
+    allMatches.length === 0 ? null : allMatches.filter(pred).length / allMatches.length;
   return {
     docs: scores.length,
     labeled,
@@ -161,5 +171,6 @@ export function aggregate(scores: DocScore[]): Aggregate {
     typeAccuracy: frac((m) => m.typeCorrect),
     noticeDaysAccuracy: frac((m) => m.noticeDaysCorrect),
     investorAccuracy: frac((m) => m.investorCorrect),
+    verifiedShare: frac((m) => m.verified),
   };
 }

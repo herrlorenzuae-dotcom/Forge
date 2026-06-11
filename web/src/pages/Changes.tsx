@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { get, post, type Citation } from '../api.js';
+import { get, post, type Citation, type Fund } from '../api.js';
 import { SectionTitle, Button, CitationChip, CitationRow, ErrorNote, ThinkingCard } from '../components.js';
 
 interface Assessment {
@@ -9,22 +9,63 @@ interface Assessment {
   citationsVerified: { total: number; verified: number };
 }
 
+interface DocRow {
+  id: string;
+  fund_id: string | null;
+  type: string;
+  status: string;
+  title: string;
+}
+
 const SAMPLE_CHANGE = 'The managing partner wants to expand the geographic mandate to include emerging markets.';
 
 export function Changes() {
+  const [funds, setFunds] = useState<Fund[]>([]);
+  const [docs, setDocs] = useState<DocRow[]>([]);
+  const [documentId, setDocumentId] = useState('');
   const [provisions, setProvisions] = useState<Array<{ id: string; heading: string; text: string }>>([]);
-  const [provisionId, setProvisionId] = useState('p-f3-geo');
+  const [provisionId, setProvisionId] = useState('');
   const [request, setRequest] = useState(SAMPLE_CHANGE);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Assessment | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    get<{ provisions: Array<{ id: string; heading: string; text: string }> }>('/documents/doc-f3-draft')
-      .then((d) => setProvisions(d.provisions))
+    get<Fund[]>('/funds').then(setFunds).catch(() => {});
+    get<DocRow[]>('/documents')
+      .then((all) => {
+        const candidates = all.filter((d) => d.type !== 'term_sheet');
+        setDocs(candidates);
+        // prefer the seed working draft when present; otherwise any draft,
+        // otherwise whatever exists — never a hardwired id on a BYO workspace
+        const preferred =
+          candidates.find((d) => d.id === 'doc-f3-draft') ??
+          candidates.find((d) => d.status === 'draft') ??
+          candidates[0];
+        if (preferred) setDocumentId(preferred.id);
+      })
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!documentId) {
+      setProvisions([]);
+      setProvisionId('');
+      return;
+    }
+    get<{ provisions: Array<{ id: string; heading: string; text: string }> }>(`/documents/${documentId}`)
+      .then((d) => {
+        setProvisions(d.provisions);
+        const preferred = d.provisions.find((p) => p.id === 'p-f3-geo') ?? d.provisions[0];
+        setProvisionId(preferred?.id ?? '');
+      })
+      .catch(() => {
+        setProvisions([]);
+        setProvisionId('');
+      });
+  }, [documentId]);
+
+  const fundName = (id: string | null): string => funds.find((f) => f.id === id)?.name ?? '';
   const current = provisions.find((p) => p.id === provisionId);
 
   const assess = async () => {
@@ -51,7 +92,16 @@ export function Changes() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium text-fog">Which provision? (Fund III working draft)</label>
+          <label className="mb-2 block text-xs font-medium text-fog">Which document?</label>
+          <select value={documentId} onChange={(e) => setDocumentId(e.target.value)} className="field w-full">
+            {docs.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.title}
+                {fundName(d.fund_id) ? ` — ${fundName(d.fund_id)}` : ''}
+              </option>
+            ))}
+          </select>
+          <label className="mb-2 mt-4 block text-xs font-medium text-fog">Which provision?</label>
           <select value={provisionId} onChange={(e) => setProvisionId(e.target.value)} className="field w-full">
             {provisions.map((p) => (
               <option key={p.id} value={p.id}>
@@ -60,12 +110,17 @@ export function Changes() {
             ))}
           </select>
           {current && <p className="card mt-3 p-4 text-xs leading-relaxed text-fog">{current.text}</p>}
+          {docs.length === 0 && (
+            <p className="card mt-3 p-4 text-xs leading-relaxed text-fog">
+              No documents on file yet — add one under Documents first.
+            </p>
+          )}
         </div>
         <div>
           <label className="mb-2 block text-xs font-medium text-fog">What's changing?</label>
           <textarea value={request} onChange={(e) => setRequest(e.target.value)} rows={4} className="field w-full" />
           <div className="mt-3">
-            <Button onClick={assess} busy={busy}>
+            <Button onClick={assess} busy={busy} disabled={!provisionId || !request.trim()}>
               Assess the change
             </Button>
           </div>

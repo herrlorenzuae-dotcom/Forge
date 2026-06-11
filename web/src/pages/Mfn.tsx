@@ -28,14 +28,22 @@ interface Compendium {
 
 export function Mfn() {
   const [funds, setFunds] = useState<Fund[]>([]);
-  const [fundId, setFundId] = useState('fund-2');
+  const [fundId, setFundId] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Compendium | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    get<Fund[]>('/funds').then(setFunds).catch(() => {});
+    get<Fund[]>('/funds')
+      .then((all) => {
+        setFunds(all);
+        // reconcile with what's actually on file — never a hardwired seed id
+        setFundId((cur) =>
+          cur && all.some((f) => f.id === cur) ? cur : (all.find((f) => f.id === 'fund-2') ?? all[0])?.id ?? '',
+        );
+      })
+      .catch(() => {});
   }, []);
 
   const build = async () => {
@@ -77,7 +85,7 @@ export function Mfn() {
           <label className="mb-1.5 block text-xs font-medium text-fog">Compendium delivery date (optional)</label>
           <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="field py-2 text-sm" />
         </div>
-        <Button onClick={build} busy={busy}>
+        <Button onClick={build} busy={busy} disabled={!fundId}>
           Build compendium
         </Button>
       </div>

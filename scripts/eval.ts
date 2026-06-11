@@ -59,14 +59,22 @@ if (process.env.SKIP_QA !== '1') {
   const { questions } = JSON.parse(fs.readFileSync('eval/questions.json', 'utf-8')) as {
     questions: Array<{ question: string; expectedIds: string[] }>;
   };
+  let registerSize = 0;
   for (const q of questions) {
     const answer = await answerObligationQuery(q.question);
+    registerSize = Math.max(registerSize, answer.totalOnFile);
     const retrieved = new Set(answer.retrievedObligationIds);
     const hit = q.expectedIds.filter((id) => retrieved.has(id));
     const recall = hit.length / q.expectedIds.length;
     qaResults.push({ question: q.question, expected: q.expectedIds, retrieved: [...retrieved], recall });
     const miss = q.expectedIds.filter((id) => !retrieved.has(id));
     console.log(`  ${recall === 1 ? '✓' : '✗'} retrieval ${hit.length}/${q.expectedIds.length}${miss.length ? ` (missed ${miss.join(', ')})` : ''} — ${q.question.slice(0, 60)}`);
+  }
+  if (registerSize > 0) {
+    // a random 14-record pick over an N-row register hits any given id with
+    // probability 14/N — disclose it so "X% retrieval" reads against the
+    // right baseline instead of zero
+    console.log(`  (chance baseline: a random 14-of-${registerSize} pick hits a given duty ${Math.round((Math.min(14, registerSize) / registerSize) * 100)}% of the time)`);
   }
   console.log();
 }
@@ -104,6 +112,7 @@ for (const [docId, labels] of byDoc) {
       sourceClause: o.sourceClause,
       noticeDays: o.noticeDays,
       investorName: o.investorId ? investorNames.get(o.investorId) : null,
+      verified: o.verified,
     })),
   );
   docScores.push(score);
@@ -147,6 +156,7 @@ for (const evalDoc of evalDocs) {
       sourceClause: o.sourceClause,
       noticeDays: o.noticeDays,
       investorName: o.investorId ? investorNames.get(o.investorId) : null,
+      verified: o.verified,
     })),
   );
   docScores.push(score);
@@ -159,7 +169,7 @@ for (const evalDoc of evalDocs) {
 
 const agg = aggregate(docScores);
 const qaRecall = qaResults.length > 0 ? qaResults.reduce((a, q) => a + q.recall, 0) / qaResults.length : null;
-const pct = (n: number): string => `${(n * 100).toFixed(0)}%`;
+const pct = (n: number | null): string => (n === null ? '—' : `${(n * 100).toFixed(0)}%`);
 
 console.log('\n════════ SCOREBOARD ════════');
 console.log(`extraction recall      ${pct(agg.recall)}   (${agg.matched}/${agg.labeled} labeled duties found — the malpractice direction)`);
@@ -167,11 +177,30 @@ console.log(`extraction precision   ${pct(agg.precision)}   (${agg.matched}/${ag
 console.log(`type accuracy          ${pct(agg.typeAccuracy)}   (on matches)`);
 console.log(`notice-days accuracy   ${pct(agg.noticeDaysAccuracy)}`);
 console.log(`investor attribution   ${pct(agg.investorAccuracy)}`);
+console.log(`verified verbatim      ${pct(agg.verifiedShare)}   (matched extractions whose citation check passed)`);
 if (qaRecall !== null) console.log(`Q&A retrieval recall   ${pct(qaRecall)}   (${qaResults.length} questions)`);
 console.log('════════════════════════════');
 
-const verdictBad = agg.recall < 0.8 || (qaRecall !== null && qaRecall < 0.8);
-console.log(verdictBad ? '\n⚠ VERDICT: below the 80% recall bar — do not trust unattended.' : '\n✓ VERDICT: meets the 80% recall bar.');
+// EVERY metric printed is a metric gated — a scoreboard line that can
+// collapse without failing the run is theater, not measurement.
+const BARS: Array<{ name: string; value: number | null; bar: number }> = [
+  { name: 'extraction recall', value: agg.recall, bar: 0.8 },
+  { name: 'extraction precision', value: agg.precision, bar: 0.7 },
+  { name: 'type accuracy', value: agg.typeAccuracy, bar: 0.8 },
+  { name: 'notice-days accuracy', value: agg.noticeDaysAccuracy, bar: 0.9 },
+  { name: 'investor attribution', value: agg.investorAccuracy, bar: 0.9 },
+  { name: 'verified verbatim', value: agg.verifiedShare, bar: 0.9 },
+  { name: 'Q&A retrieval recall', value: qaRecall, bar: 0.8 },
+];
+const failures = BARS.filter((b) => b.value !== null && b.value < b.bar);
+const unmeasured = BARS.filter((b) => b.value === null);
+if (unmeasured.length > 0) console.log(`\n(unmeasured this run: ${unmeasured.map((b) => b.name).join(', ')})`);
+const verdictBad = failures.length > 0 || agg.matched === 0;
+console.log(
+  verdictBad
+    ? `\n⚠ VERDICT: below the bar — ${agg.matched === 0 ? 'no matches at all' : failures.map((b) => `${b.name} ${pct(b.value)} < ${pct(b.bar)}`).join('; ')}. Do not trust unattended.`
+    : '\n✓ VERDICT: every gated metric meets its bar.',
+);
 
 fs.writeFileSync(
   './data/eval-result.json',

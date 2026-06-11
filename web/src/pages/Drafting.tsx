@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { get, post, subscribeRun, type Citation, type Fund, type RunEvent } from '../api.js';
 import { SectionTitle, Button, CitationRow, ErrorNote, RunProgress } from '../components.js';
 
@@ -35,10 +35,26 @@ export function Drafting() {
         if (all.length > 0 && !all.some((f) => f.id === 'fund-3')) setFundId(all[0].id);
       })
       .catch(() => {});
-    get<{ content: string }>('/documents/doc-f3-termsheet')
-      .then((d) => setTermSheet(d.content))
-      .catch(() => {});
   }, []);
+
+  // Prefill with the selected fund's own term sheet when one is on file and
+  // the lawyer hasn't typed anything — no hardwired seed document.
+  const prefillRef = useRef('');
+  useEffect(() => {
+    if (!fundId) return;
+    get<Array<{ id: string; fund_id: string | null; type: string }>>('/documents')
+      .then(async (all) => {
+        const ts = all.find((d) => d.fund_id === fundId && d.type === 'term_sheet');
+        if (!ts) return;
+        const doc = await get<{ content: string }>(`/documents/${ts.id}`);
+        setTermSheet((cur) => {
+          if (cur && cur !== prefillRef.current) return cur; // user-edited — leave it
+          prefillRef.current = doc.content;
+          return doc.content;
+        });
+      })
+      .catch(() => {});
+  }, [fundId]);
 
   const run = async () => {
     setRunning(true);

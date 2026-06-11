@@ -166,14 +166,26 @@ function LearnedCard() {
 
 export function Ontology({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const [funds, setFunds] = useState<Fund[]>([]);
-  const [selected, setSelected] = useState<string>('fund-2');
+  const [selected, setSelected] = useState<string>('');
   const [detail, setDetail] = useState<FundDetail | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>('');
 
   useEffect(() => {
-    get<Fund[]>('/funds').then(setFunds).catch(() => {});
+    get<Fund[]>('/funds')
+      .then((all) => {
+        setFunds(all);
+        // reconcile with what's actually on file — never a hardwired seed id
+        setSelected((cur) =>
+          cur && all.some((f) => f.id === cur) ? cur : (all.find((f) => f.id === 'fund-2') ?? all[0])?.id ?? '',
+        );
+      })
+      .catch(() => {});
   }, []);
   useEffect(() => {
+    if (!selected) {
+      setDetail(null);
+      return;
+    }
     get<FundDetail>(`/funds/${selected}`).then(setDetail).catch(() => setDetail(null));
   }, [selected]);
 

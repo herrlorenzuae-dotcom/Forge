@@ -1,5 +1,5 @@
 {
-  "comment": "Q&A retrieval eval over the seeded Vulcan corpus. expectedIds must appear in retrievedObligationIds for full retrieval recall.",
+  "comment": "Q&A retrieval eval over the seeded Vulcan corpus. expectedIds must appear in retrievedObligationIds for full retrieval recall. Multi-id questions make chance retrieval (14-record window over the register) much harder to pass blind.",
   "questions": [
     {
       "question": "We have a time-sensitive new deal in sub-Saharan Africa. What obligations do we have?",
@@ -20,6 +20,34 @@
     {
       "question": "Can a limited partner in Fund I sell its interest to someone else?",
       "expectedIds": ["obl-16"]
+    },
+    {
+      "question": "How much of Fund II can go into emerging markets, and who has to approve going further?",
+      "expectedIds": ["obl-07", "obl-08"]
+    },
+    {
+      "question": "What anti-corruption compliance paperwork do we owe EDFC each year?",
+      "expectedIds": ["obl-05"]
+    },
+    {
+      "question": "Which kinds of companies can EDFC's commitment never be drawn for?",
+      "expectedIds": ["obl-06"]
+    },
+    {
+      "question": "What periodic financial reports does Fund II owe all its LPs, and on what deadlines?",
+      "expectedIds": ["obl-11", "obl-13"]
+    },
+    {
+      "question": "Can Hokuriku transfer its interest to a wholly-owned affiliate without asking us first?",
+      "expectedIds": ["obl-20"]
+    },
+    {
+      "question": "What does the General Partner owe Norrland every year on ESG?",
+      "expectedIds": ["obl-03"]
+    },
+    {
+      "question": "What does Fund I need before concentrating more than 15% of commitments in a single company?",
+      "expectedIds": ["obl-14"]
     }
   ]
 }

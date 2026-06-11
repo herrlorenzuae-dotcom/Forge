@@ -155,7 +155,10 @@ npm run smoke     # end-to-end through all five stages + degraded pass
 npm run eval      # the honesty check: extraction recall/precision against
                   # hand-labeled documents (including unseen ones) + Q&A
                   # retrieval recall. Citation verification proves what the
-                  # engine SAYS; the eval measures what it MISSES.
+                  # engine SAYS; the eval measures what it MISSES. Every
+                  # metric on the scoreboard is gated — recall, precision,
+                  # field accuracy, verified-verbatim share, Q&A recall —
+                  # and the chance baseline is printed next to the result.
 ```
 
 ## Layout
