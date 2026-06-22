@@ -1,27 +1,38 @@
 /**
- * The MFN tripwire: before a side letter is signed, what does granting
- * these terms actually trigger across the fund?
+ * The MFN exposure forecast: BEFORE the post-close election, what does
+ * granting these terms expose the fund to across its investor base?
+ *
+ * Timing matters and the research was clear about it: MFN is not settled
+ * at each side-letter signing. After the FINAL close the sponsor discloses
+ * the side letters (or a summary) and runs a batched election with a
+ * written window (typically 30 days). So this is a forward-looking
+ * exposure forecast a sponsor's counsel uses while negotiating, not a
+ * charge that lands when the pen moves.
  *
  * Deliberately deterministic. No model call anywhere in here: the MFN
  * basis is read from the register, the threshold and window were parsed
- * from the clause, the electors are a SQL query over commitments, and the
- * cost estimate is arithmetic. The lawyer gets facts with citations, not
- * an opinion.
+ * from the clause, the electors are a SQL query over commitments, the
+ * three-class electability is a presumption, and the cost is arithmetic.
+ * The lawyer gets facts with citations, not an opinion.
  */
 
 import type Database from 'better-sqlite3';
 import { findMfnBasis, type MfnBasis } from './mfn.js';
 import { classifyClauseTopic } from './side-letters.js';
+import { presumptiveElectability, eligibleElectors, type Electability } from './electability.js';
 
 export interface TripwireClause {
   term: string;
   topic: string;
-  /** market convention: economic and information rights are presumptively
-   *  electable; status-based carve-outs are presumptively not */
-  presumptivelyElectable: boolean;
+  /** universal / status_matched / excluded — the real three-class taxonomy */
+  electability: Electability;
   reason: string;
   /** parsed fee reduction, when the clause is a fee discount */
   feeBps: number | null;
+  /** how many threshold investors could actually elect THIS clause given
+   *  its class (status-matched narrows to same-status investors) */
+  eligibleElectorCount: number;
+  eligibleCommitmentUsd: number;
   /** what it costs per year if every eligible elector takes it */
   estAnnualCostUsd: number | null;
 }
@@ -29,6 +40,7 @@ export interface TripwireClause {
 export interface TripwireElector {
   investorId: string;
   name: string;
+  type: string;
   commitmentUsd: number;
   /** holds a personal MFN clause rather than (only) the fund-wide one */
   ownMfn: boolean;
@@ -48,30 +60,15 @@ export interface TripwireReport {
     thresholdUnparsed: boolean;
     windowDays: number | null;
   };
+  /** every investor that clears the commitment threshold — the pool the
+   *  per-clause eligible sets are drawn from */
   electors: TripwireElector[];
   electorCommitmentsUsd: number;
   clauses: TripwireClause[];
   totalEstAnnualCostUsd: number | null;
-  /** true when there is anything to warn about at all */
+  /** true when there is an MFN consequence worth surfacing */
   triggered: boolean;
 }
-
-/** Topics that are, by market convention, electable economics or
- *  information rights. Status-based carve-outs (excuse, transfer) are
- *  usually tied to the recipient and presumptively excluded. */
-const PRESUMPTIVELY_ELECTABLE = new Set(['fees', 'reporting', 'co_invest', 'notice', 'mfn', 'consent']);
-
-const ELECTABLE_REASONS: Record<string, string> = {
-  fees: 'Economic terms are electable under market convention.',
-  reporting: 'Information rights are electable under market convention.',
-  co_invest: 'Co-investment rights are electable under market convention.',
-  notice: 'Notice rights are electable under market convention.',
-  consent: 'Consent rights are electable under market convention.',
-  mfn: 'MFN language itself propagates.',
-  excuse: 'Excusal rights are usually tied to the recipient’s own legal or policy circumstances.',
-  transfer: 'Transfer accommodations are usually tied to the recipient’s own structure.',
-  other: 'No convention either way; the compendium classification makes the final call.',
-};
 
 /** Parse a management-fee reduction out of clause text: "twenty-five (25)
  *  basis points", "25 bps", "0.25%". Returns basis points or null. */
@@ -101,8 +98,8 @@ export function assessSideLetterConsequences(
   const fund = db.prepare(`SELECT id, name FROM funds WHERE id = ?`).get(opts.fundId) as
     | { id: string; name: string }
     | undefined;
-  const grantee = db.prepare(`SELECT id, name FROM investors WHERE id = ?`).get(opts.investorId) as
-    | { id: string; name: string }
+  const grantee = db.prepare(`SELECT id, name, type FROM investors WHERE id = ?`).get(opts.investorId) as
+    | { id: string; name: string; type: string }
     | undefined;
   if (!fund || !grantee) throw new Error('Unknown investor or fund');
 
@@ -130,12 +127,12 @@ export function assessSideLetterConsequences(
     electors = (
       db
         .prepare(
-          `SELECT i.id AS investorId, i.name, c.amount_usd AS commitmentUsd
+          `SELECT i.id AS investorId, i.name, i.type, c.amount_usd AS commitmentUsd
            FROM commitments c JOIN investors i ON i.id = c.investor_id
            WHERE c.fund_id = ? AND c.amount_usd >= ? AND i.id != ?
            ORDER BY c.amount_usd DESC`,
         )
-        .all(opts.fundId, threshold, opts.investorId) as Array<{ investorId: string; name: string; commitmentUsd: number }>
+        .all(opts.fundId, threshold, opts.investorId) as Array<{ investorId: string; name: string; type: string; commitmentUsd: number }>
     ).map((e) => ({ ...e, ownMfn: ownMfnIds.has(e.investorId) }));
   }
   // personal-MFN holders elect under their own clause even if the fund-wide
@@ -144,38 +141,44 @@ export function assessSideLetterConsequences(
     if (electors.some((e) => e.investorId === id)) continue;
     const row = db
       .prepare(
-        `SELECT i.id AS investorId, i.name, COALESCE(c.amount_usd, 0) AS commitmentUsd
+        `SELECT i.id AS investorId, i.name, i.type, COALESCE(c.amount_usd, 0) AS commitmentUsd
          FROM investors i LEFT JOIN commitments c ON c.investor_id = i.id AND c.fund_id = ?
          WHERE i.id = ?`,
       )
-      .get(opts.fundId, id) as { investorId: string; name: string; commitmentUsd: number } | undefined;
+      .get(opts.fundId, id) as { investorId: string; name: string; type: string; commitmentUsd: number } | undefined;
     if (row) electors.push({ ...row, ownMfn: true });
   }
   electors.sort((a, b) => b.commitmentUsd - a.commitmentUsd);
   const electorCommitmentsUsd = electors.reduce((a, e) => a + e.commitmentUsd, 0);
 
   const clauses: TripwireClause[] = opts.clauses.map((c) => {
-    const topic = classifyClauseTopic(c.term, c.text);
+    const topic0 = classifyClauseTopic(c.term, c.text);
     // a parseable fee reduction is economics no matter what the keyword
     // classifier thought the clause was about
     const feeBps = parseFeeReductionBps(c.text);
-    const electable = PRESUMPTIVELY_ELECTABLE.has(topic) || feeBps !== null;
+    const { electability, reason } = presumptiveElectability(topic0, c.text, feeBps !== null);
+    // who can elect THIS clause depends on its class: status-matched
+    // narrows the threshold pool to the recipient's own status
+    const eligible = eligibleElectors(electors, electability, grantee.type);
+    const eligibleCommitmentUsd = eligible.reduce((a, e) => a + e.commitmentUsd, 0);
     const estAnnualCostUsd =
-      electable && feeBps !== null && electors.length > 0
-        ? Math.round((electorCommitmentsUsd * feeBps) / 10_000)
-        : null;
+      feeBps !== null && eligible.length > 0 ? Math.round((eligibleCommitmentUsd * feeBps) / 10_000) : null;
     return {
       term: c.term,
-      topic: feeBps !== null ? 'fees' : topic,
-      presumptivelyElectable: electable,
-      reason: feeBps !== null ? ELECTABLE_REASONS.fees : ELECTABLE_REASONS[topic] ?? ELECTABLE_REASONS.other,
+      topic: feeBps !== null ? 'fees' : topic0,
+      electability,
+      reason,
       feeBps,
+      eligibleElectorCount: eligible.length,
+      eligibleCommitmentUsd,
       estAnnualCostUsd,
     };
   });
 
   const costs = clauses.map((c) => c.estAnnualCostUsd).filter((n): n is number => n !== null);
-  const anyElectable = clauses.some((c) => c.presumptivelyElectable);
+  // a consequence worth surfacing: a non-excluded clause that at least one
+  // eligible investor could actually elect
+  const anyConsequence = clauses.some((c) => c.electability !== 'excluded' && c.eligibleElectorCount > 0);
 
   return {
     fundId: fund.id,
@@ -196,6 +199,8 @@ export function assessSideLetterConsequences(
     electorCommitmentsUsd,
     clauses,
     totalEstAnnualCostUsd: costs.length > 0 ? costs.reduce((a, b) => a + b, 0) : null,
-    triggered: (basis !== null || ownMfnIds.size > 0) && anyElectable && (electors.length > 0 || thresholdUnparsed),
+    // an unparsed threshold is itself a warning (electors unknown), as is a
+    // real consequence among the resolved electors
+    triggered: (basis !== null || ownMfnIds.size > 0) && (thresholdUnparsed || anyConsequence),
   };
 }

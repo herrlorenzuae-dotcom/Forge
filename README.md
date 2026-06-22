@@ -71,22 +71,29 @@ The full demo arc, each stage thin but real:
 4. **Side letters.** Agreed terms in, three complete drafts out, following
    the reuse hierarchy: exact model language, adapted precedent, fresh
    drafting. Every clause is color-coded by where its words came from.
-   Before you sign, the MFN tripwire runs: a deterministic sweep of the
-   register (no model call) that shows which MFN clause these terms
-   trigger, exactly who can elect them, and the estimated annual cost if
-   every eligible elector does. Then mark the signed draft as executed and
-   the loop closes: it is filed against its investor, its clauses become
-   house precedent, its duties land on the register, and the next MFN
-   compendium run sees it.
+   Before you mark a draft executed, the MFN exposure forecast runs: a
+   deterministic sweep of the register (no model call) that classifies each
+   clause into the three classes practitioners use — universally electable,
+   status-matched (electable only by an investor of the same legal/tax
+   status), or excluded — names exactly who could elect it at the post-close
+   election, and projects the annual cost of the economic terms. (MFN is
+   settled after the final close in a batched written election, typically a
+   30-day window; the forecast is what you would owe then, not a charge at
+   signing.) Then mark the signed draft as executed and the loop closes: it
+   is filed against its investor, its clauses become house precedent, its
+   duties land on the register, and the next MFN run sees it.
 5. **Obligations register.** "We have a time-sensitive new deal in
    sub-Saharan Africa. What obligations do we have?" returns an answer, an
    urgency-ordered checklist, and the affected investors, with every step
    citing the clause that created the duty, verified verbatim.
-6. **MFN compendium.** Every side-letter provision in the fund, the
-   eligibility threshold and election window parsed from the fund's own MFN
-   clause, who can elect what (grantee excluded), the election deadline,
-   and an electable-versus-recipient-specific classification with the
-   reasoning cited.
+6. **MFN compendium (the side letter summary).** Every side-letter
+   provision in the fund, the eligibility threshold and election window
+   parsed from the fund's own MFN clause, who can elect what (grantee
+   excluded), the election deadline, and the three-class classification
+   (universal / status-matched / excluded) with the reasoning cited. ("Side
+   letter summary" and "compendium" are both real practitioner terms for
+   this artifact; a "master side letter" is a different thing — assembled
+   from a prior fund's letters to set house positions for the next raise.)
 7. **Word-native deliverables.** The compendium and side-letter drafts
    export as clean .docx with a numbered Sources annex. Every in-text [n]
    marker resolves to the verbatim quoted clause, its ontology id, and its

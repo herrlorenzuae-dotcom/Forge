@@ -159,8 +159,9 @@ export async function mfnCompendiumDocx(payload: MfnPayload): Promise<Buffer> {
   }
 
   const groups: Array<[string, string]> = [
-    ['electable', 'Part A — Provisions available for election'],
-    ['excluded_recipient_specific', 'Part B — Provisions excluded as recipient-specific'],
+    ['universal', 'Part A — Universally electable provisions'],
+    ['status_matched', 'Part B — Status-matched provisions (electable only by same-status investors)'],
+    ['excluded', 'Part C — Excluded provisions (not electable)'],
   ];
   for (const [cls, title] of groups) {
     const entries = payload.entries.filter((e) => e.classification === cls);
@@ -171,7 +172,7 @@ export async function mfnCompendiumDocx(payload: MfnPayload): Promise<Buffer> {
       children.push(body(`${e.heading} — granted to ${e.granteeName}`, { bold: true }));
       children.push(bodyWithMarker(e.text, n));
       children.push(meta(`Classification rationale: ${e.rationale}`));
-      if (cls === 'electable' && e.electableBy.length > 0) {
+      if (cls !== 'excluded' && e.electableBy.length > 0) {
         children.push(meta(`Electable by: ${e.electableBy.join(', ')}`));
       }
     }

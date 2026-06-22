@@ -16,16 +16,30 @@ interface Compendium {
   entries: Array<{
     provisionId: string;
     granteeName: string;
+    granteeType: string;
     topic: string;
     heading: string;
     text: string;
-    classification: 'electable' | 'excluded_recipient_specific';
+    classification: 'universal' | 'status_matched' | 'excluded';
     rationale: string;
     citation: Citation;
     electableBy: string[];
   }>;
   citationsVerified: { total: number; verified: number };
+  classCounts: { universal: number; status_matched: number; excluded: number };
 }
+
+const CLASS_LABEL: Record<string, string> = {
+  universal: 'Universally electable',
+  status_matched: 'Status-matched',
+  excluded: 'Excluded',
+};
+
+const CLASS_STYLE: Record<string, string> = {
+  universal: 'bg-verdant/12 text-verdant',
+  status_matched: 'bg-warn/12 text-warn',
+  excluded: 'bg-black/[0.06] text-fog',
+};
 
 export function Mfn() {
   const { fundId } = useFund();
@@ -47,13 +61,13 @@ export function Mfn() {
     }
   };
 
-  const electable = result?.entries.filter((e) => e.classification === 'electable').length ?? 0;
+  const counts = result?.classCounts ?? { universal: 0, status_matched: 0, excluded: 0 };
 
   return (
     <div>
       <SectionTitle
-        eyebrow="Most favored nation"
-        sub="The compendium, assembled for you: every side-letter provision in the fund, who is entitled to elect it, what's excluded as investor-specific (with the reasoning written out and cited), and the election deadline counted from your delivery date."
+        eyebrow="Most favored nation · the side letter summary"
+        sub="The side letter summary (the MFN compendium), assembled for you: every side-letter provision in the fund, classified into the three classes practitioners use — universally electable, status-matched, or excluded — with who could elect each, the reasoning cited, and the election deadline counted from your delivery date. The election is run after the final close; set a delivery date to date the window."
       >
         MFN Compendium
       </SectionTitle>
@@ -131,7 +145,7 @@ export function Mfn() {
           <div>
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="text-sm font-semibold text-bone">
-                {result.entries.length} provisions · {electable} electable, {result.entries.length - electable} excluded as recipient-specific
+                {result.entries.length} provisions · {counts.universal} universal, {counts.status_matched} status-matched, {counts.excluded} excluded
               </h3>
               <span className="flex items-center gap-3">
                 <button
@@ -149,12 +163,8 @@ export function Mfn() {
               {result.entries.map((e) => (
                 <div key={e.provisionId} className="card card-hover p-6">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                        e.classification === 'electable' ? 'bg-verdant/12 text-verdant' : 'bg-warn/12 text-warn'
-                      }`}
-                    >
-                      {e.classification === 'electable' ? 'ELECTABLE' : 'EXCLUDED · RECIPIENT-SPECIFIC'}
+                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${CLASS_STYLE[e.classification]}`}>
+                      {CLASS_LABEL[e.classification]}
                     </span>
                     <span className="font-mono text-[10px] uppercase tracking-wider text-fog">{e.topic.replace(/_/g, ' ')}</span>
                     <span className="ml-auto text-xs text-fog">
@@ -168,10 +178,14 @@ export function Mfn() {
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <CitationChip citation={e.citation} />
-                    {e.classification === 'electable' && (
+                    {e.classification !== 'excluded' && e.electableBy.length > 0 && (
                       <span className="text-[11px] text-fog">
-                        · electable by {e.electableBy.length}: {e.electableBy.join(', ')}
+                        · electable by {e.electableBy.length}
+                        {e.classification === 'status_matched' ? ` ${e.granteeType.replace(/_/g, ' ')} investor${e.electableBy.length === 1 ? '' : 's'}` : ''}: {e.electableBy.join(', ')}
                       </span>
+                    )}
+                    {e.classification === 'status_matched' && e.electableBy.length === 0 && (
+                      <span className="text-[11px] text-fog">· no other {e.granteeType.replace(/_/g, ' ')} investor clears the threshold</span>
                     )}
                   </div>
                 </div>

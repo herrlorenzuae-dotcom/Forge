@@ -220,8 +220,9 @@ export async function executeSideLetter(
 /** Same keyword classifier the parser uses, for executed clause topics. */
 export function classifyClauseTopic(term: string, text: string): string {
   const hay = `${term} ${text}`.toLowerCase();
+  if (/advisory (board|committee)|\blpac\b|advisory board seat/.test(hay)) return 'advisory_board';
   if (/excus/.test(hay)) return 'excuse';
-  if (/most favou?red|mfn|compendium/.test(hay)) return 'mfn';
+  if (/most favou?red|\bmfn\b|compendium/.test(hay)) return 'mfn';
   if (/notice|notify|business days prior/.test(hay)) return 'notice';
   if (/report|statement|\bannual\b|\bquarterly\b/.test(hay)) return 'reporting';
   if (/transfer|assign|pledge/.test(hay)) return 'transfer';

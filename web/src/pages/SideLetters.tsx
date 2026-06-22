@@ -25,19 +25,33 @@ interface TripwireReport {
     thresholdUnparsed: boolean;
     windowDays: number | null;
   };
-  electors: Array<{ investorId: string; name: string; commitmentUsd: number; ownMfn: boolean }>;
+  electors: Array<{ investorId: string; name: string; type: string; commitmentUsd: number; ownMfn: boolean }>;
   electorCommitmentsUsd: number;
   clauses: Array<{
     term: string;
     topic: string;
-    presumptivelyElectable: boolean;
+    electability: 'universal' | 'status_matched' | 'excluded';
     reason: string;
     feeBps: number | null;
+    eligibleElectorCount: number;
+    eligibleCommitmentUsd: number;
     estAnnualCostUsd: number | null;
   }>;
   totalEstAnnualCostUsd: number | null;
   triggered: boolean;
 }
+
+const ELECT_CLASS_LABEL: Record<string, string> = {
+  universal: 'universal',
+  status_matched: 'status-matched',
+  excluded: 'excluded',
+};
+
+const ELECT_CLASS_STYLE: Record<string, string> = {
+  universal: 'bg-warn/10 text-warn',
+  status_matched: 'bg-warn/[0.07] text-warn',
+  excluded: 'bg-black/[0.05] text-fog',
+};
 
 interface Executed {
   documentId: string;
@@ -263,10 +277,11 @@ export function SideLetters() {
                 className="card-elevated animate-pop-in max-h-[85vh] w-full max-w-xl overflow-y-auto p-7"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h3 className="font-display text-2xl text-bone">Before you sign</h3>
-                <p className="mt-1 text-xs text-fog">
-                  {pendingSign.report.granteeName} · {pendingSign.report.fundName}. Checked against the register; no AI in
-                  the math.
+                <h3 className="font-display text-2xl text-bone">MFN exposure forecast</h3>
+                <p className="mt-1 text-xs leading-relaxed text-fog">
+                  {pendingSign.report.granteeName} · {pendingSign.report.fundName}. MFN is settled after the final close, when
+                  the side letters are disclosed and LPs elect in writing. This is what granting these terms would expose you
+                  to then. Checked against the register; no AI in the math.
                 </p>
 
                 {pendingSign.report.triggered ? (
@@ -277,10 +292,10 @@ export function SideLetters() {
                           <p className="text-xs leading-relaxed text-bone/90">
                             This fund has an MFN clause
                             {pendingSign.report.mfn.thresholdUsd != null
-                              ? `: every LP at or above ${usd(pendingSign.report.mfn.thresholdUsd)} can elect the benefit of what you grant here`
+                              ? `: at the election after close, every LP at or above ${usd(pendingSign.report.mfn.thresholdUsd)} may elect the benefit of what you grant here`
                               : ''}
                             {pendingSign.report.mfn.windowDays != null
-                              ? `, within ${pendingSign.report.mfn.windowDays} days of the compendium`
+                              ? `, within the ${pendingSign.report.mfn.windowDays}-day written election window`
                               : ''}
                             .
                           </p>
@@ -297,7 +312,7 @@ export function SideLetters() {
                         {pendingSign.report.mfn.thresholdUnparsed && (
                           <p className="mt-2 text-[11px] leading-relaxed text-warn">
                             The clause sets a monetary test the parser couldn't read, so the eligible electors are unknown.
-                            Read the clause before signing.
+                            Read the clause before relying on this.
                           </p>
                         )}
                       </div>
@@ -306,8 +321,9 @@ export function SideLetters() {
                     {pendingSign.report.electors.length > 0 && (
                       <div className="mt-4">
                         <p className="text-xs font-semibold text-bone">
-                          {pendingSign.report.electors.length} investor{pendingSign.report.electors.length === 1 ? '' : 's'}{' '}
-                          can elect what you grant ({usd(pendingSign.report.electorCommitmentsUsd)} of commitments)
+                          {pendingSign.report.electors.length} investor{pendingSign.report.electors.length === 1 ? '' : 's'} clear the
+                          threshold ({usd(pendingSign.report.electorCommitmentsUsd)} of commitments) and could elect at the post-close
+                          election
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {pendingSign.report.electors.map((e) => (
@@ -331,15 +347,16 @@ export function SideLetters() {
                             <span className="font-medium text-bone">{c.term}</span>
                             <span className="mt-0.5 block text-[11px] leading-relaxed text-fog">{c.reason}</span>
                           </span>
-                          {c.presumptivelyElectable ? (
-                            <span className="shrink-0 rounded-full bg-warn/10 px-2 py-0.5 font-mono text-[10px] text-warn">
-                              electable
+                          <span className="flex shrink-0 flex-col items-end gap-1">
+                            <span className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${ELECT_CLASS_STYLE[c.electability]}`}>
+                              {ELECT_CLASS_LABEL[c.electability]}
                             </span>
-                          ) : (
-                            <span className="shrink-0 rounded-full bg-black/[0.05] px-2 py-0.5 font-mono text-[10px] text-fog">
-                              recipient-specific
-                            </span>
-                          )}
+                            {c.electability !== 'excluded' && (
+                              <span className="font-mono text-[9px] text-fog tabular-nums">
+                                {c.eligibleElectorCount} could elect
+                              </span>
+                            )}
+                          </span>
                           {c.estAnnualCostUsd != null && (
                             <span className="shrink-0 font-mono text-[11px] font-semibold text-ember tabular-nums">
                               {usdPrecise(c.estAnnualCostUsd)}/yr
@@ -351,7 +368,7 @@ export function SideLetters() {
 
                     {pendingSign.report.totalEstAnnualCostUsd != null && (
                       <p className="mt-4 text-sm leading-relaxed text-bone">
-                        Estimated cost if every eligible elector takes the economic terms:{' '}
+                        Projected exposure if every eligible elector takes the economic terms at the election:{' '}
                         <span className="font-display text-xl text-ember">
                           {usdPrecise(pendingSign.report.totalEstAnnualCostUsd)}
                         </span>{' '}
@@ -361,9 +378,9 @@ export function SideLetters() {
                   </>
                 ) : (
                   <div className="mt-5 rounded-2xl border border-verdant/25 bg-verdant/[0.05] p-4 text-xs leading-relaxed text-bone/90">
-                    No MFN consequences found:{' '}
+                    No MFN exposure found:{' '}
                     {pendingSign.report.mfn.found
-                      ? 'nothing in this letter is presumptively electable.'
+                      ? 'nothing in this letter is electable by another investor under the presumptions.'
                       : 'this fund has no MFN clause on the register.'}
                   </div>
                 )}
@@ -372,7 +389,7 @@ export function SideLetters() {
                   <button onClick={() => setPendingSign(null)} className="btn-ghost">
                     Cancel
                   </button>
-                  <Button onClick={() => void executeNow(pendingSign.draft)}>Sign and file</Button>
+                  <Button onClick={() => void executeNow(pendingSign.draft)}>Mark as executed</Button>
                 </div>
               </div>
             </div>

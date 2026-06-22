@@ -15,6 +15,7 @@ import type Database from 'better-sqlite3';
 import { callStructured } from '../ai/claude.js';
 import { citationSchema, type Citation } from './citations.js';
 import { addDays } from './deadlines.js';
+import { eligibleElectors, type Electability } from './electability.js';
 
 // ── Deterministic assembly ───────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ export interface SideLetterProvision {
   documentTitle: string;
   granteeId: string;
   granteeName: string;
+  granteeType: string;
   granteeCommitmentUsd: number | null;
   topic: string;
   heading: string;
@@ -140,7 +142,7 @@ export function assembleCompendiumData(db: Database.Database, fundId: string): C
   const provisions = db
     .prepare(
       `SELECT p.id AS provisionId, d.id AS documentId, d.title AS documentTitle,
-              i.id AS granteeId, i.name AS granteeName, p.topic, p.heading, p.text,
+              i.id AS granteeId, i.name AS granteeName, i.type AS granteeType, p.topic, p.heading, p.text,
               c.amount_usd AS granteeCommitmentUsd
        FROM provisions p
        JOIN documents d ON d.id = p.document_id
@@ -178,16 +180,18 @@ const classificationSchema = z.object({
     z.object({
       provisionId: z.string(),
       classification: z
-        .enum(['electable', 'excluded_recipient_specific'])
-        .describe('excluded_recipient_specific = tied to the recipient\'s particular legal, tax, regulatory or internal-policy circumstances'),
-      rationale: z.string().describe('One sentence: why this provision is electable or excluded'),
+        .enum(['universal', 'status_matched', 'excluded'])
+        .describe(
+          'universal = electable by any investor meeting the commitment threshold; status_matched = electable only by an investor that ALSO shares the recipient\'s legal/tax/regulatory status; excluded = not electable at all',
+        ),
+      rationale: z.string().describe('One sentence: why this class'),
       citation: citationSchema,
     }),
   ),
 });
 
 export interface CompendiumEntry extends SideLetterProvision {
-  classification: 'electable' | 'excluded_recipient_specific';
+  classification: Electability;
   rationale: string;
   citation: Citation;
   electableBy: string[];
@@ -205,6 +209,8 @@ export interface Compendium {
   entries: CompendiumEntry[];
   citationsVerified: { total: number; verified: number };
   thresholdUnparsed: boolean;
+  /** counts by class, for the headline */
+  classCounts: { universal: number; status_matched: number; excluded: number };
 }
 
 export async function buildCompendium(
@@ -229,22 +235,29 @@ export async function buildCompendium(
   const result = await callStructured({
     stage: 'mfn.classify',
     scopeFundId: opts.fundId,
-    system: `You are preparing a most-favored-nations side letter compendium for a fund sponsor. Classify EVERY provision below as 'electable' (other eligible investors may elect its benefit) or 'excluded_recipient_specific' (tied to the recipient's particular legal, tax, regulatory or internal-policy circumstances — e.g. a development-finance institution's statutory mandate, an insurer's solvency regime, a specific investor's sanctions policy). Market convention: economic and information rights are usually electable; status-based carve-outs are usually excluded. One classification per provision, in the order given. The citation must point at the provision's own sourceId with a verbatim quote from it.`,
+    system: `You are preparing a most-favored-nations (MFN) side letter summary for a fund sponsor. Classify EVERY provision below into exactly one of three classes, the taxonomy fund-formation practitioners actually use:
+- 'universal': economic or information rights any investor may elect if it meets the commitment threshold (fee discounts, reporting, notice, consent, distributions).
+- 'status_matched': tied to the recipient's legal, tax or regulatory STATUS, so electable only by an investor sharing that status — e.g. a development-finance institution's statutory mandate, an insurer's solvency regime, a sovereign's treaty/immunity term, an ERISA or tax carve-out.
+- 'excluded': not electable at all — advisory-committee (LPAC) seats, priority co-investment allocation, the MFN right itself, and structural/transfer accommodations.
+One classification per provision, in the order given. The citation must point at the provision's own sourceId with a verbatim quote from it.`,
     user: `FUND: ${data.fundName}\nMFN BASIS CLAUSE: "${data.basis?.sourceClause ?? 'not located — classify on market convention'}"\n\nSIDE LETTER PROVISIONS:\n\n${block}`,
     schema: classificationSchema,
     maxTokens: 6_000,
   });
 
   const byId = new Map(result.data.classifications.map((c) => [c.provisionId, c]));
+  const classCounts = { universal: 0, status_matched: 0, excluded: 0 };
   const entries: CompendiumEntry[] = data.provisions.map((p) => {
     const c = byId.get(p.provisionId);
-    const electableBy =
-      c?.classification === 'electable'
-        ? data.electors.filter((e) => e.investorId !== p.granteeId).map((e) => e.name)
-        : [];
+    const classification: Electability = c?.classification ?? 'excluded'; // default conservative
+    classCounts[classification] += 1;
+    // who can elect, by class: universal = all electors ex-grantee;
+    // status_matched = same-type electors ex-grantee; excluded = none
+    const pool = data.electors.filter((e) => e.investorId !== p.granteeId);
+    const electableBy = eligibleElectors(pool, classification, p.granteeType).map((e) => e.name);
     return {
       ...p,
-      classification: c?.classification ?? 'excluded_recipient_specific',
+      classification,
       rationale: c?.rationale ?? 'Not classified by the model; defaulted to excluded (conservative).',
       citation: c?.citation ?? { sourceType: 'provision', sourceId: p.provisionId, quote: '' },
       electableBy,
@@ -267,5 +280,6 @@ export async function buildCompendium(
     entries,
     citationsVerified: result.citations,
     thresholdUnparsed: data.thresholdUnparsed,
+    classCounts,
   };
 }

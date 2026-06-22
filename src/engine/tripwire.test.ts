@@ -87,17 +87,49 @@ describe('the tripwire on the seeded register', () => {
     expect(r.clauses[0].estAnnualCostUsd).toBe(1_362_500);
   });
 
-  it('an excusal carve-out is presumptively recipient-specific, no cost', () => {
+  it('an excusal carve-out is status-matched; with no same-status elector, no consequence', () => {
     const r = assessSideLetterConsequences(db, {
       fundId: 'fund-2',
-      investorId: 'inv-khalij',
+      investorId: 'inv-khalij', // the only SWF in Fund II
       clauses: [
         { term: 'Excused sectors', text: 'The Investor shall be excused from participation in tobacco investments.' },
       ],
     });
-    expect(r.clauses[0].presumptivelyElectable).toBe(false);
+    expect(r.clauses[0].electability).toBe('status_matched');
+    expect(r.clauses[0].eligibleElectorCount).toBe(0); // no other SWF clears the threshold
     expect(r.clauses[0].estAnnualCostUsd).toBeNull();
-    expect(r.triggered).toBe(false); // nothing electable in the letter
+    expect(r.triggered).toBe(false);
+  });
+
+  it('a status-matched term WITH a same-status elector is a consequence (no cost, but flagged)', () => {
+    // grant a regulatory excusal to Keystone (a pension); other pensions
+    // above the threshold can elect it
+    const r = assessSideLetterConsequences(db, {
+      fundId: 'fund-2',
+      investorId: 'inv-keystone',
+      clauses: [
+        {
+          term: 'Regulatory excuse',
+          text: 'The Investor shall be excused where participation would violate its governing statute or public-policy mandate.',
+        },
+      ],
+    });
+    expect(r.clauses[0].electability).toBe('status_matched');
+    expect(r.clauses[0].eligibleElectorCount).toBeGreaterThan(0); // Ontario, Norrland are pensions ≥ $75M
+    expect(r.clauses[0].eligibleCommitmentUsd).toBeLessThan(r.electorCommitmentsUsd); // a strict subset
+    expect(r.clauses[0].estAnnualCostUsd).toBeNull(); // no fee, no dollar cost
+    expect(r.triggered).toBe(true);
+  });
+
+  it('an advisory-committee seat is excluded: no electors, no consequence', () => {
+    const r = assessSideLetterConsequences(db, {
+      fundId: 'fund-2',
+      investorId: 'inv-khalij',
+      clauses: [{ term: 'Advisory board seat', text: 'The Investor shall be entitled to a seat on the Advisory Board.' }],
+    });
+    expect(r.clauses[0].electability).toBe('excluded');
+    expect(r.clauses[0].eligibleElectorCount).toBe(0);
+    expect(r.triggered).toBe(false);
   });
 
   it('Fund I: Hokuriku holds a personal MFN clause and shows up flagged', () => {
