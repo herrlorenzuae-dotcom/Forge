@@ -46,6 +46,47 @@ describe('privacy gateway', () => {
     expect(result.sanitized).toContain('[INVESTOR_1]');
   });
 
+  it('PINS the real degraded-mode limit: an un-seeded party name leaks when Ollama is down', async () => {
+    // The headline promise ("names never leave the machine") has a known hole:
+    // a party NOT in the ontology AND the local NER assist unavailable cannot
+    // be masked by regex, so it travels in clear. This is the exact case the
+    // happy-path NER tests never exercise. Assert it honestly so the limit is
+    // visible and a regression (e.g. silently claiming it's masked) is caught.
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
+    const result = await sanitizeOutbound(
+      'Vulcan Industrial Partners III is co-investing with Brightwater Maritime Trust, an unrelated party.',
+    );
+    expect(result.nerUsed).toBe(false);
+    // seeded name IS masked by regex …
+    expect(result.sanitized).not.toContain('Vulcan');
+    expect(result.sanitized).toContain('[FUND_1]');
+    // … but the un-seeded third party is NOT — this is the documented leak,
+    // surfaced (degraded badge) rather than silently swallowed
+    expect(result.sanitized).toContain('Brightwater Maritime Trust');
+  });
+
+  it('with NER up, the same un-seeded party IS caught and masked', async () => {
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.endsWith('/api/tags')) return new Response('{}', { status: 200 });
+      if (u.endsWith('/v1/chat/completions')) {
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: JSON.stringify({ entities: [{ text: 'Brightwater Maritime Trust', type: 'party' }] }) } }],
+          }),
+          { status: 200 },
+        );
+      }
+      throw new Error(`unexpected ${u}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await sanitizeOutbound(
+      'Vulcan Industrial Partners III is co-investing with Brightwater Maritime Trust, an unrelated party.',
+    );
+    expect(result.nerUsed).toBe(true);
+    expect(result.sanitized).not.toContain('Brightwater');
+  });
+
   it('uses NER assist but rejects hallucinated entities', async () => {
     const fetchMock = vi.fn(async (url: string | URL) => {
       const u = String(url);

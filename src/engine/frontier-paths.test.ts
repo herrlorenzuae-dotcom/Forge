@@ -101,6 +101,9 @@ describe('frontier paths, end to end with a mocked client', () => {
     ]);
 
     const before = (db.prepare(`SELECT COUNT(*) AS n FROM obligations`).get() as { n: number }).n;
+    const beforeDoc = (
+      db.prepare(`SELECT COUNT(*) AS n FROM obligations WHERE source_document_id = 'doc-sl-norrland'`).get() as { n: number }
+    ).n;
     const { obligations } = await extractObligations('doc-sl-norrland');
 
     // every outbound prompt — system AND user — must be name-free
@@ -117,8 +120,20 @@ describe('frontier paths, end to end with a mocked client', () => {
     const fake = obligations.find((o) => /goat/.test(o.sourceClause))!;
     expect(fake.verified).toBe(false); // fabricated clause must NOT verify
 
+    // idempotent REPLACE, not append: the document now holds exactly the
+    // freshly-extracted set, and the global count reflects the swap
+    const afterDoc = (
+      db.prepare(`SELECT COUNT(*) AS n FROM obligations WHERE source_document_id = 'doc-sl-norrland'`).get() as { n: number }
+    ).n;
+    expect(afterDoc).toBe(2);
     const after = (db.prepare(`SELECT COUNT(*) AS n FROM obligations`).get() as { n: number }).n;
-    expect(after).toBe(before + 2); // both persisted, verification flag tells them apart
+    expect(after).toBe(before - beforeDoc + 2);
+
+    // re-extracting must NOT double the register — running again leaves the
+    // global count unchanged
+    await extractObligations('doc-sl-norrland');
+    const afterTwice = (db.prepare(`SELECT COUNT(*) AS n FROM obligations`).get() as { n: number }).n;
+    expect(afterTwice).toBe(after);
   });
 
   it('answerObligationQuery: masked prompts, verified citations, honest disclosure, no registry leak', async () => {

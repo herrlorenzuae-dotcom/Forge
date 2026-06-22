@@ -62,12 +62,47 @@ function readRegistry(): Registry {
   return JSON.parse(fs.readFileSync(p, 'utf-8')) as Registry;
 }
 
+/** fsync a directory entry so a preceding create/rename/unlink is durable on
+ *  a real crash. A no-op where the platform refuses to fsync a directory. */
+function fsyncDir(dir: string): void {
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(dir, 'r');
+    fs.fsyncSync(fd);
+  } catch {
+    // some platforms (e.g. Windows) reject directory fsync — best effort
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
+/** Write a file and flush its data AND directory entry to stable storage, so
+ *  after a crash the bytes are really on disk — not just in the page cache. */
+function writeFileDurable(file: string, data: string | Buffer): void {
+  const fd = fs.openSync(file, 'w');
+  try {
+    fs.writeSync(fd, data as never);
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fsyncDir(path.dirname(file));
+}
+
+/** Remove a file and flush the directory entry, so the unlink is durable. */
+function rmDurable(file: string): void {
+  fs.rmSync(file);
+  fsyncDir(path.dirname(file));
+}
+
 function writeRegistry(registry: Registry): void {
   const p = registryPath();
-  fs.mkdirSync(path.dirname(p), { recursive: true });
+  const dir = path.dirname(p);
+  fs.mkdirSync(dir, { recursive: true });
   const tmp = `${p}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(registry, null, 2));
+  writeFileDurable(tmp, JSON.stringify(registry, null, 2));
   fs.renameSync(tmp, p);
+  fsyncDir(dir); // make the rename itself durable
 }
 
 function find(registry: Registry, id: string): WorkspaceMeta {
@@ -179,12 +214,15 @@ export function lockWorkspace(id: string, passphrase: string): WorkspaceMeta {
   const tag = cipher.getAuthTag();
 
   // Order matters for crash safety: write the encrypted copy, record the
-  // locked state, and only THEN remove the plaintext. A crash at any point
-  // leaves at least one complete copy of the matter on disk.
-  fs.writeFileSync(`${ws.file}.locked`, Buffer.concat([MAGIC, salt, iv, tag, ciphertext]));
+  // locked state, and only THEN remove the plaintext. Each step is flushed to
+  // stable storage (data + directory entry) before the next, so the ordering
+  // is real on a power loss — without the fsyncs the filesystem is free to
+  // reorder them and a crash could leave the registry "locked" with the
+  // ciphertext still buffered and the plaintext already gone.
+  writeFileDurable(`${ws.file}.locked`, Buffer.concat([MAGIC, salt, iv, tag, ciphertext]));
   ws.locked = true;
   writeRegistry(r);
-  fs.rmSync(ws.file);
+  rmDurable(ws.file);
   return ws;
 }
 
@@ -209,13 +247,13 @@ export function unlockWorkspace(id: string, passphrase: string): WorkspaceMeta {
     throw new Error('Wrong passphrase.');
   }
 
-  // Same crash-safety order as locking: restore the plaintext, record the
-  // unlocked state, then drop the encrypted copy. An interrupted unlock
-  // leaves a stale .locked next to the live file, which lockWorkspace
-  // safely replaces.
-  fs.writeFileSync(ws.file, plaintext);
+  // Same crash-safety order as locking, each step flushed before the next:
+  // restore the plaintext, record the unlocked state, then drop the encrypted
+  // copy. An interrupted unlock leaves a stale .locked next to the live file,
+  // which lockWorkspace safely replaces.
+  writeFileDurable(ws.file, plaintext);
   ws.locked = false;
   writeRegistry(r);
-  fs.rmSync(`${ws.file}.locked`);
+  rmDurable(`${ws.file}.locked`);
   return ws;
 }

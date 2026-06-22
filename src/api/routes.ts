@@ -127,8 +127,20 @@ export function registerRoutes(app: FastifyInstance): void {
     return { ...fund, investors, documents, obligations };
   });
 
-  app.get('/api/investors', async () => {
+  app.get<{ Querystring: { fundId?: string } }>('/api/investors', async (req) => {
     const db = getDb();
+    // ?fundId scopes to the LPs committed to that fund — the set who can
+    // actually receive a side letter there. Without it, every investor.
+    const fundId = req.query?.fundId;
+    if (fundId) {
+      return db
+        .prepare(
+          `SELECT i.* FROM investors i
+           JOIN commitments c ON c.investor_id = i.id AND c.fund_id = ?
+           ORDER BY i.name`,
+        )
+        .all(fundId);
+    }
     return db.prepare(`SELECT * FROM investors ORDER BY name`).all();
   });
 
@@ -387,12 +399,16 @@ export function registerRoutes(app: FastifyInstance): void {
   app.post('/api/documents/upload', async (req, reply) => {
     const file = await req.file();
     if (!file) return reply.code(400).send({ error: 'a file is required' });
-    const fundId = (file.fields.fundId as { value?: string } | undefined)?.value;
-    const title = (file.fields.title as { value?: string } | undefined)?.value;
-    const investorName = (file.fields.investorName as { value?: string } | undefined)?.value;
-    if (!fundId) return reply.code(400).send({ error: 'fundId field required' });
     try {
+      // Drain the file stream FIRST: in busybox streaming mode file.fields only
+      // holds text parts that arrived BEFORE the file. Reading fundId before
+      // toBuffer() rejects any client that sends the file part first (a valid,
+      // common multipart ordering) with a spurious "fundId required".
       const buffer = await file.toBuffer();
+      const fundId = (file.fields.fundId as { value?: string } | undefined)?.value;
+      const title = (file.fields.title as { value?: string } | undefined)?.value;
+      const investorName = (file.fields.investorName as { value?: string } | undefined)?.value;
+      if (!fundId) return reply.code(400).send({ error: 'fundId field required' });
       const db = getDb();
       // hold the workspace open for the whole parse → store → embed chain
       return await withDbOp(() =>

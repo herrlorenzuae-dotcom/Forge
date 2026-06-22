@@ -82,7 +82,13 @@ export function parseFeeReductionBps(text: string): number | null {
   const pct = text.match(/(\d+(?:\.\d+)?)\s*(?:%|percent(?:age points?)?)/i);
   if (pct) {
     const n = Number.parseFloat(pct[1]);
-    return Number.isFinite(n) ? n * 100 : null;
+    if (!Number.isFinite(n)) return null;
+    // A fractional percent is an absolute management-fee cut ("0.25%" = 25
+    // bps). A bare integer percent ("reduced by 10 percent") is almost always
+    // a RELATIVE reduction of the fee, not a 1000-bps absolute cut — we can't
+    // convert it without the base fee, so we decline rather than overstate
+    // exposure ~100x and present a wild figure as a machine-derived fact.
+    return n < 1 ? n * 100 : null;
   }
   return null;
 }

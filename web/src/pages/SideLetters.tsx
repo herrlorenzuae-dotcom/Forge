@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { downloadDocx, get, post, usd, usdPrecise, type Citation } from '../api.js';
+import { downloadDocx, get, post, usdPrecise, type Citation } from '../api.js';
 import { useFund } from '../fund-context.js';
 import { SectionTitle, Button, CitationChip, CitationRow, ErrorNote, ThinkingCard } from '../components.js';
 
@@ -80,7 +80,7 @@ Annual ESG report on the Invest Europe template`;
 export function SideLetters() {
   const { fundId } = useFund();
   const [investors, setInvestors] = useState<Array<{ id: string; name: string; type: string }>>([]);
-  const [investorId, setInvestorId] = useState('inv-norrland');
+  const [investorId, setInvestorId] = useState('');
   const [terms, setTerms] = useState(DEFAULT_TERMS);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Drafts | null>(null);
@@ -90,14 +90,18 @@ export function SideLetters() {
   const [pendingSign, setPendingSign] = useState<{ draft: Drafts['drafts'][number]; report: TripwireReport } | null>(null);
   const [tripBusy, setTripBusy] = useState<string | null>(null);
 
+  // Scope the dropdown to the LPs committed to the ACTIVE fund, and re-fetch
+  // whenever the header fund changes — otherwise you can pick an LP that never
+  // committed to this fund and paper a letter for it.
   useEffect(() => {
-    get<Array<{ id: string; name: string; type: string }>>('/investors')
-      .then((all) => {
-        setInvestors(all);
-        if (all.length > 0 && !all.some((i) => i.id === 'inv-norrland')) setInvestorId(all[0].id);
+    if (!fundId) return;
+    get<Array<{ id: string; name: string; type: string }>>(`/investors?fundId=${encodeURIComponent(fundId)}`)
+      .then((scoped) => {
+        setInvestors(scoped);
+        setInvestorId((cur) => (scoped.some((i) => i.id === cur) ? cur : (scoped[0]?.id ?? '')));
       })
       .catch(() => {});
-  }, []);
+  }, [fundId]);
 
   const generate = async () => {
     setBusy(true);
@@ -292,7 +296,7 @@ export function SideLetters() {
                           <p className="text-xs leading-relaxed text-bone/90">
                             This fund has an MFN clause
                             {pendingSign.report.mfn.thresholdUsd != null
-                              ? `: at the election after close, every LP at or above ${usd(pendingSign.report.mfn.thresholdUsd)} may elect the benefit of what you grant here`
+                              ? `: at the election after close, every LP at or above ${usdPrecise(pendingSign.report.mfn.thresholdUsd)} may elect the benefit of what you grant here`
                               : ''}
                             {pendingSign.report.mfn.windowDays != null
                               ? `, within the ${pendingSign.report.mfn.windowDays}-day written election window`
@@ -322,8 +326,8 @@ export function SideLetters() {
                       <div className="mt-4">
                         <p className="text-xs font-semibold text-bone">
                           {pendingSign.report.electors.length} investor{pendingSign.report.electors.length === 1 ? '' : 's'} clear the
-                          threshold ({usd(pendingSign.report.electorCommitmentsUsd)} of commitments) and could elect at the post-close
-                          election
+                          commitment threshold ({usdPrecise(pendingSign.report.electorCommitmentsUsd)} of commitments). Who can actually
+                          elect depends on each term&rsquo;s class — see per clause below.
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {pendingSign.report.electors.map((e) => (
@@ -332,7 +336,7 @@ export function SideLetters() {
                               className="rounded-full border border-black/[0.09] bg-surface px-2.5 py-1 text-[11px]"
                             >
                               {e.name}{' '}
-                              <span className="font-mono text-[10px] text-fog tabular-nums">{usd(e.commitmentUsd)}</span>
+                              <span className="font-mono text-[10px] text-fog tabular-nums">{usdPrecise(e.commitmentUsd)}</span>
                               {e.ownMfn && <span className="ml-1 font-mono text-[9px] text-ember">own MFN</span>}
                             </span>
                           ))}

@@ -135,6 +135,16 @@ export async function executeSideLetter(
   const fund = db.prepare(`SELECT id, name FROM funds WHERE id = ?`).get(opts.fundId) as { id: string; name: string } | undefined;
   if (!investor || !fund) throw new Error('Unknown investor or fund');
   if (!opts.draft?.clauses?.length) throw new Error('Draft has no clauses');
+  // An executed side letter binds this LP to this fund — creating a document,
+  // house precedent and register obligations. The UI dropdown is the first
+  // guard, but never bind an LP that never committed to the fund: that would
+  // paper (and file) a letter for a fund it never invested in.
+  const committed = db
+    .prepare(`SELECT 1 FROM commitments WHERE fund_id = ? AND investor_id = ?`)
+    .get(opts.fundId, opts.investorId);
+  if (!committed) {
+    throw new Error(`${investor.name} has no commitment to ${fund.name}. Add their commitment before executing a side letter for this fund.`);
+  }
 
   const documentId = genId('doc');
   const sideLetterId = genId('sl');
@@ -143,7 +153,10 @@ export async function executeSideLetter(
 
   // Idempotent on retry: if this exact letter is already on file (a prior
   // attempt that failed after the commit, or a double click), reuse it —
-  // finishing the obligation extraction if that's the part that died.
+  // finishing whichever post-commit step died. The original failure window
+  // spans embeddings AND precedent promotion AND obligation extraction, so
+  // the recovery must re-run all three (each is idempotent: embeddings upsert
+  // by owner id, promotePrecedent upserts by source id) — not just the last.
   const existing = db
     .prepare(
       `SELECT d.id AS documentId, s.id AS sideLetterId FROM documents d
@@ -152,6 +165,25 @@ export async function executeSideLetter(
     )
     .get(opts.fundId, opts.investorId, content) as { documentId: string; sideLetterId: string } | undefined;
   if (existing) {
+    const existingProvisions = db
+      .prepare(`SELECT id, heading, text, topic FROM provisions WHERE document_id = ? ORDER BY position`)
+      .all(existing.documentId) as Array<{ id: string; heading: string; text: string; topic: string }>;
+    await embedAll(
+      db,
+      existingProvisions.map((p) => ({ ownerType: 'provision' as const, ownerId: p.id, text: `${p.heading}\n${p.text}` })),
+    );
+    for (const p of existingProvisions) {
+      await promotePrecedent(db, {
+        kind: 'side_letter_clause',
+        topic: p.topic,
+        title: `${title} · ${p.heading}`,
+        text: p.text,
+        sourceType: 'provision',
+        sourceId: p.id,
+        fundId: opts.fundId,
+        weight: 1.2,
+      });
+    }
     let obligations: ExtractedObligation[] = [];
     const haveObligations = (
       db.prepare(`SELECT COUNT(*) AS n FROM obligations WHERE source_document_id = ?`).get(existing.documentId) as { n: number }

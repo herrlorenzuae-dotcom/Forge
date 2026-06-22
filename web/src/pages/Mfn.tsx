@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { downloadDocx, post, usd, type Citation } from '../api.js';
+import { downloadDocx, post, usdPrecise, type Citation } from '../api.js';
 import { useFund } from '../fund-context.js';
 import { SectionTitle, Button, CitationChip, ErrorNote, ThinkingCard } from '../components.js';
 
@@ -105,7 +105,7 @@ export function Mfn() {
             <div className="mt-5 grid gap-4 sm:grid-cols-4">
               <div>
                 <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                  {result.thresholdUsd != null ? usd(result.thresholdUsd) : '–'}
+                  {result.thresholdUsd != null ? usdPrecise(result.thresholdUsd) : '–'}
                 </div>
                 <div className="mt-0.5 text-[11px] text-fog">eligibility threshold</div>
               </div>
@@ -135,7 +135,7 @@ export function Mfn() {
             <div className="mt-5 flex flex-wrap gap-2">
               {result.electors.map((e) => (
                 <span key={e.investorId} className="rounded-full border border-black/[0.09] bg-black/[0.03] px-3 py-1 text-xs">
-                  {e.name} <span className="font-mono text-[10px] text-fog tabular-nums">{usd(e.commitmentUsd)}</span>
+                  {e.name} <span className="font-mono text-[10px] text-fog tabular-nums">{usdPrecise(e.commitmentUsd)}</span>
                 </span>
               ))}
             </div>

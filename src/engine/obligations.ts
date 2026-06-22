@@ -82,9 +82,16 @@ export async function extractObligations(documentId: string): Promise<{ obligati
   if (!doc) throw new Error(`Unknown document: ${documentId}`);
   if (!doc.fund_id) throw new Error(`Document ${documentId} is not attached to a fund`);
 
+  // A document body (esp. a master LPA) can name ANY limited partner —
+  // investor schedules, transferees, prior-fund LPs — not just those committed
+  // to this fund. The scoped mask only knows this fund's LPs, so protect every
+  // known investor name explicitly; otherwise an LP committed elsewhere leaks.
+  const allInvestorNames = (db.prepare(`SELECT name FROM investors`).all() as Array<{ name: string }>).map((r) => r.name);
+
   const result = await callStructured({
     stage: 'obligations.extract',
     scopeFundId: doc.fund_id,
+    protectNames: allInvestorNames,
     system: `You are the obligations desk of a fund formation practice. Extract every ongoing obligation of the General Partner / the Fund from the document: notices, consents, reporting duties, excusal rights, transfer restrictions, MFN rights, investment restrictions. Rules: (1) sourceClause must be copied VERBATIM from the document — never paraphrase inside sourceClause; (2) one record per distinct obligation; (3) investorName only when the obligation is owed to a specific named investor.`,
     user: `DOCUMENT (${doc.title}):\n\n${doc.content}`,
     schema: extractionSchema,
@@ -92,6 +99,21 @@ export async function extractObligations(documentId: string): Promise<{ obligati
   });
 
   const investors = db.prepare(`SELECT id, name FROM investors`).all() as Array<{ id: string; name: string }>;
+
+  // Idempotent: re-extracting a document REPLACES its obligations rather than
+  // appending a second full set (a double-click or retry-after-flaky-call must
+  // not silently double the register). Drop the prior rows and their
+  // embeddings first, atomically.
+  const priorIds = (
+    db.prepare(`SELECT id FROM obligations WHERE source_document_id = ?`).all(doc.id) as Array<{ id: string }>
+  ).map((r) => r.id);
+  if (priorIds.length > 0) {
+    const ph = priorIds.map(() => '?').join(',');
+    db.transaction(() => {
+      db.prepare(`DELETE FROM embeddings WHERE owner_type = 'obligation' AND owner_id IN (${ph})`).run(...priorIds);
+      db.prepare(`DELETE FROM obligations WHERE source_document_id = ?`).run(doc.id);
+    })();
+  }
 
   const insert = db.prepare(
     `INSERT INTO obligations (id, fund_id, investor_id, source_document_id, type, summary, geography, notice_days, source_clause, verified)

@@ -199,7 +199,11 @@ const verdictBad = failures.length > 0 || agg.matched === 0;
 console.log(
   verdictBad
     ? `\n⚠ VERDICT: below the bar — ${agg.matched === 0 ? 'no matches at all' : failures.map((b) => `${b.name} ${pct(b.value)} < ${pct(b.bar)}`).join('; ')}. Do not trust unattended.`
-    : '\n✓ VERDICT: every gated metric meets its bar.',
+    : unmeasured.length > 0
+      ? `\n✓ VERDICT: every MEASURED metric meets its bar — but ${unmeasured.length} unmeasured this run (${unmeasured
+          .map((b) => b.name)
+          .join(', ')}), so this is a PARTIAL pass, not a clean one.`
+      : '\n✓ VERDICT: every gated metric meets its bar.',
 );
 
 fs.writeFileSync(

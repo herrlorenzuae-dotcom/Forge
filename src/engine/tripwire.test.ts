@@ -87,12 +87,30 @@ describe('the tripwire on the seeded register', () => {
     expect(r.clauses[0].estAnnualCostUsd).toBe(1_362_500);
   });
 
-  it('an excusal carve-out is status-matched; with no same-status elector, no consequence', () => {
+  it('a bare ESG/sector excusal is UNIVERSAL — topic alone is not a status signal', () => {
+    // a tobacco/ESG carve-out any LP could negotiate must NOT be narrowed to
+    // the recipient's type just because the topic is "excuse"
+    const r = assessSideLetterConsequences(db, {
+      fundId: 'fund-2',
+      investorId: 'inv-khalij',
+      clauses: [
+        { term: 'Excused sectors', text: 'The Investor shall be excused from participation in tobacco investments.' },
+      ],
+    });
+    expect(r.clauses[0].electability).toBe('universal');
+    expect(r.clauses[0].eligibleElectorCount).toBe(5); // every other fund-2 LP ≥ $75M
+    expect(r.triggered).toBe(true);
+  });
+
+  it('a status-conditioned excusal IS status-matched; the only SWF has no same-status peer', () => {
     const r = assessSideLetterConsequences(db, {
       fundId: 'fund-2',
       investorId: 'inv-khalij', // the only SWF in Fund II
       clauses: [
-        { term: 'Excused sectors', text: 'The Investor shall be excused from participation in tobacco investments.' },
+        {
+          term: 'Sovereign carve-out',
+          text: 'The Investor shall be excused where participation is barred by the sovereign immunity or governing statute applicable to it.',
+        },
       ],
     });
     expect(r.clauses[0].electability).toBe('status_matched');

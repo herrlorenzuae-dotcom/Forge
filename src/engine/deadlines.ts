@@ -212,6 +212,11 @@ export function computeUpcomingDeadlines(
       });
     };
 
+    // quarterly and annual are NOT mutually exclusive — one clause can carry
+    // both (quarterly unaudited reports PLUS an annual audited report), two
+    // genuinely distinct duties. classifyCadences returns a Set for exactly
+    // this reason, so schedule each independently or the annual duty silently
+    // vanishes from the register and the calendar export.
     if (cadences.has('quarterly')) {
       // some clauses cover only the first three fiscal quarters
       const firstThreeOnly = /first three fiscal quarters/i.test(o.source_clause);
@@ -219,7 +224,8 @@ export function computeUpcomingDeadlines(
         if (firstThreeOnly && q.quarter === 4) continue;
         push(q.iso, `Q${q.quarter} ${q.year}`);
       }
-    } else if (cadences.has('annual')) {
+    }
+    if (cadences.has('annual')) {
       const startYear = fromISO(windowStart).getUTCFullYear() - 1;
       const endYear = fromISO(horizon).getUTCFullYear();
       for (let y = startYear; y <= endYear; y++) {
@@ -344,6 +350,10 @@ export async function draftReminderEmail(
   const result = await callStructured({
     stage: 'deadlines.email',
     scopeFundId: o.fund_id,
+    // the obligation's grantee is matched against the GLOBAL investor list, so
+    // it can name an LP with no commitment/document/comment/side-letter row in
+    // this fund — invisible to the scoped mask. Protect it explicitly.
+    protectNames: o.investor_name ? [o.investor_name] : undefined,
     system: `You draft internal compliance reminder emails for a fund manager's legal team. Tone: brief, factual, zero fluff. Structure: what is due and when, who it is owed to, the exact clause (quoted verbatim in a quote block), and the single next action with an owner placeholder like [OWNER]. The citation quote must be copied verbatim from the obligation record provided.`,
     user: `OBLIGATION RECORD [sourceType: obligation, sourceId: ${o.id}]:
 fund: ${o.fund_name}

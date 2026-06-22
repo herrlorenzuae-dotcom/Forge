@@ -44,8 +44,9 @@ export interface DocScore {
   labeled: number;
   extracted: number;
   matched: number;
-  recall: number;
-  precision: number;
+  /** null when the per-doc denominator is zero — unmeasurable, not 100% */
+  recall: number | null;
+  precision: number | null;
   matches: MatchResult[];
   missedClauses: string[];
   spuriousClauses: string[];
@@ -130,8 +131,9 @@ export function scoreDocument(
     labeled: labeled.length,
     extracted: extracted.length,
     matched: matches.length,
-    recall: labeled.length === 0 ? 1 : matches.length / labeled.length,
-    precision: extracted.length === 0 ? 1 : matches.length / extracted.length,
+    // no ground truth / no predictions for this doc → unmeasurable, NOT perfect
+    recall: labeled.length === 0 ? null : matches.length / labeled.length,
+    precision: extracted.length === 0 ? null : matches.length / extracted.length,
     matches,
     missedClauses,
     spuriousClauses,
@@ -143,8 +145,9 @@ export interface Aggregate {
   labeled: number;
   extracted: number;
   matched: number;
-  recall: number;
-  precision: number;
+  /** null — not 100% — when there is no ground truth / nothing extracted */
+  recall: number | null;
+  precision: number | null;
   /** field accuracies are null — not 100% — when there are no matches */
   typeAccuracy: number | null;
   noticeDaysAccuracy: number | null;
@@ -166,8 +169,9 @@ export function aggregate(scores: DocScore[]): Aggregate {
     labeled,
     extracted,
     matched,
-    recall: labeled === 0 ? 1 : matched / labeled,
-    precision: extracted === 0 ? 1 : matched / extracted,
+    // no ground truth / nothing extracted across all docs → unmeasurable
+    recall: labeled === 0 ? null : matched / labeled,
+    precision: extracted === 0 ? null : matched / extracted,
     typeAccuracy: frac((m) => m.typeCorrect),
     noticeDaysAccuracy: frac((m) => m.noticeDaysCorrect),
     investorAccuracy: frac((m) => m.investorCorrect),
