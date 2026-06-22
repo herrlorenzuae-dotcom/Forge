@@ -6,6 +6,12 @@ obligations that follows the close. Every answer quotes your own documents
 verbatim, and every client name is masked on your machine before anything
 goes out, so a lawyer can actually check it.**
 
+<p align="center">
+  <img src="docs/demo.gif" alt="A real run on the seeded demo fund: a plain-English question to the obligations register returns an urgency-ordered answer where every duty cites the clause that created it (10/10 verified), and the privacy panel shows exactly what left the machine." width="820">
+</p>
+
+<p align="center"><sub>One real run on the seeded demo fund — a plain-English question, an answer where every line quotes the clause that created the duty (10/10 verified), and the on-device panel showing exactly what left the machine. Nothing staged; this is the app.</sub></p>
+
 It's inspired by the Kirkland & Ellis / Palantir "Fund Formation Engine"
 demo. I'm not claiming feature parity — I have no idea what they're actually
 building — and this isn't a replacement for anything. I took the
