@@ -1,27 +1,49 @@
-# Forge: a fund formation engine
+# Forge: a fund formation prototype
 
-**Forge is a local-first AI engine for private-fund formation: drafting,
-negotiation, side letters, and the decade of obligations that follows the
-close. Every answer quotes your own documents verbatim, and every client
-name is masked on your machine before anything goes out. The point is that
-a lawyer can check it.**
+**Forge is a working prototype of a local-first tool for private-fund
+formation — drafting, negotiation, side letters, and the decade of
+obligations that follows the close. Every answer quotes your own documents
+verbatim, and every client name is masked on your machine before anything
+goes out, so a lawyer can actually check it.**
+
+It's inspired by the Kirkland & Ellis / Palantir "Fund Formation Engine"
+demo. I'm not claiming feature parity — I have no idea what they're actually
+building — and this isn't a replacement for anything. I took the
+announcement as a challenge and built something similar from publicly
+available sources.
 
 > "The idea is that we're going to take the collective intelligence of our
 > institution and be able to deploy that throughout our firm."
 
-It is a working homage to the Kirkland & Ellis / Palantir "Fund Formation
-Engine", covering the whole private-equity fundraising lifecycle, and it is
-built around two things their public demo never showed:
+Anyone can build almost anything right now, so the question that interests
+me isn't "can you build it" — it's "is it any good, and where does the
+value actually come from?" Two answers it is *not*:
+
+- **Not the model.** Forge was built on Fable, Anthropic's most powerful
+  model at the time. Days later Fable became unavailable, and moving to
+  Opus 4.8 took an afternoon — Forge barely noticed. The model was never
+  the moat; it's a swappable dependency that can vanish overnight.
+- **Not proprietary data.** Fund formation may be the most documented
+  corner of law there is — model terms, market surveys, form precedents,
+  LPs who see hundreds of deals a year.
+
+So what's left? The two things this prototype is actually built around —
+both of which the public demo never showed:
 
 1. **Machine-verified citations.** Every assertion the AI makes must quote
    its source, and the quote is checked word-for-word against the document
    on file. A green check means the words are really there. A red cross
-   means they are not, and the engine never hides which. (The FT article
-   this project started from is bookended by two firms sanctioned for AI
+   means they are not, and Forge never hides which. (The FT article this
+   project started from is bookended by two firms sanctioned for AI
    hallucinations.)
 2. **Confidentiality you can inspect.** Names are masked on the lawyer's
    own machine before any frontier call. A panel shows the exact payload
    that left. Matters live in separate encrypted files.
+
+That's the conversation I want to have. Forge is released as-is: maybe
+there's an idea in it you can use, maybe a funds lawyer tears it apart and
+we end up with something useful. Either way, let's work out what's actually
+worth building.
 
 ### Why local-first
 
