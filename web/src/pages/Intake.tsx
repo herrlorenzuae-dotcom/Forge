@@ -146,7 +146,7 @@ export function Intake({ onUseMatter }: { onUseMatter?: (fundId: string) => void
             }}
             className={`mt-4 flex h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed text-center text-xs transition-all duration-300 ${
               dragging
-                ? 'scale-[1.02] border-ember bg-ember/[0.06] text-ember shadow-[0_8px_30px_rgba(196,95,63,0.18)]'
+                ? 'scale-[1.02] border-ember bg-ember/[0.06] text-ember shadow-[0_8px_30px_rgba(37,99,235,0.18)]'
                 : matterId
                   ? 'border-black/20 text-fog hover:border-ember/60 hover:bg-ember/[0.025] hover:text-ember'
                   : 'border-black/10 text-fog/50'

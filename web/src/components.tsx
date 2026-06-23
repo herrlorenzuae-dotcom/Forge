@@ -280,7 +280,7 @@ export function CitationChip({ citation }: { citation: Citation }) {
         onClick={() => setOpen((v) => !v)}
         className={`rounded-md border px-1.5 py-0.5 font-mono text-[10px] tracking-tight transition-all duration-200 hover:-translate-y-px ${
           ok
-            ? 'border-black/10 bg-black/[0.03] text-fog hover:border-ember/50 hover:text-ember hover:shadow-[0_2px_8px_rgba(196,95,63,0.18)]'
+            ? 'border-black/10 bg-black/[0.03] text-fog hover:border-ember/50 hover:text-ember hover:shadow-[0_2px_8px_rgba(37,99,235,0.18)]'
             : 'border-warn/40 bg-warn/[0.06] text-warn'
         }`}
         title={ok ? 'Citation verified against source' : 'Quote NOT found in cited source'}
@@ -553,15 +553,15 @@ export function SectionTitle({
   eyebrow?: string;
 }) {
   return (
-    <div className="mb-10">
+    <div className="mb-8">
       {eyebrow && (
-        <p className="mb-2.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-ember">
-          <span className="inline-block h-px w-6 bg-ember/60" />
+        <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">
+          <span className="inline-block h-px w-5 bg-ember/60" />
           {eyebrow}
         </p>
       )}
-      <h1 className="font-display text-[2.75rem] leading-[1.05] tracking-[-0.01em] text-bone md:text-[3.4rem]">{children}</h1>
-      {sub && <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-fog">{sub}</p>}
+      <h1 className="font-display text-[2rem] font-bold leading-[1.1] tracking-[-0.02em] text-bone md:text-[2.4rem]">{children}</h1>
+      {sub && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-fog">{sub}</p>}
     </div>
   );
 }

@@ -112,7 +112,7 @@ export function Obligations() {
               {answer.affectedInvestors.map((n) => (
                 <span
                   key={n}
-                  className="rounded-full border border-ember/25 bg-ember/[0.07] px-3 py-1 text-xs font-medium text-ember shadow-[0_1px_3px_rgba(196,95,63,0.12)]"
+                  className="rounded-full border border-ember/25 bg-ember/[0.07] px-3 py-1 text-xs font-medium text-ember shadow-[0_1px_3px_rgba(37,99,235,0.12)]"
                 >
                   {n}
                 </span>

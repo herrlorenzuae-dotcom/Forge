@@ -1,19 +1,19 @@
 @import 'tailwindcss';
 
 @theme {
-  /* alabaster stone, not cream: paper with the yellow taken out */
-  --color-page: #f4f3ef;
+  /* TermBase house style: cool, clean, near-white legal-tech SaaS */
+  --color-page: #f7f8fa; /* very light cool grey app canvas */
   --color-surface: #ffffff;
-  --color-coal: #0a0a0b; /* intro veil only */
-  /* ink scale */
-  --color-bone: #1b1a18; /* primary text, warm ink */
-  --color-fog: #6d6a63; /* secondary text */
-  /* bordeaux accent: leather-bound, legal, decidedly not terracotta */
-  --color-ember: #7d2f3f;
-  --color-ember-dim: #682636;
-  --color-verdant: #1f5f3c;
-  --color-warn: #8f6a08;
-  --font-display: 'Libre Caslon Display', 'Libre Caslon Text', Georgia, serif;
+  --color-coal: #0f172a; /* intro veil / deep ink */
+  /* ink scale — cool slate, not warm */
+  --color-bone: #0f172a; /* primary text, slate-900 */
+  --color-fog: #64748b; /* secondary text, slate-500 */
+  /* accent: a confident, restrained legal-tech blue (sister to TermBase) */
+  --color-ember: #2563eb;
+  --color-ember-dim: #1d4ed8;
+  --color-verdant: #16a34a; /* verified / Complete */
+  --color-warn: #b45309; /* Partial / warning amber */
+  --font-display: 'Schibsted Grotesk', -apple-system, system-ui, sans-serif;
   --font-sans: 'Schibsted Grotesk', -apple-system, system-ui, sans-serif;
   --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
 }
@@ -33,7 +33,7 @@ html {
 }
 
 :focus-visible {
-  outline: 2px solid rgba(125, 47, 63, 0.7);
+  outline: 2px solid rgba(37, 99, 235, 0.7);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -58,98 +58,170 @@ html {
   background: transparent;
 }
 
-/* faint warm glow at the top of the page — barely there, but felt */
+/* flat, clean canvas — no warm glow, just the cool app grey */
 .app-bg {
-  background:
-    radial-gradient(ellipse 90% 480px at 50% -120px, rgba(125, 47, 63, 0.055), transparent 70%),
-    var(--color-page);
+  background: var(--color-page);
 }
 
-/* ── Surfaces ──────────────────────────────────────────────────────── */
+/* ── Surfaces — flat cards, thin borders, barely-there shadow ──────── */
 
 .card {
-  border-radius: 1.25rem;
-  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 0.875rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   background: var(--color-surface);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 1px 1px rgba(27, 26, 24, 0.03),
-    0 3px 8px rgba(27, 26, 24, 0.05),
-    0 16px 40px rgba(27, 26, 24, 0.07);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 1px 3px rgba(15, 23, 42, 0.03);
   transition:
-    border-color 0.3s ease,
-    transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    box-shadow 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    border-color 0.2s ease,
+    transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+    box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .card-hover:hover {
-  border-color: rgba(0, 0, 0, 0.12);
-  transform: translateY(-3px);
+  border-color: rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 2px 4px rgba(27, 26, 24, 0.05),
-    0 12px 28px rgba(27, 26, 24, 0.09),
-    0 40px 90px rgba(27, 26, 24, 0.14);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
 .card-hover:active {
-  transform: translateY(-1px) scale(0.995);
+  transform: translateY(0) scale(0.997);
   transition-duration: 0.12s;
 }
 
 /* hero-tier card — for the answer, the thing the user came for */
 .card-elevated {
-  border-radius: 1.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.075);
-  background: linear-gradient(180deg, #ffffff 0%, #fdfcfa 100%);
+  border-radius: 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  background: var(--color-surface);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 1px 2px rgba(27, 26, 24, 0.04),
-    0 8px 20px rgba(27, 26, 24, 0.06),
-    0 32px 80px rgba(27, 26, 24, 0.12),
-    0 64px 160px rgba(125, 47, 63, 0.07);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    0 24px 48px rgba(15, 23, 42, 0.06);
 }
 
 .glass {
   /* the filter lives in a custom property so the minifier can't mangle the
      space between blur() and saturate() (which invalidates the declaration) */
-  --glass-filter: blur(36px) saturate(1.9);
-  background: rgba(244, 243, 239, 0.68);
+  --glass-filter: blur(20px) saturate(1.4);
+  background: rgba(255, 255, 255, 0.82);
   /* unprefixed only: the minifier merges a standard+webkit pair down to
      the webkit alias alone, which Chromium then refuses to apply */
   backdrop-filter: var(--glass-filter);
 }
 
 .hairline-b {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 /* header gains elevation only once the page scrolls under it */
 .header-elevated {
   box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.05),
-    0 12px 32px rgba(27, 26, 24, 0.08),
-    0 32px 80px rgba(27, 26, 24, 0.06);
+    0 1px 0 rgba(15, 23, 42, 0.05),
+    0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+/* ── Sidebar navigation (TermBase-style left rail) ─────────────────── */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-fog);
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.nav-item:hover {
+  background: rgba(15, 23, 42, 0.045);
+  color: var(--color-bone);
+}
+
+.nav-item[data-active='true'] {
+  background: rgba(37, 99, 235, 0.09);
+  color: var(--color-ember-dim);
+}
+
+.nav-item[data-active='true'] .nav-icon {
+  color: var(--color-ember);
+}
+
+.nav-icon {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--color-fog);
+  transition: color 0.18s ease;
+}
+
+.nav-section {
+  margin: 0.5rem 0 0.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(100, 116, 139, 0.75);
+}
+
+/* ── Status pills (Complete / Partial / Not started) ───────────────── */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill-ok {
+  background: rgba(22, 163, 74, 0.1);
+  color: #15803d;
+}
+
+.pill-warn {
+  background: rgba(180, 83, 9, 0.1);
+  color: #b45309;
+}
+
+.pill-idle {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.pill-info {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-ember-dim);
 }
 
 /* ── Controls ──────────────────────────────────────────────────────── */
 
 .field {
-  border-radius: 0.875rem;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0.625rem;
+  border: 1px solid rgba(15, 23, 42, 0.14);
   background: var(--color-surface);
   padding: 0.625rem 0.875rem;
   font-size: 0.875rem;
   color: var(--color-bone);
   outline: none;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.025);
   transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .field:hover:not(:focus) {
-  border-color: rgba(0, 0, 0, 0.2);
+  border-color: rgba(15, 23, 42, 0.24);
 }
 
 .field::placeholder {
@@ -157,11 +229,8 @@ html {
 }
 
 .field:focus {
-  border-color: rgba(125, 47, 63, 0.65);
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.02),
-    0 0 0 4px rgba(125, 47, 63, 0.14),
-    0 4px 16px rgba(125, 47, 63, 0.12);
+  border-color: rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 }
 
 select.field {
@@ -177,40 +246,28 @@ select.field {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 9999px;
-  background: linear-gradient(180deg, #8e3a4c 0%, #75293a 100%);
+  border-radius: 0.625rem;
+  background: var(--color-ember);
   color: #fff;
-  padding: 0.5rem 1.25rem;
+  padding: 0.55rem 1.1rem;
   font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(27, 26, 24, 0.14),
-    0 6px 16px rgba(125, 47, 63, 0.3);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
   transition:
-    transform 0.18s cubic-bezier(0.32, 0.72, 0, 1),
-    box-shadow 0.25s ease,
-    filter 0.2s ease,
+    transform 0.15s cubic-bezier(0.32, 0.72, 0, 1),
+    background 0.2s ease,
+    box-shadow 0.2s ease,
     opacity 0.2s ease;
 }
 
 .btn:hover:not(:disabled) {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 2px 5px rgba(27, 26, 24, 0.14),
-    0 12px 28px rgba(125, 47, 63, 0.4);
+  background: var(--color-ember-dim);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.96);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    0 1px 2px rgba(0, 0, 0, 0.12);
+  transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -222,30 +279,26 @@ select.field {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(0, 0, 0, 0.13);
+  border-radius: 0.625rem;
+  border: 1px solid rgba(15, 23, 42, 0.14);
   background: var(--color-surface);
-  padding: 0.375rem 1rem;
-  font-size: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--color-bone);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.18s cubic-bezier(0.32, 0.72, 0, 1),
-    box-shadow 0.25s ease;
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .btn-ghost:hover:not(:disabled) {
-  border-color: rgba(0, 0, 0, 0.22);
-  transform: translateY(-1px);
-  box-shadow:
-    0 2px 5px rgba(27, 26, 24, 0.06),
-    0 8px 20px rgba(27, 26, 24, 0.1);
+  border-color: rgba(15, 23, 42, 0.26);
+  background: rgba(15, 23, 42, 0.02);
 }
 
 .btn-ghost:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 .btn-ghost:disabled {
@@ -505,10 +558,10 @@ select.field {
 /* soft expanding halo around the active pipeline node */
 @keyframes halo {
   0% {
-    box-shadow: 0 0 0 0 rgba(125, 47, 63, 0.35);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35);
   }
   100% {
-    box-shadow: 0 0 0 9px rgba(125, 47, 63, 0);
+    box-shadow: 0 0 0 9px rgba(37, 99, 235, 0);
   }
 }
 
@@ -530,16 +583,16 @@ select.field {
   border-radius: 9999px;
   background: linear-gradient(
     90deg,
-    rgba(125, 47, 63, 0.1) 25%,
-    rgba(125, 47, 63, 0.45) 50%,
-    rgba(125, 47, 63, 0.1) 75%
+    rgba(37, 99, 235, 0.12) 25%,
+    rgba(37, 99, 235, 0.5) 50%,
+    rgba(37, 99, 235, 0.12) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s linear infinite;
 }
 
 .shimmer-text {
-  background: linear-gradient(90deg, #6b6b70 30%, #1d1d1f 50%, #6b6b70 70%);
+  background: linear-gradient(90deg, #94a3b8 30%, #0f172a 50%, #94a3b8 70%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -570,104 +623,24 @@ select.field {
   }
 }
 
-/* ── Wooden-wall intro ─────────────────────────────────────────────── */
+/* ── Splash intro — a clean DraftBase wordmark, then fades ──────────── */
 
-.wood-wall {
-  background-image:
-    /* spotlight + vignette: lit center, deep falloff to the dark stage edges */
-    radial-gradient(
-      ellipse 88% 72% at 50% 40%,
-      rgba(255, 228, 188, 0.3) 0%,
-      rgba(0, 0, 0, 0) 46%,
-      rgba(0, 0, 0, 0.42) 82%,
-      rgba(0, 0, 0, 0.62) 100%
-    ),
-    /* real wood fibre — fractal noise stretched into vertical grain */
-    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='300'%20height='760'%3E%3Cfilter%20id='w'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.011%200.085'%20numOctaves='5'%20seed='14'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.18%200%200%200%200%200.1%200%200%200%200%200.04%200.85%200%200%200%200'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23w)'/%3E%3C/svg%3E"),
-    /* plank seams: deep groove + a light catch on the next board's edge */
-    repeating-linear-gradient(
-      90deg,
-      rgba(12, 6, 2, 0.62) 0px,
-      rgba(12, 6, 2, 0.62) 2px,
-      rgba(255, 238, 210, 0.14) 2px,
-      rgba(255, 238, 210, 0.14) 4px,
-      transparent 4px,
-      transparent 108px,
-      rgba(0, 0, 0, 0.34) 108px,
-      rgba(0, 0, 0, 0.34) 112px
-    ),
-    /* per-plank tone variation on an irregular rhythm */
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 216, 168, 0.08) 0px,
-      rgba(58, 34, 16, 0.12) 61px,
-      rgba(255, 216, 168, 0.05) 133px,
-      rgba(40, 24, 12, 0.14) 187px,
-      rgba(255, 216, 168, 0.08) 224px
-    ),
-    /* warm oak base, lit from above */
-    linear-gradient(180deg, #b58e62 0%, #a9835656 0%, #a98356 34%, #936c47 64%, #75573a 100%);
-  background-size: cover, 300px 760px, auto, auto, auto;
-  background-repeat: no-repeat, repeat, repeat, repeat, no-repeat;
-  background-color: #8a6845;
-}
-
-.wood-plaque {
-  border-radius: 6px;
-  background: rgba(18, 9, 3, 0.12);
-  box-shadow:
-    inset 0 4px 10px rgba(12, 6, 2, 0.72),
-    inset 0 -3px 7px rgba(255, 232, 196, 0.16),
-    0 1px 0 rgba(255, 236, 206, 0.32),
-    0 -1px 1px rgba(18, 10, 4, 0.6),
-    0 26px 60px rgba(0, 0, 0, 0.55);
-}
-
-.wood-engraved {
-  color: #6a4f30;
-  text-shadow:
-    0 -2px 2px rgba(12, 6, 2, 0.88),
-    0 -4px 7px rgba(12, 6, 2, 0.4),
-    0 2px 1px rgba(255, 234, 198, 0.42);
-}
-
-.wood-ring {
-  border: 2px solid rgba(64, 44, 24, 0.5);
-  box-shadow:
-    inset 0 2px 4px rgba(12, 6, 2, 0.6),
-    inset 0 -2px 3px rgba(255, 232, 196, 0.2),
-    0 1px 0 rgba(255, 236, 206, 0.22);
-}
-
-.intro-frame {
-  border: 2px solid rgba(234, 198, 142, 0.82);
-  border-radius: 52px;
-  box-shadow:
-    0 0 24px rgba(236, 186, 116, 0.45),
-    0 0 3px rgba(255, 229, 176, 0.92),
-    inset 0 0 20px rgba(236, 186, 116, 0.3);
-}
-
-.intro-door {
-  transition: transform 2s cubic-bezier(0.62, 0, 0.2, 1);
-  will-change: transform;
-}
-
-.intro-veil {
-  transition: opacity 1.4s ease;
+.splash-veil {
+  background: var(--color-page);
+  transition: opacity 0.7s ease;
 }
 
 @keyframes intro-mark-in {
   0% {
     opacity: 0;
-    transform: scale(0.94);
+    transform: translateY(8px);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
   }
 }
 
 .intro-mark {
-  animation: intro-mark-in 1.3s cubic-bezier(0.25, 0.1, 0.25, 1) 0.4s both;
+  animation: intro-mark-in 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) 0.05s both;
 }

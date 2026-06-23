@@ -28,7 +28,7 @@ interface HelperReply {
 
 const GREETING: Turn = {
   role: 'cassie',
-  text: "I'm Cassie. I know every corner of Forge: what each tab does, how the privacy model works, and what's on file right now. Ask me anything.",
+  text: "I'm Cassie. I know every corner of DraftBase: what each tab does, how the privacy model works, and what's on file right now. Ask me anything.",
   followUps: ['What needs my attention today?', 'How do I add my own contract?', 'What does "citations verified" mean?'],
 };
 
@@ -180,7 +180,7 @@ export function Helper({ onNavigate }: { onNavigate: (tab: string) => void }) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && void ask(draft)}
-                placeholder="Ask about anything in Forge…"
+                placeholder="Ask about anything in DraftBase…"
                 className="field w-full flex-1 py-2 text-[13px]"
               />
               <button onClick={() => void ask(draft)} disabled={busy || !draft.trim()} className="btn px-4 py-2 text-sm">
