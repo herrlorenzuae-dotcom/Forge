@@ -1,0 +1,34 @@
+{
+  "name": "kyc-deal",
+  "version": "0.1.0",
+  "description": "KYC Deal — map a client's corporate structure (UBO, entities) to varied KYC questionnaires and answer them with verified citations. Quantium & YSolutions via MCP; a KYC Brain that converges answers as the corpus grows.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix web install && npm --prefix web run build && npm run seed",
+    "dev": "tsx --env-file-if-exists=.env src/server.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx --env-file-if-exists=.env src/seed/seed.ts",
+    "test": "vitest run",
+    "mcp:quantium": "tsx src/mcp/quantium-server.ts",
+    "mcp:ysolutions": "tsx src/mcp/ysolutions-server.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/static": "^9.0.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "better-sqlite3": "^12.6.2",
+    "fastify": "^5.7.4",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.5"
+  }
+}
