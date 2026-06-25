@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { uploadStructureExcel, uploadStructureChart, applyStructureSnapshot, type StructureDiff, type StructureSnapshot, type EntityDiff, type EdgeDiff } from '../api.js';
+import { uploadStructureExcel, uploadStructureChart, reconcileStructureSnapshot, applyStructureSnapshot, type StructureDiff, type StructureSnapshot, type EntityDiff, type EdgeDiff } from '../api.js';
 import { Button, GhostButton, Pill, ErrorNote } from '../components.js';
 
 const TONE: Record<string, 'verdant' | 'ember' | 'warn' | 'neutral'> = {
@@ -45,7 +45,12 @@ export function StructureImport({ clientId, onApplied }: { clientId: string; onA
     try {
       const ext = file.name.toLowerCase().split('.').pop() ?? '';
       const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext) || file.type.startsWith('image/');
-      const res = isImage ? await uploadStructureChart(clientId, file) : await uploadStructureExcel(clientId, file);
+      const isJson = ext === 'json' || file.type === 'application/json';
+      const res = isJson
+        ? await reconcileStructureSnapshot(clientId, JSON.parse(await file.text()) as StructureSnapshot)
+        : isImage
+          ? await uploadStructureChart(clientId, file)
+          : await uploadStructureExcel(clientId, file);
       setSnapshot(res.snapshot);
       setDiff(res.diff);
     } catch (e) {
@@ -80,8 +85,9 @@ export function StructureImport({ clientId, onApplied }: { clientId: string; onA
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-fog">Import / update structure</h2>
           <p className="mt-0.5 text-xs text-fog">
-            Upload the group's structure chart — Excel template, or a PNG/JPG of the chart (export PowerPoint/Visio/Lucid to an image).
-            Differences are flagged against what's on file; nothing is overwritten silently.
+            Upload the group's structure chart — Excel template, a PNG/JPG of the chart (export PowerPoint/Visio/Lucid to an image),
+            or a snapshot <code className="font-mono text-bone">.json</code> produced locally from a vector PDF
+            (<code className="font-mono text-bone">npm run chart:pdf</code>). Differences are flagged against what's on file; nothing is overwritten silently.
           </p>
         </div>
         <span className="text-fog">{open ? '▾' : '▸'}</span>
@@ -93,7 +99,7 @@ export function StructureImport({ clientId, onApplied }: { clientId: string; onA
             <input
               ref={fileRef}
               type="file"
-              accept=".xlsx,.xls,.png,.jpg,.jpeg,.webp,.gif,image/*"
+              accept=".xlsx,.xls,.png,.jpg,.jpeg,.webp,.gif,.json,image/*,application/json"
               onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
               className="text-xs text-fog file:mr-3 file:cursor-pointer file:rounded-full file:border file:border-black/10 file:bg-surface file:px-4 file:py-1.5 file:text-xs file:text-bone hover:file:border-ember/40"
             />

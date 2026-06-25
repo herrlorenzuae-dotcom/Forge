@@ -102,6 +102,13 @@ export async function uploadStructureChart(clientId: string, file: File): Promis
   return res.json();
 }
 
+/** Reconcile a snapshot JSON (e.g. produced locally by tools/extract_pdf_chart.py)
+ *  against what's on file — same diff/review path as the Excel and image imports. */
+export async function reconcileStructureSnapshot(clientId: string, snapshot: StructureSnapshot): Promise<{ snapshot: StructureSnapshot; diff: StructureDiff }> {
+  const diff = await post<StructureDiff>(`/clients/${clientId}/structure/reconcile`, { snapshot });
+  return { snapshot, diff };
+}
+
 export async function applyStructureSnapshot(clientId: string, snapshot: StructureSnapshot, removeMissing: boolean): Promise<Record<string, number>> {
   return post<Record<string, number>>(`/clients/${clientId}/structure/apply`, { snapshot, removeMissing });
 }

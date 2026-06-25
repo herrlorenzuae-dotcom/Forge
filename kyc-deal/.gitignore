@@ -8,3 +8,9 @@ data/
 .env
 .DS_Store
 *.log
+# never commit client/source charts or extracted data
+*.pdf
+tools/*.json
+tools/*.csv
+tools/*.png
+tools/out*

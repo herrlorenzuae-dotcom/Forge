@@ -80,6 +80,14 @@ no frozen "version" to regenerate by hand.
     image *cannot* be name-masked, so this path sends the image (with its
     names) to the model. The UI says so, and Excel remains the no-send
     alternative. Requires `ANTHROPIC_API_KEY`.
+  - **Vector PDF** (chart exported as PDF, text/lines still selectable) read
+    **fully locally** by `npm run chart:pdf -- chart.pdf -o /tmp/out`
+    (PyMuPDF). It produces a snapshot `.json` (plus a verification overlay
+    PNG); drop the `.json` into the same import panel. Nothing leaves the
+    machine — the right path for a confidential chart. Box and percentage
+    extraction are reliable; **edge inference is a draft**, so the overlay and
+    the reconcile screen are there to verify links before applying. See
+    [`tools/README.md`](tools/README.md).
 - **Reconciled, never overwritten.** Every import is diffed against what's on
   file by natural key (registration number, else name + jurisdiction) and
   surfaced as **added / changed (with the exact field conflict) / missing**. A

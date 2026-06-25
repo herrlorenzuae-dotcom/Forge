@@ -13,7 +13,8 @@
     "test": "vitest run",
     "mcp:quantium": "tsx src/mcp/quantium-server.ts",
     "mcp:ysolutions": "tsx src/mcp/ysolutions-server.ts",
-    "template:xlsx": "tsx src/scripts/make-template.ts"
+    "template:xlsx": "tsx src/scripts/make-template.ts",
+    "chart:pdf": "python3 tools/extract_pdf_chart.py"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
