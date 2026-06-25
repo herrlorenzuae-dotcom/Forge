@@ -31,6 +31,10 @@ export interface CallOptions<T> {
   clientId?: string;
   maxTokens?: number;
   effort?: 'low' | 'medium' | 'high';
+  /** Images to attach (e.g. a structure chart). NOTE: images cannot be
+   *  name-masked — extracting a chart necessarily sends its names to the
+   *  model. Use the deterministic Excel path when that is unacceptable. */
+  images?: { mediaType: string; dataBase64: string }[];
 }
 
 export interface CallResult<T> {
@@ -75,7 +79,8 @@ export async function callStructured<T>(opts: CallOptions<T>): Promise<CallResul
     sys.sanitized +
     '\n\nNote: bracketed tokens like [ENTITY_1] or [PERSON_2] are protected references to real parties. ' +
     'Reproduce them exactly wherever you refer to that party — never alter, renumber, or invent such tokens.';
-  const sanitizedPrompt = `SYSTEM:\n${system}\n\nUSER:\n${usr.sanitized}`;
+  const imageNote = opts.images?.length ? `\n\n[${opts.images.length} image(s) attached — NOT name-masked]` : '';
+  const sanitizedPrompt = `SYSTEM:\n${system}\n\nUSER:\n${usr.sanitized}${imageNote}`;
 
   const writeAudit = (ok: boolean, inT: number, outT: number): void => {
     db.prepare(
@@ -85,11 +90,21 @@ export async function callStructured<T>(opts: CallOptions<T>): Promise<CallResul
   };
 
   try {
+    const content = opts.images?.length
+      ? [
+          ...opts.images.map((img) => ({
+            type: 'image' as const,
+            source: { type: 'base64' as const, media_type: img.mediaType as 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp', data: img.dataBase64 },
+          })),
+          { type: 'text' as const, text: usr.sanitized },
+        ]
+      : usr.sanitized;
+
     const response = await getClient().messages.parse({
       model: config.anthropic.model,
       max_tokens: opts.maxTokens ?? 4_000,
       system,
-      messages: [{ role: 'user', content: usr.sanitized }],
+      messages: [{ role: 'user', content }],
       output_config: {
         format: zodOutputFormat(opts.schema),
         effort: opts.effort ?? 'high',

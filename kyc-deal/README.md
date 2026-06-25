@@ -69,11 +69,17 @@ The structure is never write-once. The org chart is a *pure projection* of the
 stored entities and links, so any change to the data re-renders it — there is
 no frozen "version" to regenerate by hand.
 
-- **Import a delivered group chart.** Upload it as an Excel workbook
-  (`npm run template:xlsx` writes the template — two sheets, *Entities* and
-  *Relationships*). PowerPoint / Visio charts are derived into the same
-  `StructureSnapshot`, so everything downstream is identical regardless of the
-  source format.
+- **Import a delivered group chart**, two ways into the same
+  `StructureSnapshot`:
+  - **Excel** (`npm run template:xlsx` writes the template — two sheets,
+    *Entities* and *Relationships*). Deterministic and **fully local**: no data
+    leaves the machine.
+  - **Chart image (PNG/JPG)** read by the vision model — export a
+    PowerPoint / Visio / Lucid chart to an image and drop it in. The model
+    extracts entities and ownership/control links. **Privacy tradeoff:** a chart
+    image *cannot* be name-masked, so this path sends the image (with its
+    names) to the model. The UI says so, and Excel remains the no-send
+    alternative. Requires `ANTHROPIC_API_KEY`.
 - **Reconciled, never overwritten.** Every import is diffed against what's on
   file by natural key (registration number, else name + jurisdiction) and
   surfaced as **added / changed (with the exact field conflict) / missing**. A
@@ -167,10 +173,11 @@ web/                     React 19 + Vite + Tailwind 4 dashboard (mermaid org cha
 - Brain matching is currently exact on a normalized question key (banks reuse
   each other's wording, so this hits often). Fuzzy/semantic matching of
   similar-but-not-identical questions is the obvious next step.
-- Structure import currently uses the deterministic Excel snapshot shape.
-  Native PowerPoint (.pptx) and Visio (.vsdx) connector-graph extraction is the
-  next step — it emits the same `StructureSnapshot`, so only the parser is new;
-  it needs a representative real chart to tune against.
+- Structure import covers the deterministic Excel snapshot and vision
+  extraction from a chart image. Native PowerPoint (.pptx) / Visio (.vsdx)
+  parsing (rather than export-to-image) is a possible next step — it would emit
+  the same `StructureSnapshot`. The vision prompt is best tuned against a
+  representative real chart.
 - Questionnaire intake is text/paste today; PDF and Word ingestion would slot
   in at `engine/intake.ts`.
 - Word/PDF export of a completed questionnaire (with a verified sources annex,

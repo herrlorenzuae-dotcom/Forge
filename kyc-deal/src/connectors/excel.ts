@@ -41,11 +41,11 @@ function sheet(wb: XLSX.WorkBook, names: string[]): Record<string, unknown>[] {
   return XLSX.utils.sheet_to_json(wb.Sheets[found], { raw: false, defval: '' }) as Record<string, unknown>[];
 }
 
-function slug(s: string): string {
+export function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'entity';
 }
 
-function coerceKind(v: string): EntityKind {
+export function coerceKind(v: string): EntityKind {
   const k = nkey(v) as EntityKind;
   if (KINDS.has(k)) return k;
   if (/person|individual|natural/i.test(v)) return 'individual';
@@ -57,7 +57,7 @@ function coerceKind(v: string): EntityKind {
   return 'holding';
 }
 
-function coerceRole(v: string): EntityRole {
+export function coerceRole(v: string): EntityRole {
   const r = nkey(v) as EntityRole;
   if (ROLES.has(r)) return r;
   if (/ubo|beneficial/i.test(v)) return 'ubo';

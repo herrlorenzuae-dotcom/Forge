@@ -94,6 +94,14 @@ export async function uploadStructureExcel(clientId: string, file: File): Promis
   return res.json();
 }
 
+export async function uploadStructureChart(clientId: string, file: File): Promise<{ snapshot: StructureSnapshot; diff: StructureDiff }> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${BASE}/clients/${clientId}/import/chart`, { method: 'POST', body: form });
+  if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function applyStructureSnapshot(clientId: string, snapshot: StructureSnapshot, removeMissing: boolean): Promise<Record<string, number>> {
   return post<Record<string, number>>(`/clients/${clientId}/structure/apply`, { snapshot, removeMissing });
 }

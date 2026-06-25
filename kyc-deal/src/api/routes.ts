@@ -9,6 +9,7 @@ import { getStructure, refreshFromConnectors, verifyCurrency, listSyncs } from '
 import { buildOrgChart } from '../engine/orgchart.js';
 import { diffStructure, applyStructure } from '../engine/reconcile.js';
 import { parseStructureWorkbook } from '../connectors/excel.js';
+import { extractChartToSnapshot, mediaTypeFor } from '../engine/chart-extract.js';
 import { upsertEntity, deleteEntity, upsertEdge, deleteEdge } from '../engine/edit.js';
 import type { StructureSnapshot } from '../connectors/types.js';
 import { createQuestionnaire } from '../engine/intake.js';
@@ -91,6 +92,23 @@ export function registerRoutes(app: FastifyInstance): void {
       if (!data) throw new Error('no file uploaded');
       const buf = await data.toBuffer();
       const snapshot = parseStructureWorkbook(buf);
+      const diff = diffStructure(req.params.id, snapshot);
+      return { snapshot, diff };
+    } catch (err) {
+      reply.code(400).send({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // Chart image upload (vision extraction → snapshot → diff). Requires a key;
+  // the image is NOT name-masked (see chart-extract.ts).
+  app.post<{ Params: { id: string } }>('/api/clients/:id/import/chart', async (req, reply) => {
+    try {
+      const data = await (req as unknown as { file: () => Promise<{ toBuffer: () => Promise<Buffer>; mimetype?: string; filename?: string } | undefined> }).file();
+      if (!data) throw new Error('no file uploaded');
+      const media = mediaTypeFor(data.mimetype ?? data.filename ?? '');
+      if (!media) throw new Error('unsupported image type — export the chart as PNG or JPG');
+      const buf = await data.toBuffer();
+      const snapshot = await extractChartToSnapshot(req.params.id, buf.toString('base64'), media);
       const diff = diffStructure(req.params.id, snapshot);
       return { snapshot, diff };
     } catch (err) {

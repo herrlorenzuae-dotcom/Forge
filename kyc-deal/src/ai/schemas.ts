@@ -35,3 +35,29 @@ export const AnswerSchema = z.object({
     .describe('The structure facts this answer cites. Empty only if no fact applies.'),
 });
 export type ModelAnswer = z.infer<typeof AnswerSchema>;
+
+export const ChartSnapshotSchema = z.object({
+  entities: z
+    .array(
+      z.object({
+        name: z.string().describe('Entity or individual name, exactly as written on the chart.'),
+        kind: z.enum(['individual', 'operating', 'holding', 'spv', 'fund', 'trust', 'partnership', 'foundation']),
+        role: z.enum(['acquisition_vehicle', 'topco', 'intermediate', 'ubo', 'target', 'other']).describe('Best-fit role in the structure.'),
+        jurisdiction: z.string().describe('Country/jurisdiction if shown, else "".'),
+        registration_no: z.string().describe('Registration number if shown, else "".'),
+      }),
+    )
+    .describe('Every box/node on the chart, including individuals at the top.'),
+  edges: z
+    .array(
+      z.object({
+        parentName: z.string().describe('Name of the owning/controlling party (the parent box).'),
+        childName: z.string().describe('Name of the owned/controlled party (the child box).'),
+        type: z.enum(['ownership', 'control']).describe('ownership = a shareholding/economic interest; control = voting/board/agreement-based control distinct from ownership.'),
+        percent: z.number().describe('Ownership percentage if shown; 0 for control or when not shown.'),
+        mechanism: z.string().describe('For control edges: the mechanism (voting majority, board control, shareholders’ agreement, GP/manager, veto). Else "".'),
+      }),
+    )
+    .describe('Every connecting line. Read percentages and any control annotations.'),
+});
+export type ChartSnapshot = z.infer<typeof ChartSnapshotSchema>;

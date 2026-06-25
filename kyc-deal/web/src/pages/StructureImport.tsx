@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { uploadStructureExcel, applyStructureSnapshot, type StructureDiff, type StructureSnapshot, type EntityDiff, type EdgeDiff } from '../api.js';
+import { uploadStructureExcel, uploadStructureChart, applyStructureSnapshot, type StructureDiff, type StructureSnapshot, type EntityDiff, type EdgeDiff } from '../api.js';
 import { Button, GhostButton, Pill, ErrorNote } from '../components.js';
 
 const TONE: Record<string, 'verdant' | 'ember' | 'warn' | 'neutral'> = {
@@ -43,7 +43,9 @@ export function StructureImport({ clientId, onApplied }: { clientId: string; onA
     setBusy(true);
     setError(null);
     try {
-      const res = await uploadStructureExcel(clientId, file);
+      const ext = file.name.toLowerCase().split('.').pop() ?? '';
+      const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext) || file.type.startsWith('image/');
+      const res = isImage ? await uploadStructureChart(clientId, file) : await uploadStructureExcel(clientId, file);
       setSnapshot(res.snapshot);
       setDiff(res.diff);
     } catch (e) {
@@ -78,7 +80,8 @@ export function StructureImport({ clientId, onApplied }: { clientId: string; onA
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-fog">Import / update structure</h2>
           <p className="mt-0.5 text-xs text-fog">
-            Upload the group's structure chart (Excel template). Differences are flagged against what's on file — nothing is overwritten silently.
+            Upload the group's structure chart — Excel template, or a PNG/JPG of the chart (export PowerPoint/Visio/Lucid to an image).
+            Differences are flagged against what's on file; nothing is overwritten silently.
           </p>
         </div>
         <span className="text-fog">{open ? '▾' : '▸'}</span>
@@ -90,15 +93,18 @@ export function StructureImport({ clientId, onApplied }: { clientId: string; onA
             <input
               ref={fileRef}
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.png,.jpg,.jpeg,.webp,.gif,image/*"
               onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
               className="text-xs text-fog file:mr-3 file:cursor-pointer file:rounded-full file:border file:border-black/10 file:bg-surface file:px-4 file:py-1.5 file:text-xs file:text-bone hover:file:border-ember/40"
             />
             {busy && <span className="spinner spinner-light h-4 w-4" />}
           </div>
           <p className="mt-2 text-[11px] text-fog">
-            Need the template? Run <code className="font-mono text-bone">npm run template:xlsx</code> — two sheets, <em>Entities</em> and <em>Relationships</em>. PowerPoint/Visio
-            charts are derived into the same shape.
+            Need the Excel template? Run <code className="font-mono text-bone">npm run template:xlsx</code> — two sheets, <em>Entities</em> and <em>Relationships</em>.
+          </p>
+          <p className="mt-1.5 rounded-lg border border-warn/25 bg-warn/[0.06] px-3 py-2 text-[11px] leading-relaxed text-warn">
+            Privacy: a chart <strong>image</strong> is sent to the model to be read and <strong>cannot be name-masked</strong>. The Excel import stays local
+            (no image leaves the machine). Use Excel when the names must not be sent.
           </p>
 
           <ErrorNote error={error} />
