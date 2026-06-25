@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { get, type OrgChart as OrgChartData, type Structure as StructureData } from '../api.js';
 import { useClient } from '../App.js';
 import { SectionTitle, Pill, ErrorNote } from '../components.js';
-import { OrgChart } from '../OrgChart.js';
+import { InteractiveOrgChart } from '../InteractiveOrgChart.js';
 import { StructureImport } from './StructureImport.js';
 
 const ROLE_TONE: Record<string, 'ember' | 'verdant' | 'neutral'> = {
@@ -51,7 +51,7 @@ export function Structure() {
               {chart.nodes.length} entities · {chart.edges.length} links
             </span>
           </div>
-          <OrgChart code={chart.mermaid} />
+          <InteractiveOrgChart nodes={chart.nodes} edges={chart.edges} />
           <div className="mt-4 flex flex-wrap gap-4 border-t border-black/[0.06] pt-3 text-[11px] text-fog">
             <span className="flex items-center gap-1.5">
               <svg width="26" height="6">
@@ -65,6 +65,8 @@ export function Structure() {
               </svg>
               Control (voting / board / agreement)
             </span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-1 rounded bg-ember" /> UBO / BidCo</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-1 rounded bg-verdant" /> Target</span>
           </div>
         </div>
       )}

@@ -140,10 +140,24 @@ export interface Structure {
   attributes: EntityAttribute[];
 }
 
+export interface OrgNode {
+  id: string;
+  name: string;
+  kind: string;
+  role: string;
+  jurisdiction: string;
+}
+export interface OrgEdge {
+  parent: string;
+  child: string;
+  pct: number;
+  kind: string;
+  mechanism?: string;
+}
 export interface OrgChart {
   mermaid: string;
-  nodes: { id: string; name: string; kind: string; role: string; jurisdiction: string }[];
-  edges: { parent: string; child: string; pct: number; kind: string }[];
+  nodes: OrgNode[];
+  edges: OrgEdge[];
 }
 
 export interface CurrencyItem {
