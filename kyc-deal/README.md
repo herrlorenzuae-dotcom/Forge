@@ -63,6 +63,31 @@ with no external systems. Point it at the real Quantium / YSolutions by
 implementing the `StructureConnector` / `DataConnector` interfaces (see
 `src/connectors/types.ts`) or by wiring an MCP client to the servers above.
 
+## Structure import & staying dynamic
+
+The structure is never write-once. The org chart is a *pure projection* of the
+stored entities and links, so any change to the data re-renders it — there is
+no frozen "version" to regenerate by hand.
+
+- **Import a delivered group chart.** Upload it as an Excel workbook
+  (`npm run template:xlsx` writes the template — two sheets, *Entities* and
+  *Relationships*). PowerPoint / Visio charts are derived into the same
+  `StructureSnapshot`, so everything downstream is identical regardless of the
+  source format.
+- **Reconciled, never overwritten.** Every import is diffed against what's on
+  file by natural key (registration number, else name + jurisdiction) and
+  surfaced as **added / changed (with the exact field conflict) / missing**. A
+  human applies the changes; optionally prune entities and links the new chart
+  drops. Nothing is silently replaced — the audit trail a bank relies on
+  stays intact.
+- **Ownership vs. control, modelled separately.** Ownership edges carry a %;
+  control edges carry a *mechanism* (voting majority, board control,
+  shareholders' agreement, GP/manager, veto rights) and render dashed. The
+  chart's purpose is to let the bank follow the **control structure**, not
+  just the cash-flow ownership.
+- **Manual edits are first-class.** Add, correct or delete an entity or link
+  via the API; the chart updates immediately.
+
 ## Confidentiality
 
 KYC data is the most sensitive a client holds. Entity and beneficial-owner
@@ -117,11 +142,15 @@ src/
     types.ts             StructureConnector / DataConnector interfaces
     quantium.ts          structure + currency (mock)
     ysolutions.ts        supplemental KYC data (mock)
+    excel.ts             parse a structure workbook into a snapshot + template
     mock-data.ts         the Project Halcyon fixture
   mcp/                   MCP server entrypoints (quantium, ysolutions)
+  scripts/make-template.ts   emit the blank Excel import template
   engine/
     structure.ts         pull from connectors, mirror locally, verify currency
-    orgchart.ts          deterministic Mermaid org chart
+    reconcile.ts         diff a delivered snapshot vs the store; apply by key
+    edit.ts              manual entity/link upsert + delete
+    orgchart.ts          deterministic Mermaid org chart (ownership + control)
     intake.ts            parse a questionnaire into atomic questions
     mapping.ts           map a question to facts and answer, with brain priors
     brain.ts             the answer library: convergence + optionality
@@ -138,6 +167,10 @@ web/                     React 19 + Vite + Tailwind 4 dashboard (mermaid org cha
 - Brain matching is currently exact on a normalized question key (banks reuse
   each other's wording, so this hits often). Fuzzy/semantic matching of
   similar-but-not-identical questions is the obvious next step.
+- Structure import currently uses the deterministic Excel snapshot shape.
+  Native PowerPoint (.pptx) and Visio (.vsdx) connector-graph extraction is the
+  next step — it emits the same `StructureSnapshot`, so only the parser is new;
+  it needs a representative real chart to tune against.
 - Questionnaire intake is text/paste today; PDF and Word ingestion would slot
   in at `engine/intake.ts`.
 - Word/PDF export of a completed questionnaire (with a verified sources annex,

@@ -28,6 +28,9 @@ export interface RawEdge {
   childRef: string;
   pct: number;
   kind: EdgeKind;
+  /** For control edges: the mechanism (voting majority, board control,
+   *  shareholders' agreement, GP/manager, veto rights …). */
+  mechanism?: string;
   as_of: string;
 }
 

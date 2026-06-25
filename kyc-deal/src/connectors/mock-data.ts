@@ -30,6 +30,9 @@ export const QUANTIUM_STRUCTURE: StructureSnapshot = {
     { parentRef: 'topco', childRef: 'midco', pct: 100, kind: 'shares', as_of: '2026-05-12' },
     { parentRef: 'midco', childRef: 'bidco', pct: 100, kind: 'shares', as_of: '2026-05-12' },
     { parentRef: 'bidco', childRef: 'target', pct: 94, kind: 'shares', as_of: '2026-04-28' },
+    // Control distinct from ownership: Dr. Brandt controls the topco beyond her
+    // economic share via a shareholders' agreement (board majority + casting vote).
+    { parentRef: 'ubo-brandt', childRef: 'topco', pct: 0, kind: 'control', mechanism: "Shareholders' agreement: board majority & chair casting vote", as_of: '2026-05-12' },
   ],
   ubos: [
     { entityRef: 'ubo-brandt', basis: 'ownership', pct: 75, pep: false, residence: 'Munich, Germany', as_of: '2026-05-12' },

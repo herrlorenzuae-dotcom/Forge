@@ -55,8 +55,47 @@ export interface OwnershipEdge {
   child_id: string;
   pct: number;
   kind: string;
+  mechanism: string;
   source: string;
   as_of: string;
+}
+
+// ── Structure import / reconciliation ──
+export interface FieldConflict {
+  field: string;
+  current: string;
+  incoming: string;
+}
+export interface EntityDiff {
+  status: 'added' | 'changed' | 'unchanged' | 'removed';
+  key: string;
+  name: string;
+  existingId?: string;
+  conflicts: FieldConflict[];
+}
+export interface EdgeDiff {
+  status: 'added' | 'changed' | 'unchanged' | 'removed';
+  key: string;
+  label: string;
+  conflicts: FieldConflict[];
+}
+export interface StructureDiff {
+  entities: EntityDiff[];
+  edges: EdgeDiff[];
+  summary: { added: number; changed: number; removed: number; unchanged: number };
+}
+export type StructureSnapshot = { entities: unknown[]; edges: unknown[]; ubos: unknown[]; attributes: unknown[] };
+
+export async function uploadStructureExcel(clientId: string, file: File): Promise<{ snapshot: StructureSnapshot; diff: StructureDiff }> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${BASE}/clients/${clientId}/import/excel`, { method: 'POST', body: form });
+  if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function applyStructureSnapshot(clientId: string, snapshot: StructureSnapshot, removeMissing: boolean): Promise<Record<string, number>> {
+  return post<Record<string, number>>(`/clients/${clientId}/structure/apply`, { snapshot, removeMissing });
 }
 
 export interface Ubo {

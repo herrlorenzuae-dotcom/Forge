@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS ownership_edges (
   child_id TEXT NOT NULL REFERENCES entities(id),
   pct REAL NOT NULL DEFAULT 0,
   kind TEXT NOT NULL CHECK (kind IN ('shares','partnership_interest','beneficial','control')),
+  mechanism TEXT NOT NULL DEFAULT '',
   source TEXT NOT NULL CHECK (source IN ('quantium','ysolutions','manual')),
   source_ref TEXT NOT NULL DEFAULT '',
   as_of TEXT NOT NULL DEFAULT (date('now'))
@@ -157,6 +158,18 @@ CREATE INDEX IF NOT EXISTS idx_questionnaires_client ON questionnaires(client_id
 CREATE INDEX IF NOT EXISTS idx_syncs_client ON source_syncs(client_id);
 `;
 
+/** Idempotent column additions for databases created before a column existed.
+ *  SQLite has no "ADD COLUMN IF NOT EXISTS", so check pragma first. */
+function migrateColumns(db: Database.Database): void {
+  const cols = (table: string): Set<string> =>
+    new Set((db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((r) => r.name));
+  const edgeCols = cols('ownership_edges');
+  if (edgeCols.size > 0 && !edgeCols.has('mechanism')) {
+    db.exec(`ALTER TABLE ownership_edges ADD COLUMN mechanism TEXT NOT NULL DEFAULT ''`);
+  }
+}
+
 export function initSchema(db: Database.Database): void {
   db.exec(TABLES);
+  migrateColumns(db);
 }

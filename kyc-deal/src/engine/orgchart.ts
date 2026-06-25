@@ -21,6 +21,7 @@ export interface OrgEdge {
   child: string;
   pct: number;
   kind: string;
+  mechanism: string;
 }
 
 export interface OrgChart {
@@ -58,7 +59,7 @@ export function buildOrgChart(clientId: string): OrgChart {
   const orgEdges: OrgEdge[] = [...edges]
     .filter((e) => idToIdx.has(e.parent_id) && idToIdx.has(e.child_id))
     .sort((a, b) => (idToIdx.get(a.parent_id)! - idToIdx.get(b.parent_id)!) || (idToIdx.get(a.child_id)! - idToIdx.get(b.child_id)!))
-    .map((e) => ({ parent: e.parent_id, child: e.child_id, pct: e.pct, kind: e.kind }));
+    .map((e) => ({ parent: e.parent_id, child: e.child_id, pct: e.pct, kind: e.kind, mechanism: e.mechanism }));
 
   // ── Mermaid ──
   const lines: string[] = ['flowchart TD'];
@@ -70,12 +71,22 @@ export function buildOrgChart(clientId: string): OrgChart {
     // individuals as rounded, entities as boxes
     lines.push(e.kind === 'individual' ? `  ${nid(i)}(["${label}"])` : `  ${nid(i)}["${label}"]`);
   }
-  for (const e of orgEdges) {
+  // ownership edges are solid with a % label; control edges are dashed and
+  // labelled with their mechanism, so the bank can read the control structure
+  // distinctly from the cash-flow ownership.
+  const controlLinks: number[] = [];
+  orgEdges.forEach((e, linkIdx) => {
     const p = nid(idToIdx.get(e.parent)!);
     const c = nid(idToIdx.get(e.child)!);
-    const lbl = pctLabel(e.pct);
-    lines.push(lbl ? `  ${p} -- "${lbl}" --> ${c}` : `  ${p} --> ${c}`);
-  }
+    if (e.kind === 'control') {
+      const lbl = (e.mechanism || 'control').replace(/"/g, "'");
+      lines.push(`  ${p} -. "${lbl}" .-> ${c}`);
+      controlLinks.push(linkIdx);
+    } else {
+      const lbl = pctLabel(e.pct);
+      lines.push(lbl ? `  ${p} -- "${lbl}" --> ${c}` : `  ${p} --> ${c}`);
+    }
+  });
   // class styling by role
   const byClass: Record<string, number[]> = {};
   sorted.forEach((e, i) => {
@@ -89,6 +100,9 @@ export function buildOrgChart(clientId: string): OrgChart {
   for (const [role, idxs] of Object.entries(byClass)) {
     if (role === 'other') continue;
     lines.push(`  class ${idxs.map(nid).join(',')} ${role};`);
+  }
+  if (controlLinks.length) {
+    lines.push(`  linkStyle ${controlLinks.join(',')} stroke:#7d2f3f,stroke-width:1.5px,stroke-dasharray:5 4;`);
   }
 
   return { mermaid: lines.join('\n'), nodes, edges: orgEdges };

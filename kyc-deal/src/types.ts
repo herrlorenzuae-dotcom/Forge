@@ -39,6 +39,7 @@ export interface OwnershipEdge {
   child_id: string;
   pct: number;
   kind: EdgeKind;
+  mechanism: string;
   source: SourceSystem;
   source_ref: string;
   as_of: string;

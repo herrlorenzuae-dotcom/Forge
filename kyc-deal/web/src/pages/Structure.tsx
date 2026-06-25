@@ -3,6 +3,7 @@ import { get, type OrgChart as OrgChartData, type Structure as StructureData } f
 import { useClient } from '../App.js';
 import { SectionTitle, Pill, ErrorNote } from '../components.js';
 import { OrgChart } from '../OrgChart.js';
+import { StructureImport } from './StructureImport.js';
 
 const ROLE_TONE: Record<string, 'ember' | 'verdant' | 'neutral'> = {
   ubo: 'ember',
@@ -16,7 +17,7 @@ export function Structure() {
   const [chart, setChart] = useState<OrgChartData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     if (!clientId) return;
     setError(null);
     Promise.all([get<StructureData>(`/clients/${clientId}/structure`), get<OrgChartData>(`/clients/${clientId}/orgchart`)])
@@ -25,6 +26,10 @@ export function Structure() {
         setChart(c);
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  };
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
   const nameOf = (id: string) => structure?.entities.find((e) => e.id === id)?.name ?? '?';
@@ -36,13 +41,31 @@ export function Structure() {
       </SectionTitle>
       <ErrorNote error={error} />
 
+      <StructureImport clientId={clientId} onApplied={load} />
+
       {chart && (
         <div className="card-elevated mb-8 p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-fog">Organisation chart</h2>
-            <span className="text-[11px] text-fog">{chart.nodes.length} entities · {chart.edges.length} ownership links</span>
+            <span className="text-[11px] text-fog">
+              {chart.nodes.length} entities · {chart.edges.length} links
+            </span>
           </div>
           <OrgChart code={chart.mermaid} />
+          <div className="mt-4 flex flex-wrap gap-4 border-t border-black/[0.06] pt-3 text-[11px] text-fog">
+            <span className="flex items-center gap-1.5">
+              <svg width="26" height="6">
+                <line x1="0" y1="3" x2="26" y2="3" stroke="#6d6a63" strokeWidth="1.5" />
+              </svg>
+              Ownership (with %)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <svg width="26" height="6">
+                <line x1="0" y1="3" x2="26" y2="3" stroke="#7d2f3f" strokeWidth="1.5" strokeDasharray="5 4" />
+              </svg>
+              Control (voting / board / agreement)
+            </span>
+          </div>
         </div>
       )}
 

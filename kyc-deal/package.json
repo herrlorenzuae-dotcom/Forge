@@ -12,7 +12,8 @@
     "seed": "tsx --env-file-if-exists=.env src/seed/seed.ts",
     "test": "vitest run",
     "mcp:quantium": "tsx src/mcp/quantium-server.ts",
-    "mcp:ysolutions": "tsx src/mcp/ysolutions-server.ts"
+    "mcp:ysolutions": "tsx src/mcp/ysolutions-server.ts",
+    "template:xlsx": "tsx src/scripts/make-template.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
@@ -22,6 +23,7 @@
     "@modelcontextprotocol/sdk": "^1.12.0",
     "better-sqlite3": "^12.6.2",
     "fastify": "^5.7.4",
+    "xlsx": "^0.18.5",
     "zod": "^4.0.0"
   },
   "devDependencies": {

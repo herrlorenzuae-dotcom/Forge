@@ -53,15 +53,15 @@ export function importSnapshot(clientId: string, snapshot: StructureSnapshot, ys
     }
 
     const insEdge = db.prepare(
-      `INSERT INTO ownership_edges (id, client_id, parent_id, child_id, pct, kind, source, source_ref, as_of)
-       VALUES (?, ?, ?, ?, ?, ?, 'quantium', ?, ?)`,
+      `INSERT INTO ownership_edges (id, client_id, parent_id, child_id, pct, kind, mechanism, source, source_ref, as_of)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'quantium', ?, ?)`,
     );
     let edges = 0;
     for (const e of snapshot.edges) {
       const p = refToId.get(e.parentRef);
       const c = refToId.get(e.childRef);
       if (!p || !c) continue;
-      insEdge.run(genId('edge'), clientId, p, c, e.pct, e.kind, `${e.parentRef}->${e.childRef}`, e.as_of);
+      insEdge.run(genId('edge'), clientId, p, c, e.pct, e.kind, e.mechanism ?? '', `${e.parentRef}->${e.childRef}`, e.as_of);
       edges++;
     }
 

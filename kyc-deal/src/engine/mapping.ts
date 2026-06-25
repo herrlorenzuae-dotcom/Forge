@@ -29,7 +29,8 @@ export function buildStructureContext(clientId: string): string {
   }
   lines.push('\nOWNERSHIP');
   for (const e of edges) {
-    lines.push(`- edge ${e.id} | ${nameOf.get(e.parent_id) ?? '?'} owns ${e.pct}% of ${nameOf.get(e.child_id) ?? '?'} (${e.kind}) | as_of=${e.as_of}`);
+    const rel = e.kind === 'control' ? `controls ${nameOf.get(e.child_id) ?? '?'} (${e.mechanism || 'control'})` : `owns ${e.pct}% of ${nameOf.get(e.child_id) ?? '?'} (${e.kind})`;
+    lines.push(`- edge ${e.id} | ${nameOf.get(e.parent_id) ?? '?'} ${rel} | as_of=${e.as_of}`);
   }
   lines.push('\nBENEFICIAL OWNERS');
   for (const u of ubos) {
