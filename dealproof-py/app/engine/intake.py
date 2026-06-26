@@ -172,6 +172,48 @@ def parse_questions_model(raw: str):
         return None
 
 
+# a number cell such as "6", "6 a", "19 a1i" — anchors a sub-item's row
+ANCHOR_RE = re.compile(r"^\d+(?:\s*[a-z]+\d*)*$", re.I)
+
+
+def _cell_lines(page, bbox):
+    """Text lines inside a cell bbox, each as (y, text), in reading order —
+    wrapped words on the same visual line are joined."""
+    x0, y0, x1, y1 = bbox[0], bbox[1], bbox[2], bbox[3]
+    ws = [w for w in page.get_text("words")
+          if w[0] >= x0 - 1 and w[2] <= x1 + 1 and w[1] >= y0 - 1 and w[3] <= y1 + 1]
+    ws.sort(key=lambda w: (round(w[1]), w[0]))
+    lines = []
+    for w in ws:
+        if lines and abs(w[1] - lines[-1][0]) < 4:
+            lines[-1][1].append((w[0], w[4]))
+        else:
+            lines.append([w[1], [(w[0], w[4])]])
+    return [(y, " ".join(t for _, t in sorted(toks))) for y, toks in lines]
+
+
+def _slice_packed(page, no_bbox, q_bbox):
+    """A cell that packs several numbered sub-items: align the Question column to
+    the No column's anchor rows by vertical position, so wrapped question lines
+    join under the right sub-item. Returns a list of question strings or None."""
+    anchors = [(y, txt) for y, txt in _cell_lines(page, no_bbox) if ANCHOR_RE.match(txt.strip())]
+    q_lines = _cell_lines(page, q_bbox)
+    if len(anchors) < 2 or not q_lines:
+        return None
+    buckets = [[] for _ in anchors]
+    for qy, qt in q_lines:
+        # the sub-item a line belongs to is the anchor whose row it sits in —
+        # the nearest anchor at or just above the line (half a row's tolerance)
+        idx = 0
+        for i, (ay, _) in enumerate(anchors):
+            if qy >= ay - 7:
+                idx = i
+            else:
+                break
+        buckets[idx].append(qt)
+    return [" ".join(b).strip() for b in buckets if " ".join(b).strip()]
+
+
 def parse_questions_table(data: bytes):
     """Most KYC questionnaires are tables (No / Question / Answer). Reading the
     text flow scrambles those columns; pulling the table structure out of the
@@ -204,7 +246,7 @@ def parse_questions_table(data: bytes):
             continue
         for t in tabs.tables:
             try:
-                rows = t.extract()
+                extracted = t.extract()
             except Exception:
                 continue
             # locate the Question column (by header on the first page, else col 1)
@@ -213,7 +255,7 @@ def parse_questions_table(data: bytes):
                 names = [(n or "").strip().lower() for n in t.header.names]
                 if "question" in names:
                     qcol = names.index("question")
-            for r in rows:
+            for row, r in zip(t.rows, extracted):
                 no = (r[0] or "").strip() if len(r) > 0 else ""
                 q = (r[qcol] or "").strip() if len(r) > qcol else ""
                 if no and not q:                      # a section-header row
@@ -225,8 +267,18 @@ def parse_questions_table(data: bytes):
                 if not q:
                     continue
                 no_lines = [x for x in no.split("\n") if x.strip()]
+                cells = row.cells
+                # a cell that packs several numbered sub-items → align by geometry
+                if len(no_lines) > 1 and len(cells) > qcol and cells[0] and cells[qcol]:
+                    try:
+                        items = _slice_packed(pg, cells[0], cells[qcol])
+                    except Exception:
+                        items = None
+                    if items:
+                        for it in items:
+                            add(section, it)
+                        continue
                 q_lines = [x.strip() for x in q.split("\n") if x.strip()]
-                # a cell that packs several numbered sub-items, one per line
                 if len(no_lines) > 1 and len(no_lines) == len(q_lines):
                     for ql in q_lines:
                         add(section, ql)
