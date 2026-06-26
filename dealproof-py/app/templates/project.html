@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div>
+  <p class="eyebrow">Project</p>
+  <h1 class="h1">{{ project.name }}</h1>
+  <p class="lead">Upload the KYC questionnaire you received. DealProof parses it and produces an analysis of what can be answered — from existing data, the connectors (Quantium, YSolutions), web research and the KYC Brain — and what must be requested from the client.</p>
+</div>
+
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:12px">Add a questionnaire</h2>
+  <form method="post" action="/projects/{{ project.id }}/documents" enctype="multipart/form-data" id="upform">
+    <label id="drop" class="dropzone">
+      <span class="icon" style="font-size:28px; color:var(--blue)">upload_file</span>
+      <span><b>Drag &amp; drop</b> a file here, or click to choose</span>
+      <span class="muted small">PDF, TXT or Markdown · email ingestion coming soon</span>
+      <input type="file" name="file" id="file" accept=".pdf,.txt,.md" style="display:none"/>
+      <span id="fname" class="muted small"></span>
+    </label>
+    <div style="margin:12px 0 6px" class="muted small">…or paste the questionnaire text:</div>
+    <textarea name="pasted" rows="5" placeholder="Paste the questionnaire text here. Numbered items, bullets and section headings are all understood."></textarea>
+    <div style="margin-top:12px"><button class="btn"><span class="icon">playlist_add_check</span> Analyse questionnaire</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head"><h3 class="card-title">Documents</h3></div>
+  <table class="tbl">
+    <thead><tr><th>File</th><th style="text-align:right">Uploaded</th><th></th></tr></thead>
+    <tbody>
+    {% for d in documents %}
+      <tr class="clickable" onclick="location.href='/projects/{{ project.id }}/analysis/{{ d.questionnaire_id }}'">
+        <td><span class="icon" style="font-size:16px; color:var(--blue)">description</span> {{ d.filename }}</td>
+        <td style="text-align:right" class="muted small">{{ d.uploaded_at }}</td>
+        <td style="text-align:right"><span class="pill blue">Open analysis →</span></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3" class="muted" style="text-align:center; padding:24px">No documents yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<script>
+  const drop = document.getElementById('drop'), file = document.getElementById('file'), fname = document.getElementById('fname');
+  file.addEventListener('change', () => { if (file.files[0]) fname.textContent = file.files[0].name; });
+  ['dragover','dragenter'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', ev => { if (ev.dataTransfer.files[0]) { file.files = ev.dataTransfer.files; fname.textContent = file.files[0].name; } });
+</script>
+{% endblock %}

@@ -124,3 +124,18 @@ select.inline { width: auto; padding: 4px 8px; font-size: 12px; }
 .divide > *:first-child { border-top: none; }
 .legendkey { display: inline-block; width: 4px; height: 12px; border-radius: 2px; vertical-align: middle; }
 .footer { color: rgba(69,70,80,.7); font-size: 12px; padding: 24px 0 40px; }
+
+/* dropzone */
+.dropzone { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: 28px; border: 1.5px dashed rgba(0,94,184,.4); border-radius: 12px; background: #f3f9ff;
+  cursor: pointer; transition: background .15s, border-color .15s; }
+.dropzone:hover { border-color: var(--blue); }
+.dropzone.drag { background: #e6f1ff; border-color: var(--blue); }
+
+/* source pills for the analysis report */
+.pill.source-on_file { background: rgba(0,137,126,.12); color: var(--teal); }
+.pill.source-brain { background: rgba(0,137,126,.12); color: var(--teal); }
+.pill.source-quantium { background: rgba(0,94,184,.12); color: var(--blue); }
+.pill.source-ysolutions { background: rgba(28,134,200,.14); color: #1463a0; }
+.pill.source-web { background: rgba(99,90,0,.12); color: var(--amber); }
+.pill.source-request { background: rgba(214,37,24,.12); color: #9a2017; }

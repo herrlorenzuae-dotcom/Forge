@@ -74,7 +74,7 @@ def render_svg(client_id: str) -> str:
         ctrl = e["kind"] == "control"
         dash = ' stroke-dasharray="5 3"' if ctrl else ""
         parts.append(f'<path d="M{x1},{y1} L{x1},{my} L{x2},{my} L{x2},{y2}" fill="none" stroke="{BLUE}" stroke-width="1.3"{dash} marker-end="url(#arr)"/>')
-        label = "Kontrolle" if ctrl else (pct(e["pct"]) if e["pct"] else "")
+        label = ("Control" if ctrl else (pct(e["pct"]) if e["pct"] else ""))
         if label:
             mx = (x1 + x2) / 2
             parts.append(f'<rect x="{mx-22}" y="{my-8}" width="44" height="16" rx="3" fill="{CHART_BG}"/>'

@@ -11,16 +11,19 @@
 <body>
 <header class="header">
   <div class="wrap header-row">
-    <a href="/structure" class="brand">
+    <a href="/" class="brand">
       <img src="/static/armira-logo.svg" alt="Armira"/>
       <span class="sep"></span>
       <span class="name">DealProof</span>
     </a>
-    <span class="client">· {{ client.deal_name or client.name }}</span>
+    {% if project %}<span class="client">· {{ project.name }}</span>{% endif %}
     <nav class="nav">
-      {% for key, label in nav %}
-      <a href="/{{ key }}" class="{{ 'active' if active==key else '' }}">{{ label }}</a>
-      {% endfor %}
+      <a href="/" class="{{ 'active' if active=='projects' else '' }}">Projects</a>
+      {% if project %}
+      <a href="/projects/{{ project.id }}" class="{{ 'active' if active=='project' else '' }}">Overview</a>
+      <a href="/projects/{{ project.id }}/structure" class="{{ 'active' if active=='structure' else '' }}">Structure</a>
+      {% endif %}
+      <a href="/brain" class="{{ 'active' if active=='brain' else '' }}">KYC Brain</a>
     </nav>
     <span class="statuschip" title="{{ 'Model ready' if has_key else 'No model key — the KYC Brain answers from the corpus' }}">
       <span class="dot" style="background: {{ '#00b2a9' if has_key else '#005eb8' }}"></span>
@@ -32,7 +35,7 @@
   {% block content %}{% endblock %}
 </main>
 <footer class="wrap footer">
-  DealProof — every answer cites the structure fact it rests on; names are masked on-device before anything goes to a model. Demo client: Project Halcyon. Not legal advice.
+  DealProof — analyse incoming KYC questionnaires, see what can be answered from existing data, the connectors and the KYC Brain, and what must be requested. Every answer cites the fact it rests on; names are masked on-device before anything goes to a model.
 </footer>
 </body>
 </html>

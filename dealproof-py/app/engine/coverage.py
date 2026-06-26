@@ -7,23 +7,23 @@ import re
 # (regex, field, channel, source) — first match wins. German + English.
 RULES = [
     (r"\b(lei|legal entity identifier)\b", "lei", "web", "GLEIF (gleif.org)"),
-    (r"(registration|register)\s*(no|number|nr)|handelsregister|hrb|hra|commercial register", "registration_number", "web", "Handels-/Unternehmensregister"),
-    (r"(registered|business)\s*(office|address|seat)|(eingetragener\s*)?sitz|gesch[äa]ftsanschrift", "registered_office", "web", "Handels-/Unternehmensregister"),
-    (r"(date|datum).*(incorporat|gr[üu]ndung|establish)|incorporation date|gr[üu]ndungsdatum", "incorporation_date", "web", "Handels-/Unternehmensregister"),
-    (r"legal form|rechtsform|company type|gesellschaftsform", "legal_form", "web", "Handels-/Unternehmensregister"),
-    (r"(managing director|director|gesch[äa]ftsf[üu]hrer|vorstand|board member|\borgan\b)", "directors", "web", "Handels-/Unternehmensregister"),
-    (r"(listed|b[öo]rsennotiert|stock exchange|\b(isin|ticker)\b)", "listing", "web", "Börse / öffentliche Quelle"),
-    (r"(industry|branche|\b(nace|sic)\b|sector|gesch[äa]ftst[äa]tigkeit|nature of business)", "industry", "web", "Register / Website"),
-    (r"source of (wealth|funds)|mittelherkunft|verm[öo]gensherkunft|herkunft der (mittel|gelder)", "source_of_funds", "request", "Mandant (Erklärung + Nachweis)"),
-    (r"\b(pep|politically exposed|politisch exponiert)\b", "pep", "request", "Mandant (Selbstauskunft)"),
-    (r"(tax\s*(residence|identification)|tax\s+id\b|steuer(ans[äa]ssigkeit|nummer|id)|\b(tin|crs|fatca)\b)", "tax_residence", "request", "Mandant (+ Ansässigkeitsbescheinigung)"),
-    (r"(passport|identity (card|document)|ausweis|reisepass|id copy|lichtbild)", "id_document", "request", "Mandant (beglaubigte Kopie)"),
-    (r"(certified|beglaubigt|notari[sz]ed|apostille)", "certified_document", "request", "Mandant (Beglaubigung)"),
-    (r"(bank reference|bankreferenz|bank statement|kontoauszug)", "bank_reference", "request", "Bank des Mandanten"),
-    (r"(authoris|authoriz|signatory|unterschrift|zeichnungsberecht|vollmacht|power of attorney)", "signatory", "request", "Mandant (Vollmacht/Unterschrift)"),
-    (r"(purpose|zweck).*(relationship|gesch[äa]ftsbeziehung|account|konto)|intended (nature|purpose)", "purpose_of_relationship", "request", "Mandant (Angabe)"),
-    (r"(expected|anticipated).*(volume|turnover|transaction)|transaktionsvolumen", "expected_volume", "request", "Mandant (Angabe)"),
-    (r"(date of birth|geburtsdatum|geburtsort|place of birth|nationalit|staatsangeh[öo]rigkeit)", "personal_details", "request", "Mandant (UBO-Angaben)"),
+    (r"(registration|register)\s*(no|number|nr)|handelsregister|hrb|hra|commercial register", "registration_number", "web", "Commercial register (Handelsregister)"),
+    (r"(registered|business)\s*(office|address|seat)|(eingetragener\s*)?sitz|gesch[äa]ftsanschrift", "registered_office", "web", "Commercial register (Handelsregister)"),
+    (r"(date|datum).*(incorporat|gr[üu]ndung|establish)|incorporation date|gr[üu]ndungsdatum", "incorporation_date", "web", "Commercial register (Handelsregister)"),
+    (r"legal form|rechtsform|company type|gesellschaftsform", "legal_form", "web", "Commercial register (Handelsregister)"),
+    (r"(managing director|director|gesch[äa]ftsf[üu]hrer|vorstand|board member|\borgan\b)", "directors", "web", "Commercial register (Handelsregister)"),
+    (r"(listed|b[öo]rsennotiert|stock exchange|\b(isin|ticker)\b)", "listing", "web", "Stock exchange / public source"),
+    (r"(industry|branche|\b(nace|sic)\b|sector|gesch[äa]ftst[äa]tigkeit|nature of business)", "industry", "web", "Register / website"),
+    (r"source of (wealth|funds)|mittelherkunft|verm[öo]gensherkunft|herkunft der (mittel|gelder)", "source_of_funds", "request", "Client (declaration + evidence)"),
+    (r"\b(pep|politically exposed|politisch exponiert)\b", "pep", "request", "Client (self-declaration)"),
+    (r"(tax\s*(residence|identification)|tax\s+id\b|steuer(ans[äa]ssigkeit|nummer|id)|\b(tin|crs|fatca)\b)", "tax_residence", "request", "Client (+ tax-residence certificate)"),
+    (r"(passport|identity (card|document)|ausweis|reisepass|id copy|lichtbild)", "id_document", "request", "Client (certified copy)"),
+    (r"(certified|beglaubigt|notari[sz]ed|apostille)", "certified_document", "request", "Client (certified)"),
+    (r"(bank reference|bankreferenz|bank statement|kontoauszug)", "bank_reference", "request", "Client's bank"),
+    (r"(authoris|authoriz|signatory|unterschrift|zeichnungsberecht|vollmacht|power of attorney)", "signatory", "request", "Client (power of attorney / signature)"),
+    (r"(purpose|zweck).*(relationship|gesch[äa]ftsbeziehung|account|konto)|intended (nature|purpose)", "purpose_of_relationship", "request", "Client (to provide)"),
+    (r"(expected|anticipated).*(volume|turnover|transaction)|transaktionsvolumen", "expected_volume", "request", "Client (to provide)"),
+    (r"(date of birth|geburtsdatum|geburtsort|place of birth|nationalit|staatsangeh[öo]rigkeit)", "personal_details", "request", "Client (UBO details)"),
 ]
 
 
@@ -31,7 +31,7 @@ def classify_field(prompt: str) -> dict:
     for pat, field, channel, source in RULES:
         if re.search(pat, prompt, re.I):
             return {"fieldType": field, "channel": channel, "source": source}
-    return {"fieldType": "other", "channel": "request", "source": "Mandant (zu klären)"}
+    return {"fieldType": "other", "channel": "request", "source": "Client (to clarify)"}
 
 
 def _has_verified_citation(citations_json: str) -> bool:

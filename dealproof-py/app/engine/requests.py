@@ -41,8 +41,8 @@ def update_request(req_id: str, status: str = None, note: str = None):
 def render_request_list(client_id: str) -> str:
     rows_ = [r for r in list_requests(client_id) if r["channel"] == "request" and r["status"] not in ("verified", "na")]
     if not rows_:
-        return "Keine offenen Anforderungen."
-    lines = ["Benötigte Unterlagen / Angaben (KYC):", ""]
+        return "No open requests."
+    lines = ["Information required from the client (KYC):", ""]
     for i, r in enumerate(rows_, 1):
-        lines.append(f"{i}. {r['prompt']}  —  Quelle: {r['source']}")
+        lines.append(f"{i}. {r['prompt']}  —  Source: {r['source']}")
     return "\n".join(lines)

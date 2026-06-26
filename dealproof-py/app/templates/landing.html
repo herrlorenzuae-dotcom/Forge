@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<div>
+  <p class="eyebrow">KYC workspace</p>
+  <h1 class="h1">Projects</h1>
+  <p class="lead">Each project is one KYC matter. Name it, upload the questionnaire you received, and DealProof tells you what can already be answered and what must be requested. Open an earlier project any time to review it.</p>
+</div>
+
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:12px">New project</h2>
+  <form method="post" action="/projects" class="row">
+    <input type="text" name="name" required placeholder="Project name (e.g. Project Atlas — Bank onboarding)" style="flex:1; min-width:280px"/>
+    <button class="btn"><span class="icon">add</span> Create project</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head"><h3 class="card-title">Your projects</h3><span class="muted small">{{ projects|length }} total</span></div>
+  <table class="tbl">
+    <thead><tr><th>Project</th><th>Status</th><th style="text-align:right">Documents</th><th style="text-align:right">Updated</th></tr></thead>
+    <tbody>
+    {% for p in projects %}
+      <tr class="clickable" onclick="location.href='/projects/{{ p.id }}'">
+        <td style="font-weight:600">{{ p.name }}</td>
+        <td><span class="pill {{ 'teal' if p.status=='closed' else 'blue' }}">{{ p.status }}</span></td>
+        <td style="text-align:right" class="mono">{{ p.doc_count }}</td>
+        <td style="text-align:right" class="muted small">{{ p.updated_at }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted" style="text-align:center; padding:32px">No projects yet — create your first above.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
