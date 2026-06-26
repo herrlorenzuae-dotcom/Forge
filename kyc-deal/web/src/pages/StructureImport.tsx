@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { uploadStructureExcel, uploadStructureChart, reconcileStructureSnapshot, applyStructureSnapshot, type StructureDiff, type StructureSnapshot, type EntityDiff, type EdgeDiff } from '../api.js';
-import { Button, GhostButton, Pill, ErrorNote } from '../components.js';
+import { Button, GhostButton, Pill, ErrorNote, Icon } from '../components.js';
 
 const TONE: Record<string, 'verdant' | 'ember' | 'warn' | 'neutral'> = {
   added: 'verdant',
@@ -83,7 +83,7 @@ export function StructureImport({ clientId, onApplied }: { clientId: string; onA
     <div className="card mb-8 p-6">
       <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between text-left">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-fog">Import / update structure</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-[0.15em] text-fog"><Icon name="upload_file" size={16} className="text-ember" /> Import / update structure</h2>
           <p className="mt-0.5 text-xs text-fog">
             Upload the group's structure chart — Excel template, a PNG/JPG of the chart (export PowerPoint/Visio/Lucid to an image),
             or a snapshot <code className="font-mono text-bone">.json</code> produced locally from a vector PDF

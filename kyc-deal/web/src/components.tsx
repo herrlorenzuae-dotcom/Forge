@@ -1,6 +1,18 @@
 import { useEffect, useState } from 'react';
 import { get, type Citation, type Health } from './api.js';
 
+export function Icon({ name, size = 18, fill = false, className = '' }: { name: string; size?: number; fill?: boolean; className?: string }) {
+  return (
+    <span
+      className={`material-symbols-outlined ${className}`}
+      style={{ fontSize: size, fontVariationSettings: `'FILL' ${fill ? 1 : 0}, 'wght' 400, 'GRAD' 0, 'opsz' ${size}` }}
+      aria-hidden="true"
+    >
+      {name}
+    </span>
+  );
+}
+
 export function SectionTitle({ children, sub, eyebrow }: { children: React.ReactNode; sub?: string; eyebrow?: string }) {
   return (
     <div className="mb-10">

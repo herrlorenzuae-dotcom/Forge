@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, createContext, useContext } from 'react';
 import { get, type Client } from './api.js';
-import { PrivacyButton, PrivacyPanel, StatusBadge } from './components.js';
+import { PrivacyButton, PrivacyPanel, StatusBadge, Icon } from './components.js';
 import { Structure } from './pages/Structure.js';
 import { Sources } from './pages/Sources.js';
 import { Questionnaires } from './pages/Questionnaires.js';
@@ -88,7 +88,10 @@ export default function App() {
       <div className="app-bg min-h-screen overflow-x-hidden">
         <header className={`glass hairline-b sticky top-0 z-20 transition-shadow duration-300 ${elevated ? 'header-elevated' : ''}`}>
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-6 pb-2 pt-3">
-            <div className="shrink-0 font-display text-xl font-bold tracking-tight text-navy" title="AGDL KYC · Ab geht die Lutzi 🚀">DealProof</div>
+            <div className="flex shrink-0 items-center gap-1.5 font-display text-xl font-bold tracking-tight text-navy" title="AGDL KYC · Ab geht die Lutzi 🚀">
+              <Icon name="account_balance" size={24} fill className="text-navy" />
+              DealProof
+            </div>
             {active && <span className="hidden text-xs text-fog sm:inline">· {active.deal_name || active.name}</span>}
             <div className="ml-auto flex shrink-0 items-center gap-2.5">
               {clients.length > 1 && (

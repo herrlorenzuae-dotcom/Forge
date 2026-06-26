@@ -9,7 +9,7 @@ import {
   type Question,
 } from '../api.js';
 import { useClient } from '../App.js';
-import { SectionTitle, Button, GhostButton, Pill, ErrorNote, ConfidenceBar, CitationRow } from '../components.js';
+import { SectionTitle, Button, GhostButton, Pill, ErrorNote, ConfidenceBar, CitationRow, Icon } from '../components.js';
 import { CoveragePanel } from '../CoveragePanel.js';
 
 function StatusPill({ status }: { status: string }) {
@@ -213,9 +213,11 @@ export function Questionnaires() {
             <StatusPill status={detail.questionnaire.status} />
             {/* Easter egg: codename "Ab geht die Lutzi" — the one-click auto-fill */}
             <Button onClick={answerAll} busy={busyAll} title="Ab geht die Lutzi 🚀" busyLabel="Lutzi läuft …">
-              Answer all
+              <Icon name="auto_awesome" size={16} /> Answer all
             </Button>
-            <GhostButton onClick={finalize}>Finalize → Brain</GhostButton>
+            <GhostButton onClick={finalize}>
+              <Icon name="psychology" size={15} /> Finalize → Brain
+            </GhostButton>
           </div>
         </div>
         <ErrorNote error={error} />

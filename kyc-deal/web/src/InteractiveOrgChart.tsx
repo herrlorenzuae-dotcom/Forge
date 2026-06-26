@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { OrgNode, OrgEdge } from './api.js';
+import { Icon } from './components.js';
 
 /**
  * Interactive org chart rendered as SVG in the Forge design language.
@@ -204,9 +205,9 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
         )}
         {focus && <span className="text-fog">Strang: <span className="text-bone">{nameOf.get(focus)}</span> ({vNodes.length} Gesellschaften)</span>}
         <span className="ml-auto flex items-center gap-1">
-          <button className="h-6 w-6 rounded border border-black/15 bg-surface text-bone" onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))}>−</button>
+          <button className="flex h-6 w-6 items-center justify-center rounded border border-black/15 bg-surface text-bone" onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))} aria-label="Zoom out"><Icon name="zoom_out" size={16} /></button>
           <span className="w-10 text-center text-fog">{Math.round(zoom * 100)}%</span>
-          <button className="h-6 w-6 rounded border border-black/15 bg-surface text-bone" onClick={() => setZoom((z) => Math.min(2, z + 0.1))}>+</button>
+          <button className="flex h-6 w-6 items-center justify-center rounded border border-black/15 bg-surface text-bone" onClick={() => setZoom((z) => Math.min(2, z + 0.1))} aria-label="Zoom in"><Icon name="zoom_in" size={16} /></button>
         </span>
       </div>
 

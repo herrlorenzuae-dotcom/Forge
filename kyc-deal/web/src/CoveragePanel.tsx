@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getCoverage, getRequests, generateRequests, updateRequest, type CoverageReport, type CoverageItem, type InfoRequest } from './api.js';
-import { Button, GhostButton } from './components.js';
+import { Button, GhostButton, Icon } from './components.js';
 
 const STATUS_LABEL: Record<string, string> = {
   open: 'offen', requested: 'angefragt', received: 'erhalten', verified: 'verifiziert', na: 'n/a',
@@ -59,9 +59,9 @@ export function CoveragePanel({ questionnaireId, clientId, version }: { question
 
   const channelChip = (it: CoverageItem) =>
     it.gapKind === 'web' ? (
-      <span className="rounded-full bg-[#1c86c8]/10 px-2 py-0.5 text-[10px] text-[#13608f]">🌐 öffentlich · {it.source}</span>
+      <span className="inline-flex items-center gap-1 rounded-full bg-[#1c86c8]/10 px-2 py-0.5 text-[10px] text-[#13608f]"><Icon name="language" size={13} /> öffentlich · {it.source}</span>
     ) : (
-      <span className="rounded-full bg-ember/10 px-2 py-0.5 text-[10px] text-ember">✉ anfordern · {it.source}</span>
+      <span className="inline-flex items-center gap-1 rounded-full bg-ember/10 px-2 py-0.5 text-[10px] text-ember"><Icon name="mail" size={13} /> anfordern · {it.source}</span>
     );
 
   return (
@@ -75,8 +75,8 @@ export function CoveragePanel({ questionnaireId, clientId, version }: { question
       {open && (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={generate} busy={busy}>Anforderungen erzeugen</Button>
-            <GhostButton onClick={copyList}>Anforderungsliste kopieren</GhostButton>
+            <Button onClick={generate} busy={busy}><Icon name="add_task" size={16} /> Anforderungen erzeugen</Button>
+            <GhostButton onClick={copyList}><Icon name="content_copy" size={14} /> Anforderungsliste kopieren</GhostButton>
           </div>
 
           {openItems.length === 0 ? (
