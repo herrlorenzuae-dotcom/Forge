@@ -49,7 +49,7 @@ let _client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (_client) return _client;
   if (!config.anthropic.apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not set. KYC Deal needs it to draft answers.');
+    throw new Error('ANTHROPIC_API_KEY is not set. DealProof needs it to draft answers.');
   }
   _client = new Anthropic();
   return _client;

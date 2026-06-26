@@ -44,7 +44,7 @@ export function Sources() {
 
   return (
     <div>
-      <SectionTitle eyebrow="Systems of record" sub="The client's data lives in Quantium (the corporate structure) and YSolutions (the softer KYC layer). KYC Deal reaches both through MCP connectors — pull the structure, and verify how current it is before you rely on it.">
+      <SectionTitle eyebrow="Systems of record" sub="The client's data lives in Quantium (the corporate structure) and YSolutions (the softer KYC layer). DealProof reaches both through MCP connectors — pull the structure, and verify how current it is before you rely on it.">
         Data sources &amp; currency
       </SectionTitle>
       <ErrorNote error={error} />

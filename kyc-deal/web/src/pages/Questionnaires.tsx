@@ -205,7 +205,8 @@ export function Questionnaires() {
           </div>
           <div className="flex items-center gap-2">
             <StatusPill status={detail.questionnaire.status} />
-            <Button onClick={answerAll} busy={busyAll}>
+            {/* Easter egg: codename "Ab geht die Lutzi" — the one-click auto-fill */}
+            <Button onClick={answerAll} busy={busyAll} title="Ab geht die Lutzi 🚀" busyLabel="Lutzi läuft …">
               Answer all
             </Button>
             <GhostButton onClick={finalize}>Finalize → Brain</GhostButton>

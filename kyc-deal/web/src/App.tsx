@@ -88,7 +88,7 @@ export default function App() {
       <div className="app-bg min-h-screen overflow-x-hidden">
         <header className={`glass hairline-b sticky top-0 z-20 transition-shadow duration-300 ${elevated ? 'header-elevated' : ''}`}>
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-6 pb-2 pt-3">
-            <div className="shrink-0 font-display text-xl tracking-[0.22em] text-bone">KYC&nbsp;DEAL</div>
+            <div className="shrink-0 font-display text-xl tracking-[0.22em] text-bone" title="AGDL KYC · Ab geht die Lutzi 🚀">DealProof</div>
             {active && <span className="hidden text-xs text-fog sm:inline">· {active.deal_name || active.name}</span>}
             <div className="ml-auto flex shrink-0 items-center gap-2.5">
               {clients.length > 1 && (
@@ -125,7 +125,7 @@ export default function App() {
         </main>
 
         <footer className="mx-auto max-w-6xl px-6 pb-10 pt-6 text-xs leading-relaxed text-fog/70">
-          KYC Deal — map a client's structure to any KYC questionnaire and answer it with verified citations. Fictional client: Project Halcyon. Not legal advice.
+          DealProof — map a client's structure to any KYC questionnaire and answer it with verified citations. Fictional client: Project Halcyon. Not legal advice.
         </footer>
 
         {privacyOpen && <PrivacyPanel onClose={() => setPrivacyOpen(false)} />}

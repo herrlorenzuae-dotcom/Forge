@@ -35,7 +35,7 @@ getDb();
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1']);
 if (!LOOPBACK.has(config.host)) {
   app.log.warn(
-    `KYC_HOST=${config.host} binds beyond loopback. KYC Deal has NO authentication, so every client's ` +
+    `KYC_HOST=${config.host} binds beyond loopback. DealProof has NO authentication, so every client's ` +
       `structure and questionnaires become available to anyone who can reach this machine on port ${config.port}.`,
   );
 }
@@ -46,7 +46,7 @@ try {
     .prepare(`SELECT (SELECT COUNT(*) FROM clients) AS clients, (SELECT COUNT(*) FROM answer_library) AS brain`)
     .get() as { clients: number; brain: number };
   app.log.info(
-    `KYC Deal up at http://${config.host}:${config.port}. ${counts.clients} client(s), ${counts.brain} brain entries${counts.clients === 0 ? ' (run `npm run seed`)' : ''}`,
+    `DealProof up at http://${config.host}:${config.port}. ${counts.clients} client(s), ${counts.brain} brain entries${counts.clients === 0 ? ' (run `npm run seed`)' : ''}`,
   );
 } catch (err) {
   app.log.error(err);

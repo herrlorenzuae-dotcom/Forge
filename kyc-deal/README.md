@@ -1,4 +1,6 @@
-# KYC Deal
+# DealProof
+
+<sub>internal codename: **AGDL KYC** — „Ab geht die Lutzi" 🚀</sub>
 
 **A local-first tool that maps a client's corporate structure — the UBOs and
 the entities above the asset — onto the KYC questionnaires that banks and
@@ -11,7 +13,7 @@ structure receives KYC questionnaires from banks and service providers. The
 forms differ wildly in layout — but the *answer* barely moves between deals,
 because the structure behind it barely moves. The UBO is who they were. So
 the work isn't research, it's **mapping**: line up the questions with the
-structure you already hold, and answer them consistently. KYC Deal does that,
+structure you already hold, and answer them consistently. DealProof does that,
 and remembers every answer so the next questionnaire is mostly already done.
 
 > Built as a sibling to **Forge** (the fund-formation engine) — same

@@ -16,11 +16,11 @@ export function SectionTitle({ children, sub, eyebrow }: { children: React.React
   );
 }
 
-export function Button({ children, onClick, disabled, busy }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; busy?: boolean }) {
+export function Button({ children, onClick, disabled, busy, title, busyLabel }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; busy?: boolean; title?: string; busyLabel?: string }) {
   return (
-    <button onClick={onClick} disabled={disabled || busy} className="btn">
+    <button onClick={onClick} disabled={disabled || busy} className="btn" title={title}>
       {busy && <span className="spinner" />}
-      {busy ? 'Working' : children}
+      {busy ? busyLabel ?? 'Working' : children}
     </button>
   );
 }

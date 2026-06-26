@@ -1,7 +1,7 @@
 {
-  "name": "kyc-deal",
+  "name": "dealproof",
   "version": "0.1.0",
-  "description": "KYC Deal — map a client's corporate structure (UBO, entities) to varied KYC questionnaires and answer them with verified citations. Quantium & YSolutions via MCP; a KYC Brain that converges answers as the corpus grows.",
+  "description": "DealProof (internal codename: AGDL KYC) — map a client's corporate structure (UBO, entities) to varied KYC questionnaires and answer them with verified citations. Quantium & YSolutions via MCP; a KYC Brain that converges answers as the corpus grows.",
   "type": "module",
   "private": true,
   "scripts": {
