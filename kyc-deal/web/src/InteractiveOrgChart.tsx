@@ -243,7 +243,7 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
       )}
 
       <div className="overflow-auto rounded-lg border border-[#1c86c8]/15" style={{ maxHeight: 620, background: CHART_BG }}>
-        <svg width={w * zoom} height={h * zoom} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
+        <svg width={w * zoom} height={h * zoom} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', fontFamily: "'Hanken Grotesk', system-ui, sans-serif" }}>
           <defs>
             <marker id="arrow" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
               <path d="M0,0 L8,4.5 L0,9 Z" fill={BLUE} />
@@ -303,7 +303,7 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
                   <path d={`M${p.x + BOX_W - 16},${p.y + 1} L${p.x + BOX_W - 1},${p.y + 1} L${p.x + BOX_W - 1},${p.y + 16} Z`} fill={RED} />
                 )}
                 <foreignObject x={p.x + 12} y={p.y + 7} width={BOX_W - 20} height={BOX_H - 30}>
-                  <div style={{ fontFamily: "'Libre Caslon Display', Georgia, serif", fontSize: 11.5, lineHeight: 1.15, color: isGreen(n) ? '#0a6e38' : INK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <div style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 11.5, lineHeight: 1.15, color: isGreen(n) ? '#0a6e38' : INK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {n.name}
                   </div>
                 </foreignObject>
