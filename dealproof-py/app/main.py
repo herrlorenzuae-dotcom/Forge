@@ -110,6 +110,26 @@ def analysis_page(request: Request, pid: str, qid: str):
         requests=reqs.list_requests(pid), request_text=reqs.render_request_list(pid)))
 
 
+@app.get("/projects/{pid}/analysis/{qid}/export.docx")
+def export_qn_docx(pid: str, qid: str):
+    return Response(exporter.questionnaire_docx(qid),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="questionnaire-{qid}.docx"'})
+
+
+@app.get("/projects/{pid}/analysis/{qid}/export.pdf")
+def export_qn_pdf(pid: str, qid: str):
+    return Response(exporter.questionnaire_pdf(qid), media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="questionnaire-{qid}.pdf"'})
+
+
+@app.get("/projects/{pid}/analysis/{qid}/export.xlsx")
+def export_qn_xlsx(pid: str, qid: str):
+    return Response(exporter.questionnaire_xlsx(qid),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="questionnaire-{qid}.xlsx"'})
+
+
 @app.post("/projects/{pid}/analysis/{qid}/answer")
 def do_answer_all(pid: str, qid: str):
     mapping.answer_all(qid)

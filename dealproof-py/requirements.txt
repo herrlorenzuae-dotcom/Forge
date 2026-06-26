@@ -3,6 +3,7 @@ uvicorn[standard]>=0.30
 jinja2>=3.1
 python-multipart>=0.0.9
 # optional features
-anthropic>=0.40        # model-drafted answers (only used if ANTHROPIC_API_KEY is set)
-openpyxl>=3.1          # Excel structure import
-pymupdf>=1.24          # vector-PDF chart extraction (tools)
+anthropic>=0.40        # model-drafted answers / question extraction (only if ANTHROPIC_API_KEY is set)
+openpyxl>=3.1          # Excel structure + questionnaire export/import
+pymupdf>=1.24          # chart PNG/PDF render, PDF text extraction, questionnaire PDF
+python-docx>=1.1       # completed-questionnaire Word export
