@@ -3,7 +3,7 @@ landing (projects) → new project (name) → upload the KYC document → analys
 report (where each answer can come from) → structure / requests."""
 import os
 from fastapi import FastAPI, Request, Form, UploadFile, File, Query
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -11,6 +11,7 @@ from . import config
 from .db import init_db, db, rows, one
 from .engine import projects as proj
 from .engine import spa as spa_engine
+from .engine import export as exporter
 from .engine.structure import get_structure
 from .engine.orgchart import build_orgchart, render_svg, default_subject
 from .engine.coverage import build_coverage
@@ -154,20 +155,54 @@ def structure_page(request: Request, pid: str, view: str = Query("excerpt"), sub
     return templates.TemplateResponse(request, "structure.html", ctx(request,
         active="structure", project=proj.get_project(pid), structure=get_structure(pid),
         chart=chart, chart_svg=render_svg(pid, subject=subj, excerpt=excerpt),
-        view=view, subject=subj))
+        view=view, subject=subj, spec=spa_engine.structure_to_spec(pid)))
 
 
 @app.post("/projects/{pid}/structure")
-async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str = Form("")):
+async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str = Form(""), replace: str = Form("")):
     text = pasted
     if file is not None and file.filename:
         data = await file.read()
         text = extract_text(file.filename, data)
     if text.strip():
-        spec = spa_engine.extract_from_spa(text, pid)
+        # An edited spec (manual correction) is the deterministic format — parse it
+        # directly; an uploaded SPA goes through the (model-assisted) extractor.
+        if replace == "spec":
+            spec = spa_engine.parse_structure_spec(text)
+        else:
+            spec = spa_engine.extract_from_spa(text, pid)
         spa_engine.apply_structure(pid, spec)
         proj.touch(pid)
-    return RedirectResponse(f"/projects/{pid}/structure?view=excerpt", status_code=303)
+    return RedirectResponse(f"/projects/{pid}/structure?view={'full' if replace=='spec' else 'excerpt'}", status_code=303)
+
+
+# ── Structure / chart export ──
+@app.get("/projects/{pid}/structure.svg")
+def export_svg(pid: str, view: str = Query("full")):
+    body = exporter.chart_svg(pid, excerpt=view == "excerpt")
+    return Response(body, media_type="image/svg+xml",
+                    headers={"Content-Disposition": f'attachment; filename="structure-{pid}.svg"'})
+
+
+@app.get("/projects/{pid}/structure.png")
+def export_png(pid: str, view: str = Query("full")):
+    body = exporter.chart_png(pid, excerpt=view == "excerpt")
+    return Response(body, media_type="image/png",
+                    headers={"Content-Disposition": f'attachment; filename="structure-{pid}.png"'})
+
+
+@app.get("/projects/{pid}/structure.pdf")
+def export_structure_pdf(pid: str, view: str = Query("full")):
+    body = exporter.chart_pdf(pid, excerpt=view == "excerpt")
+    return Response(body, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="structure-{pid}.pdf"'})
+
+
+@app.get("/projects/{pid}/structure.xlsx")
+def export_structure_xlsx(pid: str):
+    body = exporter.structure_xlsx(pid)
+    return Response(body, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="structure-{pid}.xlsx"'})
 
 
 # ── Brain (cross-project memory) ──

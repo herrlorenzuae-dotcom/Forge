@@ -96,7 +96,7 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False) -> st
         edges = [e for e in edges if e["parent"] in keep and e["child"] in keep]
     pos, w, h = _layout(nodes, edges)
     pct = lambda p: (str(int(p)) if float(p).is_integer() else f"{p:.2f}").replace(".", ",") + " %"
-    parts = [f'<svg viewBox="0 0 {w} {h}" style="width:100%;height:auto;font-family:\'Hanken Grotesk\',sans-serif;background:{CHART_BG};border-radius:6px">',
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" id="orgsvg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" data-w="{w}" data-h="{h}" style="display:block;font-family:\'Hanken Grotesk\',sans-serif;background:{CHART_BG}">',
              f'<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{BLUE}"/></marker></defs>']
     for e in edges:
         if e["parent"] not in pos or e["child"] not in pos:

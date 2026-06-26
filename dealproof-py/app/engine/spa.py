@@ -98,6 +98,28 @@ def extract_from_spa(text: str, project_id: str) -> dict:
             "ubos": data.get("ubos", []), "target": data.get("target")}
 
 
+def structure_to_spec(project_id: str) -> str:
+    """Serialise the current structure back to the editable spec, so it can be
+    reviewed and corrected by hand."""
+    from .structure import get_structure
+    s = get_structure(project_id)
+    name = {e["id"]: e["name"] for e in s["entities"]}
+    lines = []
+    for e in s["edges"]:
+        a, b = name.get(e["parent_id"], "?"), name.get(e["child_id"], "?")
+        if e["kind"] == "control":
+            lines.append(f"{a} -> {b} : control ({e['mechanism'] or 'General partner / Komplementär'})")
+        else:
+            pct = (str(int(e["pct"])) if float(e["pct"]).is_integer() else f"{e['pct']}")
+            lines.append(f"{a} -> {b} : {pct}%")
+    tgt = next((e["name"] for e in s["entities"] if e["role"] == "target"), None)
+    if tgt:
+        lines.append(f"TARGET: {tgt}")
+    for u in s["ubos"]:
+        lines.append(f"UBO: {u['entity_name']}")
+    return "\n".join(lines)
+
+
 def apply_structure(project_id: str, spec: dict) -> dict:
     """Replace the project's structure with the parsed spec."""
     with db() as con:
