@@ -27,7 +27,9 @@ templates = Jinja2Templates(directory=os.path.join(BASE, "templates"))
 
 @app.on_event("startup")
 def _startup():
-    init_db()  # no demo seed — projects are created by the user
+    init_db()
+    from .demo import seed_demo
+    seed_demo()  # one clearly-labelled demo project (idempotent)
 
 
 def ctx(request, **kw):
