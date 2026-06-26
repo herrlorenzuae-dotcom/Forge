@@ -8,6 +8,14 @@ from .citations import verify_citations
 from . import connectors
 from .. import llm
 
+# values in a source "answer" cell that aren't really answers
+NON_ANSWERS = {"", "n/a", "na", "n.a.", "none", "please select", "-", "–", "tbd", "yes/no", "y/n"}
+
+
+def has_source_answer(q) -> bool:
+    v = (q.get("source_answer") or "").strip()
+    return bool(v) and v.lower() not in NON_ANSWERS
+
 
 def _save(qid, value, rationale, confidence, citations, options, answered_by):
     needs = 0 if any(c.get("verified") for c in citations) else 1
@@ -27,6 +35,13 @@ def answer_question(question_id: str) -> dict:
     if not q:
         raise ValueError("question not found")
     options = get_brain_options(q["prompt"])
+    # 0) An answer already present in the source document (a completed form /
+    #    prior submission) — the most authoritative starting point.
+    if has_source_answer(q):
+        val = q["source_answer"].strip()
+        cite = [{"factType": "source", "factId": "", "quote": val, "verified": True, "source": "Source document"}]
+        _save(question_id, val, "Already answered in the source document.", 0.95, cite, options, "source")
+        return {"answered_by": "source", "value": val}
     # 1) Brain: a strongly-converged prior answer
     if options and options[0]["share"] >= 0.5:
         top = options[0]

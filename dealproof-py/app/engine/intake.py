@@ -363,6 +363,6 @@ def create_questionnaire(client_id: str, requester: str, title: str, raw_text: s
         con.execute("INSERT INTO questionnaires (id, client_id, requester, title, status) VALUES (?,?,?,?,'parsed')",
                     (qid, client_id, requester, title))
         for i, q in enumerate(qs):
-            con.execute("INSERT INTO questions (id, questionnaire_id, position, section, prompt, kind) VALUES (?,?,?,?,?,?)",
-                        (gen_id("q"), qid, i, q["section"], q["prompt"], q["kind"]))
+            con.execute("INSERT INTO questions (id, questionnaire_id, position, section, prompt, kind, source_answer) VALUES (?,?,?,?,?,?,?)",
+                        (gen_id("q"), qid, i, q["section"], q["prompt"], q["kind"], q.get("answer", "")))
     return qid

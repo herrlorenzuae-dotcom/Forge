@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS questionnaires (
 );
 CREATE TABLE IF NOT EXISTS questions (
   id TEXT PRIMARY KEY, questionnaire_id TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0,
-  section TEXT DEFAULT '', prompt TEXT NOT NULL, kind TEXT DEFAULT 'text', options_json TEXT DEFAULT '[]'
+  section TEXT DEFAULT '', prompt TEXT NOT NULL, kind TEXT DEFAULT 'text', options_json TEXT DEFAULT '[]',
+  source_answer TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS answers (
   question_id TEXT PRIMARY KEY, value TEXT DEFAULT '', rationale TEXT DEFAULT '', confidence REAL DEFAULT 0,
@@ -90,6 +91,7 @@ def db():
 MIGRATIONS = {
     "clients": [("status", "TEXT DEFAULT 'open'"), ("updated_at", "TEXT DEFAULT ''")],
     "documents": [("content", "BLOB")],
+    "questions": [("source_answer", "TEXT DEFAULT ''")],
 }
 
 

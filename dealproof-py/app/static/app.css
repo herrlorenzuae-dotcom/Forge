@@ -133,6 +133,7 @@ select.inline { width: auto; padding: 4px 8px; font-size: 12px; }
 .dropzone.drag { background: #e6f1ff; border-color: var(--blue); }
 
 /* source pills for the analysis report */
+.pill.source-source { background: rgba(0,178,169,.16); color: #0a6e64; }
 .pill.source-on_file { background: rgba(0,137,126,.12); color: var(--teal); }
 .pill.source-brain { background: rgba(0,137,126,.12); color: var(--teal); }
 .pill.source-quantium { background: rgba(0,94,184,.12); color: var(--blue); }

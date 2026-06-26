@@ -38,9 +38,17 @@ SOURCE = {
 }
 
 SOURCE_LABEL = {
-    "on_file": "On file", "brain": "KYC Brain", "quantium": "Quantium",
+    "source": "In source", "on_file": "On file", "brain": "KYC Brain", "quantium": "Quantium",
     "ysolutions": "YSolutions", "web": "Web research", "request": "Manual input",
 }
+
+# values in a source "answer" cell that aren't really answers
+NON_ANSWERS = {"", "n/a", "na", "n.a.", "none", "please select", "-", "–", "tbd", "yes/no", "y/n"}
+
+
+def _source_answer(q) -> bool:
+    v = (q.get("source_answer") or "").strip()
+    return bool(v) and v.lower() not in NON_ANSWERS
 
 
 def _on_file(structure, field_type) -> bool:
@@ -63,7 +71,10 @@ def build_analysis(questionnaire_id: str) -> dict:
         field = classify_field(q["prompt"])
         ft = field["fieldType"]
         opts = get_brain_options(q["prompt"])
-        if opts and opts[0]["share"] >= 0.5:
+        if _source_answer(q):
+            source, retrievable = "source", True
+            detail = "Already answered in the source document."
+        elif opts and opts[0]["share"] >= 0.5:
             source, retrievable = "brain", True
             detail = f"Previously verified answer — used {opts[0]['timesUsed']}× ({int(opts[0]['share']*100)}% agreement)."
         elif _on_file(structure, ft):

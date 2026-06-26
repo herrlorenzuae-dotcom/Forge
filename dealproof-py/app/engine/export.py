@@ -11,9 +11,9 @@ from ..db import db, rows, one
 
 # answered_by -> how the answer was obtained (shown in the completed document)
 SOURCE_LABEL = {
-    "brain": "KYC Brain (previously verified)", "on_file": "On file",
-    "quantium": "Quantium", "ysolutions": "YSolutions", "web": "Web research",
-    "model": "Drafted by model", "human": "Entered by reviewer",
+    "source": "From the source document", "brain": "KYC Brain (previously verified)",
+    "on_file": "On file", "quantium": "Quantium", "ysolutions": "YSolutions",
+    "web": "Web research", "model": "Drafted by model", "human": "Entered by reviewer",
 }
 
 
