@@ -115,6 +115,20 @@ client list stays home.
 
 ## Run it
 
+**Easiest — Docker (no Node needed):**
+```bash
+docker compose up --build      # then open http://localhost:3100
+```
+Add your key (optional) in a `.env` file next to `docker-compose.yml`
+(`ANTHROPIC_API_KEY=…`). The SQLite DB persists in `./data`.
+
+**One command without Docker:**
+```bash
+./start.sh                     # installs, builds, seeds, serves → http://localhost:3000
+KYC_PORT=3100 ./start.sh       # if port 3000 is busy
+```
+
+**Manual:**
 ```bash
 npm install && npm run setup   # installs the UI, builds it, seeds the demo
 cp .env.example .env           # optional: add ANTHROPIC_API_KEY to draft answers

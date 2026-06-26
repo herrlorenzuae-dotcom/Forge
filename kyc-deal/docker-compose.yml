@@ -1,0 +1,13 @@
+# DealProof — run everything with: docker compose up --build
+# Then open http://localhost:3100
+services:
+  dealproof:
+    build: .
+    ports:
+      - "3100:3000" # host 3100 -> container 3000 (avoids local port-3000 clashes)
+    environment:
+      # Optional: paste your key here or in a .env file next to this compose file.
+      # Without a key the app still runs; the KYC Brain answers from the corpus.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./data:/app/data # persist the SQLite DB across restarts
