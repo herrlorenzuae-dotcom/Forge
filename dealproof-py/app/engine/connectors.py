@@ -18,12 +18,12 @@ SOURCE = {
 
 # Mock sample answers (fictional) keyed by field_type
 MOCK = {
-    "registration_number": "RCS Luxembourg B 248 115",
-    "registered_office": "12, rue Eugène Ruppert, L-2453 Luxembourg",
-    "incorporation_date": "14 March 2023",
+    "registration_number": "RCS Luxembourg B 271 904",
+    "registered_office": "2, boulevard de la Foire, L-1528 Luxembourg",
+    "incorporation_date": "9 February 2024",
     "legal_form": "Société à responsabilité limitée (S.à r.l.)",
     "directors": "Sophie Marchetti; Jean-Marc Weber",
-    "lei": "529900HALCYONBIDCO45 (GLEIF — status: issued)",
+    "lei": "391200CEDARBIDCO0007 (GLEIF — status: issued)",
     "listing": "Not listed on any stock exchange.",
     "industry": "Real-estate holding / logistics.",
     "pep": "Screening clear — no beneficial owner identified as a politically exposed person.",
