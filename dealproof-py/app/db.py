@@ -84,9 +84,26 @@ def db():
         con.close()
 
 
+# Columns added after the first release — applied to pre-existing DBs so the
+# schema self-heals without dropping data. (SQLite ALTER ADD needs a constant
+# default, so updated_at backfills to '' on old rows.)
+MIGRATIONS = {
+    "clients": [("status", "TEXT DEFAULT 'open'"), ("updated_at", "TEXT DEFAULT ''")],
+}
+
+
+def _migrate(con) -> None:
+    for table, cols in MIGRATIONS.items():
+        existing = {r["name"] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
+        for name, decl in cols:
+            if name not in existing:
+                con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+
+
 def init_db() -> None:
     with db() as con:
         con.executescript(SCHEMA)
+        _migrate(con)
 
 
 def rows(con, sql, params=()):
