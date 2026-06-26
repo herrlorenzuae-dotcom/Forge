@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS clients (
 CREATE TABLE IF NOT EXISTS documents (
   id TEXT PRIMARY KEY, project_id TEXT NOT NULL, questionnaire_id TEXT DEFAULT '',
   filename TEXT NOT NULL, kind TEXT DEFAULT 'questionnaire', size INTEGER DEFAULT 0,
-  uploaded_at TEXT DEFAULT (datetime('now'))
+  content BLOB, uploaded_at TEXT DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS entities (
   id TEXT PRIMARY KEY, client_id TEXT NOT NULL, name TEXT NOT NULL, kind TEXT NOT NULL,
@@ -89,6 +89,7 @@ def db():
 # default, so updated_at backfills to '' on old rows.)
 MIGRATIONS = {
     "clients": [("status", "TEXT DEFAULT 'open'"), ("updated_at", "TEXT DEFAULT ''")],
+    "documents": [("content", "BLOB")],
 }
 
 

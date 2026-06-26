@@ -18,6 +18,7 @@ from .engine.coverage import build_coverage
 from .engine.analysis import build_analysis
 from .engine import requests as reqs
 from .engine import mapping
+from .engine import templatefill
 from .engine.brain import brain_stats, get_brain_options
 
 BASE = os.path.dirname(__file__)
@@ -44,6 +45,18 @@ def extract_text(filename: str, data: bytes) -> str:
             import fitz
             doc = fitz.open(stream=data, filetype="pdf")
             return "\n".join(p.get_text() for p in doc)
+        except Exception:
+            return ""
+    if name.endswith(".docx"):
+        try:
+            from io import BytesIO
+            from docx import Document
+            d = Document(BytesIO(data))
+            parts = [p.text for p in d.paragraphs]
+            for t in d.tables:
+                for r in t.rows:
+                    parts.append("\t".join(c.text for c in r.cells))
+            return "\n".join(parts)
         except Exception:
             return ""
     try:
@@ -90,14 +103,14 @@ def project_page(request: Request, pid: str):
 
 @app.post("/projects/{pid}/documents")
 async def upload_document(pid: str, file: UploadFile = File(None), pasted: str = Form(""), requester: str = Form("")):
-    text, filename = pasted, "pasted.txt"
+    text, filename, content = pasted, "pasted.txt", b""
     if file is not None and file.filename:
-        data = await file.read()
-        text = extract_text(file.filename, data)
+        content = await file.read()
+        text = extract_text(file.filename, content)
         filename = file.filename
     if not text.strip():
         return RedirectResponse(f"/projects/{pid}", status_code=303)
-    res = proj.add_document(pid, filename, text, requester)
+    res = proj.add_document(pid, filename, text, requester, content=content)
     return RedirectResponse(f"/projects/{pid}/analysis/{res['questionnaire_id']}", status_code=303)
 
 
@@ -106,7 +119,7 @@ async def upload_document(pid: str, file: UploadFile = File(None), pasted: str =
 def analysis_page(request: Request, pid: str, qid: str):
     return templates.TemplateResponse(request, "analysis.html", ctx(request,
         active="project", project=proj.get_project(pid), qn=one_qn(qid), questions=rows_questions(qid),
-        analysis=build_analysis(qid), coverage=build_coverage(qid),
+        analysis=build_analysis(qid), coverage=build_coverage(qid), fillable=templatefill.is_fillable(qid),
         requests=reqs.list_requests(pid), request_text=reqs.render_request_list(pid)))
 
 
@@ -128,6 +141,15 @@ def export_qn_xlsx(pid: str, qid: str):
     return Response(exporter.questionnaire_xlsx(qid),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="questionnaire-{qid}.xlsx"'})
+
+
+@app.get("/projects/{pid}/analysis/{qid}/fill")
+def fill_original_doc(pid: str, qid: str):
+    res = templatefill.fill_original(qid)
+    if not res:
+        return RedirectResponse(f"/projects/{pid}/analysis/{qid}", status_code=303)
+    body, mt, fname = res
+    return Response(body, media_type=mt, headers={"Content-Disposition": f'attachment; filename="{fname}"'})
 
 
 @app.post("/projects/{pid}/analysis/{qid}/answer")

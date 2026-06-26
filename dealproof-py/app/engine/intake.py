@@ -59,8 +59,11 @@ def _is_heading(block: str) -> bool:
     upper = sum(c.isupper() for c in letters) / len(letters)
     if len(core) <= 70 and upper >= 0.6:
         return True
-    # Title-cased short phrase with no verb (e.g. "Products & Services")
-    if len(core) <= 45 and core[0].isupper() and not INTERROGATIVE.match(core) and not core.endswith("?"):
+    # Title-cased short phrase with no verb (e.g. "Products & Services"). Skip
+    # numbered lines — a wrapped question start like "1.2 Legal Entity Identifier"
+    # is title-cased too, but it's content, not a section heading.
+    if not LEAD_RE.match(block) and len(core) <= 45 and core[0].isupper() \
+            and not INTERROGATIVE.match(core) and not core.endswith("?"):
         words = core.split()
         if 1 <= len(words) <= 5 and all(w[0].isupper() or not w[0].isalpha() for w in words):
             return True

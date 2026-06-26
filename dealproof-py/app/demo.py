@@ -52,19 +52,68 @@ BRAIN = [
      "Equity drawn from Cedar Blue GmbH & Co. geschlossene Investment KG (partner commitments) plus senior acquisition financing.", 2),
 ]
 
+# A deliberately MESSY questionnaire, the way a real bank PDF/Word export reads:
+# section headings, questions wrapped across lines, numbering in its own column,
+# and trailing "Y / N" answer cells. The intake reflow turns this back into clean
+# atomic questions grouped under their sections.
 QUESTIONNAIRE = """\
-1. Full legal name of the contracting entity?
-2. Legal Entity Identifier (LEI)?
-3. Registered office address?
-4. Date of incorporation?
-5. Is the contracting entity a regulated financial institution?
-6. Identify all ultimate beneficial owners holding 25% or more.
-7. Is any beneficial owner a politically exposed person (PEP)?
-8. Tax residence of the contracting entity?
-9. What is the source of funds for the transaction?
-10. What is the purpose of the business relationship?
-11. Please attach a certified copy of the passport for each UBO.
+KYC & ONBOARDING QUESTIONNAIRE
+Banque de Genève SA — Correspondent Onboarding
+
+SECTION 1 — ENTITY & OWNERSHIP
+
+1.1   Full legal name of the
+      contracting entity?
+1.2   Legal Entity Identifier
+      (LEI)?
+1.3   Registered office
+      address?
+1.4   Date of incorporation?
+1.5   Is the contracting entity a regulated
+      financial institution?                          Y / N
+1.6   Identify all ultimate beneficial owners
+      holding 25% or more.
+
+SECTION 2 — SCREENING & RISK
+
+2.1   Is any beneficial owner a politically
+      exposed person (PEP)?                            Y / N
+2.2   Tax residence of the contracting
+      entity?
+
+SECTION 3 — TRANSACTION & RELATIONSHIP
+
+3.1   What is the source of funds for the
+      transaction?
+3.2   What is the purpose of the business
+      relationship?
+
+SECTION 4 — DOCUMENTATION
+
+4.1   Please attach a certified copy of the
+      passport for each UBO.
 """
+
+
+def _demo_word(text: str) -> bytes:
+    """A fillable Word version of the questionnaire (clean question paragraphs,
+    each followed by a blank answer line) so the demo can show 'Fill original'."""
+    from io import BytesIO
+    from docx import Document
+    from .engine.intake import parse_questions
+    doc = Document()
+    doc.add_heading("KYC & Onboarding Questionnaire", 0)
+    doc.add_paragraph("Banque de Genève SA — Correspondent Onboarding")
+    cur = None
+    for q in parse_questions(text):
+        if q["section"] != cur:
+            cur = q["section"]
+            doc.add_heading(cur.title(), level=1)
+        doc.add_paragraph(q["prompt"])
+        doc.add_paragraph("")  # answer line — filled in by "Fill original"
+    bio = BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
 
 
 def seed_demo() -> None:
@@ -87,4 +136,5 @@ def seed_demo() -> None:
         for _ in range(n):
             brain.record_finalized_answer(prompt, value)
 
-    projects.add_document(DEMO_ID, "Bank-onboarding-KYC.txt", QUESTIONNAIRE, "Banque de Genève SA")
+    projects.add_document(DEMO_ID, "Bank-onboarding-KYC.docx", QUESTIONNAIRE,
+                          "Banque de Genève SA", content=_demo_word(QUESTIONNAIRE))
