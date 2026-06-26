@@ -6,4 +6,5 @@ python-multipart>=0.0.9
 anthropic>=0.40        # model-drafted answers / question extraction (only if ANTHROPIC_API_KEY is set)
 openpyxl>=3.1          # Excel structure + questionnaire export/import
 pymupdf>=1.24          # chart PNG/PDF render, PDF text extraction, questionnaire PDF
+pymupdf4llm>=0.0.17    # layout-aware Markdown/table extraction for KYC PDFs (best parse)
 python-docx>=1.1       # completed-questionnaire Word export

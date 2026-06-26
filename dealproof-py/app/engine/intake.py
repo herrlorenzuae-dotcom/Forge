@@ -214,6 +214,56 @@ def _slice_packed(page, no_bbox, q_bbox):
     return [" ".join(b).strip() for b in buckets if " ".join(b).strip()]
 
 
+def parse_questions_markdown(data: bytes):
+    """Best path for tabular PDFs: pymupdf4llm renders the document as Markdown
+    with full layout analysis, so each table row (No / Question / Answer) comes
+    out clean — sub-items already on their own row and wrapped lines joined.
+    Also captures the answer cell (an existing answer in the source). Returns the
+    standard shape (with an extra 'answer'), or None."""
+    try:
+        import pymupdf4llm
+        import fitz
+    except Exception:
+        return None
+    try:
+        doc = fitz.open(stream=data, filetype="pdf")
+        md = pymupdf4llm.to_markdown(doc, show_progress=False)
+    except Exception:
+        return None
+
+    def clean(s):
+        return re.sub(r"\s{2,}", " ", (s or "").replace("<br>", " ").replace("**", "")).strip()
+
+    out, section, seen = [], "", set()
+    for line in md.splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if not cells:
+            continue
+        # markdown separator row (|---|---|)
+        if any("-" in c for c in cells) and all(set(c) <= set("-: ") for c in cells if c):
+            continue
+        no = clean(cells[0]) if len(cells) > 0 else ""
+        q = clean(cells[1]) if len(cells) > 1 else ""
+        ans = clean(cells[2]) if len(cells) > 2 else ""
+        if no and not q:                              # a section-header row
+            core = re.sub(r"^\d+[.)]\s*", "", no).strip()
+            if re.match(r"^\d+[.)]\s", no) or _is_heading(no):
+                section = core
+            continue
+        if not q or q.lower() in ("question", "no #", "answer"):
+            continue
+        prompt = clean(q)
+        key = section + "|" + prompt.lower()
+        if len(prompt) < 6 or key in seen:
+            continue
+        seen.add(key)
+        out.append({"section": section, "prompt": prompt, "kind": infer_kind(prompt), "answer": ans})
+    return out or None
+
+
 def parse_questions_table(data: bytes):
     """Most KYC questionnaires are tables (No / Question / Answer). Reading the
     text flow scrambles those columns; pulling the table structure out of the
@@ -291,7 +341,10 @@ def parse_document(raw_text: str, filename: str = "", content: bytes = b""):
     """Pick the best extractor: table structure for PDFs, then model, then the
     text reflow heuristic."""
     if (filename or "").lower().endswith(".pdf") and content:
-        tabular = parse_questions_table(content)
+        md = parse_questions_markdown(content)        # layout-aware, best for tables
+        if md and len(md) >= 5:
+            return md
+        tabular = parse_questions_table(content)      # structural fallback
         if tabular and len(tabular) >= 5:
             return tabular
     return parse_questions(raw_text)
