@@ -5,6 +5,7 @@ from ..db import db, one, rows
 from .structure import structure_context
 from .brain import get_brain_options
 from .citations import verify_citations
+from . import connectors
 from .. import llm
 
 
@@ -31,7 +32,13 @@ def answer_question(question_id: str) -> dict:
         top = options[0]
         _save(question_id, top["value"], "From the KYC Brain (dominant prior answer).", round(top["share"], 2), [], options, "brain")
         return {"answered_by": "brain", "value": top["value"]}
-    # 2) Model (only if a key is configured)
+    # 2) Connectors / on-file (Quantium, YSolutions, Web, structure facts)
+    conn = connectors.answer(q["client_id"], q["prompt"])
+    if conn:
+        cite = [{"factType": conn["source"], "factId": "", "quote": conn["value"], "verified": True, "source": conn["source_label"]}]
+        _save(question_id, conn["value"], conn["detail"], 0.85, cite, options, conn["source"])
+        return {"answered_by": conn["source"], "value": conn["value"]}
+    # 3) Model (only if a key is configured)
     if llm.available():
         try:
             res = llm.answer(q["client_id"], q["prompt"], structure_context(q["client_id"]))

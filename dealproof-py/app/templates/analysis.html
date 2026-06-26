@@ -93,8 +93,9 @@
   <div class="answer"><p style="margin:0; font-size:14px">{{ q.answer.value }}</p>
     {% if q.answer.rationale %}<p class="muted small" style="margin:6px 0 0; font-style:italic">{{ q.answer.rationale }}</p>{% endif %}</div>
   <div class="row" style="justify-content:space-between; margin-top:8px">
-    <span class="pill {{ 'teal' if q.answer.answered_by=='brain' else 'blue' if q.answer.answered_by=='model' else 'neutral' }}">
-      {{ {'brain':'from KYC Brain','model':'drafted by model','human':'by reviewer'}.get(q.answer.answered_by, q.answer.answered_by) }}
+    {% set ablabel = {'brain':'from KYC Brain','on_file':'on file','quantium':'via Quantium','ysolutions':'via YSolutions','web':'via web research','model':'drafted by model','human':'by reviewer'} %}
+    <span class="pill {{ 'teal' if q.answer.answered_by in ['brain','on_file'] else 'neutral' if q.answer.answered_by=='human' else 'blue' }}">
+      {{ ablabel.get(q.answer.answered_by, q.answer.answered_by) }}
     </span>
     <span class="muted small">confidence {{ (q.answer.confidence*100)|round|int }}%</span>
   </div>
