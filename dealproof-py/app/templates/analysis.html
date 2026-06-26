@@ -4,7 +4,7 @@
 {% set a = analysis %}
 {% set req_by_q = {} %}
 {% for r in requests %}{% if req_by_q.update({r.question_id: r}) %}{% endif %}{% endfor %}
-{% set src_order = [('on_file','On file'),('brain','KYC Brain'),('quantium','Quantium'),('ysolutions','YSolutions'),('web','Web research'),('request','Request from client')] %}
+{% set src_order = [('on_file','On file'),('brain','KYC Brain'),('quantium','Quantium'),('ysolutions','YSolutions'),('web','Web research'),('request','Manual input')] %}
 
 <div class="row" style="justify-content:space-between; align-items:flex-end">
   <div>
@@ -17,7 +17,7 @@
       <button class="btn" title="Ab geht die Lutzi 🚀"><span class="icon">auto_awesome</span> Answer all</button>
     </form>
     <form method="post" action="/projects/{{ project.id }}/analysis/{{ qn.id }}/requests">
-      <button class="btn-ghost"><span class="icon">add_task</span> Generate requests</button>
+      <button class="btn-ghost"><span class="icon">add_task</span> Flag manual items</button>
     </form>
   </div>
 </div>
@@ -28,7 +28,7 @@
     <h2 class="card-title">Where each answer can come from</h2>
     <span class="mono" style="font-weight:700; color:var(--blue)">{{ (a.coverage*100)|round|int }}% retrievable</span>
   </div>
-  <p class="muted small" style="margin:4px 0 10px">{{ a.auto }} of {{ a.total }} questions can be answered from existing data, the connectors, web research or the KYC Brain. {{ a.request }} need information from the client.</p>
+  <p class="muted small" style="margin:4px 0 10px">{{ a.auto }} of {{ a.total }} questions can be answered from existing data, the connectors, web research or the KYC Brain. {{ a.request }} must be added manually.</p>
   <div class="row">
     {% for key, label in src_order %}
       {% if a.bySource.get(key) %}
@@ -55,10 +55,10 @@
   </table>
 </section>
 
-<!-- Requests to the client -->
+<!-- Manual-input items -->
 {% if requests %}
 <section class="card card-pad">
-  <h3 class="card-title" style="margin-bottom:10px">Requests to the client</h3>
+  <h3 class="card-title" style="margin-bottom:10px">To add manually</h3>
   <div class="divide">
   {% for r in requests if r.channel == 'request' %}
     <div class="row" style="padding:8px 0">
@@ -68,8 +68,9 @@
         <form method="post" action="/requests/{{ r.id }}" style="display:inline">
           <input type="hidden" name="pid" value="{{ project.id }}"/><input type="hidden" name="qid" value="{{ qn.id }}"/>
           <select name="status" class="inline" onchange="this.form.submit()">
+            {% set slabels = {'open':'open','requested':'in progress','received':'added','verified':'verified','na':'n/a'} %}
             {% for s in ['open','requested','received','verified','na'] %}
-              <option value="{{ s }}" {{ 'selected' if r.status==s }}>{{ s }}</option>
+              <option value="{{ s }}" {{ 'selected' if r.status==s }}>{{ slabels[s] }}</option>
             {% endfor %}
           </select>
         </form>

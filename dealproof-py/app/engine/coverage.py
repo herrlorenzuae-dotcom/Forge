@@ -1,6 +1,6 @@
 """Coverage & gap analysis (audit-proof): each question is answered (value +
 verified citation), unverified (value, no proof), or a gap. Each open item is
-routed web (publicly retrievable) or request (ask the client)."""
+routed web (publicly retrievable) or manual (added internally)."""
 import json
 import re
 
@@ -14,16 +14,16 @@ RULES = [
     (r"(managing director|director|gesch[äa]ftsf[üu]hrer|vorstand|board member|\borgan\b)", "directors", "web", "Commercial register (Handelsregister)"),
     (r"(listed|b[öo]rsennotiert|stock exchange|\b(isin|ticker)\b)", "listing", "web", "Stock exchange / public source"),
     (r"(industry|branche|\b(nace|sic)\b|sector|gesch[äa]ftst[äa]tigkeit|nature of business)", "industry", "web", "Register / website"),
-    (r"source of (wealth|funds)|mittelherkunft|verm[öo]gensherkunft|herkunft der (mittel|gelder)", "source_of_funds", "request", "Client (declaration + evidence)"),
-    (r"\b(pep|politically exposed|politisch exponiert)\b", "pep", "request", "Client (self-declaration)"),
-    (r"(tax\s*(residence|identification)|tax\s+id\b|steuer(ans[äa]ssigkeit|nummer|id)|\b(tin|crs|fatca)\b)", "tax_residence", "request", "Client (+ tax-residence certificate)"),
-    (r"(passport|identity (card|document)|ausweis|reisepass|id copy|lichtbild)", "id_document", "request", "Client (certified copy)"),
-    (r"(certified|beglaubigt|notari[sz]ed|apostille)", "certified_document", "request", "Client (certified)"),
-    (r"(bank reference|bankreferenz|bank statement|kontoauszug)", "bank_reference", "request", "Client's bank"),
-    (r"(authoris|authoriz|signatory|unterschrift|zeichnungsberecht|vollmacht|power of attorney)", "signatory", "request", "Client (power of attorney / signature)"),
-    (r"(purpose|zweck).*(relationship|gesch[äa]ftsbeziehung|account|konto)|intended (nature|purpose)", "purpose_of_relationship", "request", "Client (to provide)"),
-    (r"(expected|anticipated).*(volume|turnover|transaction)|transaktionsvolumen", "expected_volume", "request", "Client (to provide)"),
-    (r"(date of birth|geburtsdatum|geburtsort|place of birth|nationalit|staatsangeh[öo]rigkeit)", "personal_details", "request", "Client (UBO details)"),
+    (r"source of (wealth|funds)|mittelherkunft|verm[öo]gensherkunft|herkunft der (mittel|gelder)", "source_of_funds", "request", "Manual entry (declaration + evidence)"),
+    (r"\b(pep|politically exposed|politisch exponiert)\b", "pep", "request", "Manual entry (self-declaration)"),
+    (r"(tax\s*(residence|identification)|tax\s+id\b|steuer(ans[äa]ssigkeit|nummer|id)|\b(tin|crs|fatca)\b)", "tax_residence", "request", "Manual entry (+ tax-residence certificate)"),
+    (r"(passport|identity (card|document)|ausweis|reisepass|id copy|lichtbild)", "id_document", "request", "Manual entry (certified copy)"),
+    (r"(certified|beglaubigt|notari[sz]ed|apostille)", "certified_document", "request", "Manual entry (certified document)"),
+    (r"(bank reference|bankreferenz|bank statement|kontoauszug)", "bank_reference", "request", "Manual entry (bank statement)"),
+    (r"(authoris|authoriz|signatory|unterschrift|zeichnungsberecht|vollmacht|power of attorney)", "signatory", "request", "Manual entry (power of attorney / signature)"),
+    (r"(purpose|zweck).*(relationship|gesch[äa]ftsbeziehung|account|konto)|intended (nature|purpose)", "purpose_of_relationship", "request", "Manual entry"),
+    (r"(expected|anticipated).*(volume|turnover|transaction)|transaktionsvolumen", "expected_volume", "request", "Manual entry"),
+    (r"(date of birth|geburtsdatum|geburtsort|place of birth|nationalit|staatsangeh[öo]rigkeit)", "personal_details", "request", "Manual entry (UBO details)"),
 ]
 
 
@@ -31,7 +31,7 @@ def classify_field(prompt: str) -> dict:
     for pat, field, channel, source in RULES:
         if re.search(pat, prompt, re.I):
             return {"fieldType": field, "channel": channel, "source": source}
-    return {"fieldType": "other", "channel": "request", "source": "Client (to clarify)"}
+    return {"fieldType": "other", "channel": "request", "source": "Manual entry (to clarify)"}
 
 
 def _has_verified_citation(citations_json: str) -> bool:

@@ -1,5 +1,6 @@
-"""Information requests — the 'beantragen' half. Open coverage items become
-tracked requests with a lifecycle (open→requested→received→verified/na)."""
+"""Manual-input items — open coverage items that can't be answered from data,
+connectors or web become tracked internal to-dos with a lifecycle
+(open→in progress→added→verified/na)."""
 from ..db import db, gen_id, rows, one
 from .coverage import build_coverage
 
@@ -41,8 +42,8 @@ def update_request(req_id: str, status: str = None, note: str = None):
 def render_request_list(client_id: str) -> str:
     rows_ = [r for r in list_requests(client_id) if r["channel"] == "request" and r["status"] not in ("verified", "na")]
     if not rows_:
-        return "No open requests."
-    lines = ["Information required from the client (KYC):", ""]
+        return "No open items."
+    lines = ["To add manually (internal KYC items):", ""]
     for i, r in enumerate(rows_, 1):
         lines.append(f"{i}. {r['prompt']}  —  Source: {r['source']}")
     return "\n".join(lines)

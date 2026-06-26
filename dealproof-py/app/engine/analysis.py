@@ -6,7 +6,7 @@ WHERE the answer can come from:
   quantium  — corporate registry / structure connector
   ysolutions— screening / softer-KYC connector
   web       — public sources (GLEIF, registers)
-  request   — must be obtained from the client / a third party
+  manual    — not available from data/connectors/web; must be added manually
 
 Produces the overview the user reviews before answering."""
 from ..db import db, rows
@@ -39,7 +39,7 @@ SOURCE = {
 
 SOURCE_LABEL = {
     "on_file": "On file", "brain": "KYC Brain", "quantium": "Quantium",
-    "ysolutions": "YSolutions", "web": "Web research", "request": "Request from client",
+    "ysolutions": "YSolutions", "web": "Web research", "request": "Manual input",
 }
 
 
