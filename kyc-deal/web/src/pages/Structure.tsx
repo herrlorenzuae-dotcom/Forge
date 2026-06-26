@@ -55,18 +55,18 @@ export function Structure() {
           <div className="mt-4 flex flex-wrap gap-4 border-t border-black/[0.06] pt-3 text-[11px] text-fog">
             <span className="flex items-center gap-1.5">
               <svg width="26" height="6">
-                <line x1="0" y1="3" x2="26" y2="3" stroke="#6d6a63" strokeWidth="1.5" />
+                <line x1="0" y1="3" x2="26" y2="3" stroke="#1c86c8" strokeWidth="1.5" />
               </svg>
               Ownership (with %)
             </span>
             <span className="flex items-center gap-1.5">
               <svg width="26" height="6">
-                <line x1="0" y1="3" x2="26" y2="3" stroke="#7d2f3f" strokeWidth="1.5" strokeDasharray="5 4" />
+                <line x1="0" y1="3" x2="26" y2="3" stroke="#1c86c8" strokeWidth="1.5" strokeDasharray="5 4" />
               </svg>
               Control (voting / board / agreement)
             </span>
-            <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-1 rounded bg-ember" /> UBO / BidCo</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-1 rounded bg-verdant" /> Target</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-1 rounded" style={{ background: '#d62518' }} /> UBO / BidCo</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-1 rounded" style={{ background: '#00a14b' }} /> Target</span>
           </div>
         </div>
       )}

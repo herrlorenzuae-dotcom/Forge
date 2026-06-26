@@ -145,16 +145,23 @@ function strand(focus: string, edges: OrgEdge[]): Set<string> {
 
 const fmtPct = (p: number) => (Number.isInteger(p) ? `${p}` : p.toFixed(2)).replace('.', ',') + ' %';
 
-const EMBER = '#7d2f3f';
-const VERDANT = '#1f5f3c';
+// Armira house palette
+const BLUE = '#1c86c8'; // borders, connectors
+const BLUE_DK = '#13608f';
+const BLUE_FILL = '#d7ecfb'; // box fill
+const INK = '#13344d'; // entity names
 const FOG = '#6d6a63';
-const INK = '#1b1a18';
+const RED = '#d62518'; // changed / flags
+const GREEN = '#00a14b'; // asset / target
+const GREEN_FILL = '#d8f0e2';
+const CHART_BG = '#eef7fe';
 
 function accent(role: string): string {
-  if (role === 'ubo' || role === 'acquisition_vehicle') return EMBER;
-  if (role === 'target') return VERDANT;
-  return '#cabfb0';
+  if (role === 'ubo' || role === 'acquisition_vehicle') return RED;
+  if (role === 'target') return GREEN;
+  return BLUE;
 }
+const isGreen = (n: { role: string; kind: string }) => n.role === 'target' || n.kind === 'operating';
 
 export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges: OrgEdge[] }) {
   const [focus, setFocus] = useState<string | null>(null);
@@ -189,7 +196,7 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
       {/* toolbar */}
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
         {focus ? (
-          <button className="rounded-full border border-black/15 bg-surface px-3 py-1 text-bone hover:border-ember/40" onClick={() => setFocus(null)}>
+          <button className="rounded-full border border-black/15 bg-surface px-3 py-1 text-bone hover:border-[#1c86c8]" onClick={() => setFocus(null)}>
             ← Ganze Struktur
           </button>
         ) : (
@@ -217,7 +224,7 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
 
       {/* edge editor */}
       {selectedEdgeObj && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-ember/30 bg-ember/[0.04] px-3 py-2 text-[11px]">
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#1c86c8]/40 bg-[#1c86c8]/[0.06] px-3 py-2 text-[11px]">
           <span className="text-bone">
             {nameOf.get(selectedEdgeObj.parent)} → {nameOf.get(selectedEdgeObj.child)}
           </span>
@@ -230,16 +237,16 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
             placeholder="z. B. 51"
           />
           <span className="text-fog">%</span>
-          <button className="rounded-full bg-ember px-3 py-0.5 text-white" onClick={applyScenario}>Anwenden</button>
+          <button className="rounded-full bg-[#1c86c8] px-3 py-0.5 text-white" onClick={applyScenario}>Anwenden</button>
           <button className="rounded-full border border-black/15 px-3 py-0.5 text-fog" onClick={() => setSelEdge(null)}>Abbrechen</button>
         </div>
       )}
 
-      <div className="overflow-auto rounded-lg border border-black/[0.06] bg-[#faf9f6]" style={{ maxHeight: 620 }}>
+      <div className="overflow-auto rounded-lg border border-[#1c86c8]/15" style={{ maxHeight: 620, background: CHART_BG }}>
         <svg width={w * zoom} height={h * zoom} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
           <defs>
             <marker id="arrow" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
-              <path d="M0,0 L8,4.5 L0,9 Z" fill={FOG} />
+              <path d="M0,0 L8,4.5 L0,9 Z" fill={BLUE} />
             </marker>
           </defs>
 
@@ -262,15 +269,15 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
                 <path
                   d={`M${x1},${y1} L${x1},${my} L${x2},${my} L${x2},${y2}`}
                   fill="none"
-                  stroke={changed || sel ? EMBER : FOG}
+                  stroke={changed || sel ? RED : BLUE}
                   strokeWidth={changed || sel ? 2 : 1.3}
                   strokeDasharray={control ? '5 3' : undefined}
                   markerEnd="url(#arrow)"
                 />
                 {(pct > 0 || control) && (
                   <g transform={`translate(${(x1 + x2) / 2}, ${my})`}>
-                    <rect x={-22} y={-8} width={44} height={16} rx={3} fill="#faf9f6" />
-                    <text textAnchor="middle" dy={4} fontSize={10.5} fill={changed ? EMBER : INK} fontWeight={changed ? 700 : 400}>
+                    <rect x={-22} y={-8} width={44} height={16} rx={3} fill={CHART_BG} />
+                    <text textAnchor="middle" dy={4} fontSize={10.5} fill={changed ? RED : BLUE_DK} fontWeight={changed ? 700 : 400}>
                       {control ? 'Kontrolle' : fmtPct(pct)}
                     </text>
                   </g>
@@ -289,11 +296,14 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
             const ac = accent(n.role);
             return (
               <g key={n.id} className="cursor-pointer" onClick={() => setFocus(n.id)}>
-                <rect x={p.x + 2} y={p.y + 3} width={BOX_W} height={BOX_H} rx={6} fill="rgba(0,0,0,0.06)" />
-                <rect x={p.x} y={p.y} width={BOX_W} height={BOX_H} rx={6} fill="#ffffff" stroke={effChanged ? EMBER : 'rgba(0,0,0,0.16)'} strokeWidth={effChanged ? 2 : 1} />
+                <rect x={p.x + 2} y={p.y + 3} width={BOX_W} height={BOX_H} rx={6} fill="rgba(19,52,77,0.10)" />
+                <rect x={p.x} y={p.y} width={BOX_W} height={BOX_H} rx={6} fill={isGreen(n) ? GREEN_FILL : BLUE_FILL} stroke={effChanged ? RED : isGreen(n) ? GREEN : BLUE} strokeWidth={effChanged ? 2 : 1} />
                 <rect x={p.x} y={p.y} width={5} height={BOX_H} rx={2} fill={ac} />
+                {n.kind !== 'individual' && (
+                  <path d={`M${p.x + BOX_W - 16},${p.y + 1} L${p.x + BOX_W - 1},${p.y + 1} L${p.x + BOX_W - 1},${p.y + 16} Z`} fill={RED} />
+                )}
                 <foreignObject x={p.x + 12} y={p.y + 7} width={BOX_W - 20} height={BOX_H - 30}>
-                  <div style={{ fontFamily: "'Libre Caslon Display', Georgia, serif", fontSize: 11.5, lineHeight: 1.15, color: INK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <div style={{ fontFamily: "'Libre Caslon Display', Georgia, serif", fontSize: 11.5, lineHeight: 1.15, color: isGreen(n) ? '#0a6e38' : INK, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {n.name}
                   </div>
                 </foreignObject>
@@ -301,7 +311,7 @@ export function InteractiveOrgChart({ nodes, edges }: { nodes: OrgNode[]; edges:
                   {n.jurisdiction || n.kind}
                 </text>
                 {scenarioOn && (
-                  <text x={p.x + BOX_W - 8} y={p.y + BOX_H - 9} fontSize={9} textAnchor="end" fill={effChanged ? EMBER : FOG} fontWeight={effChanged ? 700 : 400}>
+                  <text x={p.x + BOX_W - 8} y={p.y + BOX_H - 9} fontSize={9} textAnchor="end" fill={effChanged ? RED : BLUE_DK} fontWeight={effChanged ? 700 : 400}>
                     {effChanged ? `${fmtPct(be)}→${fmtPct(se)}` : fmtPct(se)}
                   </text>
                 )}
