@@ -57,11 +57,43 @@ def _accent(role):
     return BLUE
 
 
-def render_svg(client_id: str) -> str:
+def default_subject(nodes, edges) -> str | None:
+    """The entity the KYC request concerns: the target/portfolio company, else a
+    sink node (one that is owned but owns nothing)."""
+    tgt = next((n["id"] for n in nodes if n["role"] == "target"), None)
+    if tgt:
+        return tgt
+    parents = {e["parent"] for e in edges}
+    children = {e["child"] for e in edges}
+    sinks = [n["id"] for n in nodes if n["id"] in children and n["id"] not in parents]
+    return sinks[0] if sinks else (nodes[0]["id"] if nodes else None)
+
+
+def ancestors(subject: str, edges) -> set:
+    """All entities above the subject — follow child→parent over BOTH ownership
+    and control edges, so general partners (Komplementär) are included."""
+    up = {}
+    for e in edges:
+        up.setdefault(e["child"], []).append(e["parent"])
+    seen, stack = {subject}, [subject]
+    while stack:
+        cur = stack.pop()
+        for p in up.get(cur, []):
+            if p not in seen:
+                seen.add(p); stack.append(p)
+    return seen
+
+
+def render_svg(client_id: str, subject: str = None, excerpt: bool = False) -> str:
     data = build_orgchart(client_id)
     nodes, edges = data["nodes"], data["edges"]
     if not nodes:
-        return '<p class="text-on-surface-variant">No structure yet.</p>'
+        return '<p class="muted">No structure yet — add it from a Share Purchase Agreement on the project page.</p>'
+    if excerpt:
+        subj = subject or default_subject(nodes, edges)
+        keep = ancestors(subj, edges) if subj else {n["id"] for n in nodes}
+        nodes = [n for n in nodes if n["id"] in keep]
+        edges = [e for e in edges if e["parent"] in keep and e["child"] in keep]
     pos, w, h = _layout(nodes, edges)
     pct = lambda p: (str(int(p)) if float(p).is_integer() else f"{p:.2f}").replace(".", ",") + " %"
     parts = [f'<svg viewBox="0 0 {w} {h}" style="width:100%;height:auto;font-family:\'Hanken Grotesk\',sans-serif;background:{CHART_BG};border-radius:6px">',

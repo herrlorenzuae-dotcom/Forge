@@ -2,21 +2,51 @@
 {% block title %}Structure{% endblock %}
 {% block content %}
 <div>
-  <p class="eyebrow">The result</p>
+  <p class="eyebrow">Structure</p>
   <h1 class="h1">Structure &amp; beneficial owners</h1>
-  <p class="lead">The client's corporate structure — the source of truth every questionnaire answer maps back to.</p>
+  <p class="lead">Built from the Share Purchase Agreement (or pasted). Ownership shows percentages; control captures the general partner (Komplementär) where it holds no equity but exercises control. The excerpt view traces the strand from the relevant company up to the UBOs.</p>
 </div>
+
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:6px">Add structure from an SPA</h2>
+  <p class="muted small" style="margin:0 0 12px">{% if has_key %}Upload the SPA — the model extracts entities, percentages and control.{% else %}No model key set, so paste the structure in the simple format below (the model emits the same when a key is configured).{% endif %}</p>
+  <form method="post" action="/projects/{{ project.id }}/structure" enctype="multipart/form-data">
+    <label class="dropzone" id="drop" style="padding:18px">
+      <span class="icon" style="font-size:24px; color:var(--blue)">description</span>
+      <span><b>Drop the SPA</b> (PDF/TXT) or click to choose</span>
+      <input type="file" name="file" id="file" accept=".pdf,.txt,.md" style="display:none"/>
+      <span id="fname" class="muted small"></span>
+    </label>
+    <div style="margin:12px 0 6px" class="muted small">…or paste the structure:</div>
+    <textarea name="pasted" rows="6" placeholder="Brandt Familienholding GmbH -> Halcyon Beteiligungs GmbH : 75%
+Lars Andersson -> Halcyon Beteiligungs GmbH : 25%
+Armira I GP GmbH -> Halcyon Beteiligungs GmbH : control (General partner / Komplementär)
+Halcyon Beteiligungs GmbH -> Halcyon BidCo S.à r.l. : 100%
+Halcyon BidCo S.à r.l. -> Meridian Logistics Park S.A. : 94%
+TARGET: Meridian Logistics Park S.A.
+UBO: Dr. Katharina Brandt"></textarea>
+    <div style="margin-top:12px"><button class="btn"><span class="icon">account_tree</span> Build structure</button></div>
+  </form>
+</section>
 
 <section class="card">
   <div class="card-head">
     <h2 class="card-title">Organisation chart</h2>
-    <span class="muted small">{{ chart.nodes|length }} entities · {{ chart.edges|length }} links</span>
+    <div class="row">
+      <a href="/projects/{{ project.id }}/structure?view=excerpt" class="btn-ghost btn-sm {{ '' if view=='excerpt' else '' }}" style="{{ 'border-color:var(--blue);color:var(--blue)' if view=='excerpt' else '' }}">Excerpt → UBOs</a>
+      <a href="/projects/{{ project.id }}/structure?view=full" class="btn-ghost btn-sm" style="{{ 'border-color:var(--blue);color:var(--blue)' if view=='full' else '' }}">Full structure</a>
+      {% if view=='excerpt' and chart.nodes %}
+      <select class="inline" onchange="location.href='/projects/{{ project.id }}/structure?view=excerpt&subject='+encodeURIComponent(this.value)">
+        {% for n in chart.nodes %}<option value="{{ n.id }}" {{ 'selected' if n.id==subject }}>{{ n.name }}</option>{% endfor %}
+      </select>
+      {% endif %}
+    </div>
   </div>
   <div class="card-pad">{{ chart_svg|safe }}</div>
   <div class="card-pad legend" style="border-top:1px solid var(--line-soft)">
     <span><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1c86c8" stroke-width="1.5"/></svg> Ownership (with %)</span>
-    <span><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1c86c8" stroke-width="1.5" stroke-dasharray="5 3"/></svg> Control</span>
-    <span><span class="legendkey" style="background:#d62518"></span> UBO / BidCo</span>
+    <span><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1c86c8" stroke-width="1.5" stroke-dasharray="5 3"/></svg> Control (e.g. general partner)</span>
+    <span><span class="legendkey" style="background:#d62518"></span> UBO / acquisition vehicle</span>
     <span><span class="legendkey" style="background:#00a14b"></span> Target</span>
   </div>
 </section>
@@ -27,38 +57,30 @@
     <div class="divide">
     {% for u in structure.ubos %}
       <div class="row" style="justify-content:space-between; padding:8px 0">
-        <div><div style="font-weight:600">{{ u.entity_name }}</div><div class="muted small">{{ u.basis|replace('_',' ') }} · {{ u.residence }}</div></div>
-        <div style="text-align:right">
-          <span class="mono" style="font-weight:600">{{ u.pct }}%</span>
-          <span class="pill {{ 'red' if u.pep else 'teal' }}" style="margin-left:6px">{{ 'PEP' if u.pep else 'not PEP' }}</span>
-        </div>
+        <div><div style="font-weight:600">{{ u.entity_name }}</div><div class="muted small">{{ u.basis|replace('_',' ') }}{% if u.residence %} · {{ u.residence }}{% endif %}</div></div>
+        <span class="pill {{ 'red' if u.pep else 'teal' }}">{{ 'PEP' if u.pep else 'not PEP' }}</span>
       </div>
-    {% else %}<p class="muted small">No beneficial owners recorded.</p>{% endfor %}
+    {% else %}<p class="muted small">No beneficial owners recorded yet.</p>{% endfor %}
     </div>
   </section>
-
   <section class="card card-pad">
     <h3 class="card-title" style="margin-bottom:12px">Entities</h3>
     <div class="divide">
     {% for e in structure.entities %}
       <div class="row small" style="justify-content:space-between; padding:8px 0">
         <span style="font-size:14px">{{ e.name }}</span>
-        <span class="muted">{{ e.role|replace('_',' ') }} · {{ e.jurisdiction }}</span>
+        <span class="muted">{{ e.role|replace('_',' ') }}{% if e.jurisdiction %} · {{ e.jurisdiction }}{% endif %}</span>
       </div>
-    {% endfor %}
+    {% else %}<p class="muted small">No entities yet.</p>{% endfor %}
     </div>
   </section>
 </div>
 
-<section class="card">
-  <div class="card-head"><h3 class="card-title">Facts on file</h3></div>
-  <table class="tbl">
-    <thead><tr><th>Entity</th><th>Attribute</th><th>Value</th><th>Source</th></tr></thead>
-    <tbody>
-    {% for a in structure.attributes %}
-      <tr><td>{{ a.entity_name }}</td><td class="muted">{{ a.key }}</td><td>{{ a.value }}</td><td><span class="src">{{ a.source }}</span></td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</section>
+<script>
+  const drop=document.getElementById('drop'),file=document.getElementById('file'),fname=document.getElementById('fname');
+  if(file){file.addEventListener('change',()=>{if(file.files[0])fname.textContent=file.files[0].name;});
+  ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files[0]){file.files=ev.dataTransfer.files;fname.textContent=file.files[0].name;}});}
+</script>
 {% endblock %}

@@ -2,7 +2,7 @@
 landing (projects) → new project (name) → upload the KYC document → analysis
 report (where each answer can come from) → structure / requests."""
 import os
-from fastapi import FastAPI, Request, Form, UploadFile, File
+from fastapi import FastAPI, Request, Form, UploadFile, File, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,8 +10,9 @@ from fastapi.templating import Jinja2Templates
 from . import config
 from .db import init_db, db, rows, one
 from .engine import projects as proj
+from .engine import spa as spa_engine
 from .engine.structure import get_structure
-from .engine.orgchart import build_orgchart, render_svg
+from .engine.orgchart import build_orgchart, render_svg, default_subject
 from .engine.coverage import build_coverage
 from .engine.analysis import build_analysis
 from .engine import requests as reqs
@@ -144,10 +145,27 @@ def do_update_request(req_id: str, status: str = Form(...), pid: str = Form(...)
 
 # ── Structure ──
 @app.get("/projects/{pid}/structure", response_class=HTMLResponse)
-def structure_page(request: Request, pid: str):
+def structure_page(request: Request, pid: str, view: str = Query("excerpt"), subject: str = Query(None)):
+    chart = build_orgchart(pid)
+    excerpt = view == "excerpt"
+    subj = subject or default_subject(chart["nodes"], chart["edges"])
     return templates.TemplateResponse(request, "structure.html", ctx(request,
         active="structure", project=proj.get_project(pid), structure=get_structure(pid),
-        chart=build_orgchart(pid), chart_svg=render_svg(pid)))
+        chart=chart, chart_svg=render_svg(pid, subject=subj, excerpt=excerpt),
+        view=view, subject=subj))
+
+
+@app.post("/projects/{pid}/structure")
+async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str = Form("")):
+    text = pasted
+    if file is not None and file.filename:
+        data = await file.read()
+        text = extract_text(file.filename, data)
+    if text.strip():
+        spec = spa_engine.extract_from_spa(text, pid)
+        spa_engine.apply_structure(pid, spec)
+        proj.touch(pid)
+    return RedirectResponse(f"/projects/{pid}/structure?view=excerpt", status_code=303)
 
 
 # ── Brain (cross-project memory) ──
