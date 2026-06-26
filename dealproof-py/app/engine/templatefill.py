@@ -194,7 +194,19 @@ def one_original(questionnaire_id: str):
 
 
 def is_fillable(questionnaire_id: str) -> bool:
+    """True only when the original can actually be filled in place: a Word doc,
+    or a PDF that has real AcroForm fields (a flat/scanned PDF cannot)."""
     orig = one_original(questionnaire_id)
     if not orig or not orig.get("content"):
         return False
-    return (orig["filename"] or "").lower().endswith((".pdf", ".docx"))
+    name = (orig["filename"] or "").lower()
+    if name.endswith(".docx"):
+        return True
+    if name.endswith(".pdf"):
+        try:
+            import fitz
+            doc = fitz.open(stream=orig["content"], filetype="pdf")
+            return any(True for pg in doc for _ in (pg.widgets() or []))
+        except Exception:
+            return False
+    return False

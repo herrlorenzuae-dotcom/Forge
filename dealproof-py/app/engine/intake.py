@@ -172,13 +172,87 @@ def parse_questions_model(raw: str):
         return None
 
 
+def parse_questions_table(data: bytes):
+    """Most KYC questionnaires are tables (No / Question / Answer). Reading the
+    text flow scrambles those columns; pulling the table structure out of the
+    PDF recovers clean questions and their sections. Returns the same shape, or
+    None if no usable table is found."""
+    try:
+        import fitz
+    except Exception:
+        return None
+    try:
+        doc = fitz.open(stream=data, filetype="pdf")
+    except Exception:
+        return None
+    out, section, seen = [], "", set()
+
+    def add(sec, q):
+        q = re.sub(r"\s{2,}", " ", q).strip(" -–")
+        if len(q) < 6 or q.lower() == "question":
+            return
+        key = sec + "|" + q.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append({"section": sec, "prompt": q, "kind": infer_kind(q)})
+
+    for pg in doc:
+        try:
+            tabs = pg.find_tables()
+        except Exception:
+            continue
+        for t in tabs.tables:
+            try:
+                rows = t.extract()
+            except Exception:
+                continue
+            # locate the Question column (by header on the first page, else col 1)
+            qcol = 1
+            if t.header and t.header.names:
+                names = [(n or "").strip().lower() for n in t.header.names]
+                if "question" in names:
+                    qcol = names.index("question")
+            for r in rows:
+                no = (r[0] or "").strip() if len(r) > 0 else ""
+                q = (r[qcol] or "").strip() if len(r) > qcol else ""
+                if no and not q:                      # a section-header row
+                    head = no.split("\n")[0].strip()  # ignore anything merged below it
+                    core = re.sub(r"^\d+[.)]\s*", "", head).strip()
+                    if _is_heading(head) or re.match(r"^\d+[.)]\s", head):
+                        section = core
+                    continue
+                if not q:
+                    continue
+                no_lines = [x for x in no.split("\n") if x.strip()]
+                q_lines = [x.strip() for x in q.split("\n") if x.strip()]
+                # a cell that packs several numbered sub-items, one per line
+                if len(no_lines) > 1 and len(no_lines) == len(q_lines):
+                    for ql in q_lines:
+                        add(section, ql)
+                else:
+                    add(section, " ".join(q_lines))
+    return out or None
+
+
+def parse_document(raw_text: str, filename: str = "", content: bytes = b""):
+    """Pick the best extractor: table structure for PDFs, then model, then the
+    text reflow heuristic."""
+    if (filename or "").lower().endswith(".pdf") and content:
+        tabular = parse_questions_table(content)
+        if tabular and len(tabular) >= 5:
+            return tabular
+    return parse_questions(raw_text)
+
+
 def parse_questions(raw: str):
     """Model first (if a key is configured), heuristic otherwise/as fallback."""
     return parse_questions_model(raw) or parse_questions_heuristic(raw)
 
 
-def create_questionnaire(client_id: str, requester: str, title: str, raw_text: str) -> str:
-    qs = parse_questions(raw_text)
+def create_questionnaire(client_id: str, requester: str, title: str, raw_text: str,
+                         filename: str = "", content: bytes = b"") -> str:
+    qs = parse_document(raw_text, filename, content)
     qid = gen_id("qn")
     with db() as con:
         con.execute("INSERT INTO questionnaires (id, client_id, requester, title, status) VALUES (?,?,?,?,'parsed')",

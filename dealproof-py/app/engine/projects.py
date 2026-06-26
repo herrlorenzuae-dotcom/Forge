@@ -1,7 +1,7 @@
 """Projects — a project is one KYC matter. Named on the landing page, persisted,
 and reopenable. Documents (the KYC questionnaires to answer) attach to a project."""
 from ..db import db, gen_id, rows, one
-from .intake import create_questionnaire, parse_questions
+from .intake import create_questionnaire, parse_document
 
 
 def create_project(name: str) -> str:
@@ -38,14 +38,14 @@ def add_document(pid: str, filename: str, raw_text: str, requester: str = "", co
     """Store a document (with its original bytes, so answers can later be filled
     back into the exact file) and parse it into a questionnaire."""
     title = filename.rsplit(".", 1)[0] if filename else "Questionnaire"
-    qid = create_questionnaire(pid, requester or "Uploaded", title, raw_text)
+    qid = create_questionnaire(pid, requester or "Uploaded", title, raw_text, filename, content)
     did = gen_id("doc")
     blob = content if content else raw_text.encode("utf-8")
     with db() as con:
         con.execute("INSERT INTO documents (id, project_id, questionnaire_id, filename, size, content) VALUES (?,?,?,?,?,?)",
                     (did, pid, qid, filename or "pasted.txt", len(blob), blob))
     touch(pid)
-    return {"document_id": did, "questionnaire_id": qid, "questions": len(parse_questions(raw_text))}
+    return {"document_id": did, "questionnaire_id": qid, "questions": len(parse_document(raw_text, filename, content))}
 
 
 def original_document(questionnaire_id: str):
