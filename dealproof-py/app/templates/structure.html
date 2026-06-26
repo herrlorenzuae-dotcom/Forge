@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Structure{% endblock %}
+{% block content %}
+<div>
+  <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-electric-blue mb-2">
+    <span class="inline-block h-px w-6 bg-electric-blue/60"></span> The result
+  </p>
+  <h1 class="font-display text-4xl font-bold text-deep-navy">Structure &amp; beneficial owners</h1>
+  <p class="mt-2 max-w-2xl text-on-surface-variant">The client's corporate structure — the source of truth every questionnaire answer maps back to.</p>
+</div>
+
+<section class="bg-surface-container-lowest rounded-xl border border-black/10 shadow-sm overflow-hidden">
+  <div class="p-4 border-b border-black/5 flex items-center justify-between">
+    <h2 class="font-headline text-xl font-semibold text-deep-navy">Organisation chart</h2>
+    <span class="text-xs text-on-surface-variant">{{ chart.nodes|length }} entities · {{ chart.edges|length }} links</span>
+  </div>
+  <div class="p-4">{{ chart_svg|safe }}</div>
+  <div class="px-4 pb-3 flex flex-wrap gap-4 text-[11px] text-on-surface-variant border-t border-black/5 pt-3">
+    <span class="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1c86c8" stroke-width="1.5"/></svg> Ownership (with %)</span>
+    <span class="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="#1c86c8" stroke-width="1.5" stroke-dasharray="5 3"/></svg> Control</span>
+    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-1 rounded" style="background:#d62518"></span> UBO / BidCo</span>
+    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-1 rounded" style="background:#00a14b"></span> Target</span>
+  </div>
+</section>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <section class="bg-surface-container-lowest rounded-xl border border-black/10 shadow-sm p-5">
+    <h3 class="font-headline text-lg font-semibold text-deep-navy mb-3">Ultimate beneficial owners</h3>
+    {% for u in structure.ubos %}
+    <div class="flex items-start justify-between border-b border-black/5 py-2 last:border-0">
+      <div><p class="font-semibold">{{ u.entity_name }}</p><p class="text-xs text-on-surface-variant">{{ u.basis|replace('_',' ') }} · {{ u.residence }}</p></div>
+      <div class="text-right"><span class="font-mono-data font-semibold">{{ u.pct }}%</span>
+        <span class="ml-2 rounded-full px-2 py-0.5 text-[10px] {{ 'bg-error/10 text-error' if u.pep else 'bg-success-teal/10 text-success-teal' }}">{{ 'PEP' if u.pep else 'not PEP' }}</span></div>
+    </div>
+    {% else %}<p class="text-sm text-on-surface-variant">No beneficial owners recorded.</p>{% endfor %}
+  </section>
+
+  <section class="bg-surface-container-lowest rounded-xl border border-black/10 shadow-sm p-5">
+    <h3 class="font-headline text-lg font-semibold text-deep-navy mb-3">Entities</h3>
+    {% for e in structure.entities %}
+    <div class="flex items-center justify-between border-b border-black/5 py-2 last:border-0 text-sm">
+      <span>{{ e.name }}</span>
+      <span class="text-xs text-on-surface-variant">{{ e.role|replace('_',' ') }} · {{ e.jurisdiction }}</span>
+    </div>
+    {% endfor %}
+  </section>
+</div>
+
+<section class="bg-surface-container-lowest rounded-xl border border-black/10 shadow-sm overflow-hidden">
+  <div class="p-4 border-b border-black/5"><h3 class="font-headline text-lg font-semibold text-deep-navy">Facts on file</h3></div>
+  <table class="w-full text-left text-sm">
+    <thead><tr class="bg-surface-container-low border-b border-black/10 text-[11px] uppercase tracking-wider text-outline">
+      <th class="py-2 px-4">Entity</th><th class="py-2 px-4">Attribute</th><th class="py-2 px-4">Value</th><th class="py-2 px-4">Source</th></tr></thead>
+    <tbody>
+    {% for a in structure.attributes %}
+      <tr class="border-b border-black/5 hover:bg-surface-container-low/50">
+        <td class="py-2 px-4">{{ a.entity_name }}</td>
+        <td class="py-2 px-4 text-on-surface-variant">{{ a.key }}</td>
+        <td class="py-2 px-4">{{ a.value }}</td>
+        <td class="py-2 px-4"><span class="bg-surface-dim text-on-surface-variant px-1.5 rounded text-xs">{{ a.source }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

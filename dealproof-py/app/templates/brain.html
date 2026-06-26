@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}KYC Brain{% endblock %}
+{% block content %}
+<div>
+  <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-electric-blue mb-2">
+    <span class="inline-block h-px w-6 bg-electric-blue/60"></span> Memory &amp; convergence
+  </p>
+  <h1 class="font-display text-4xl font-bold text-deep-navy">KYC Brain</h1>
+  <p class="mt-2 max-w-2xl text-on-surface-variant">Every finalized answer folds into a library keyed by the normalized question. The more questionnaires answered, the more the next one answers itself.</p>
+</div>
+
+<section class="bg-surface-container-lowest rounded-xl border border-black/10 shadow-sm overflow-hidden">
+  <table class="w-full text-left text-sm">
+    <thead><tr class="bg-surface-container-low border-b border-black/10 text-[11px] uppercase tracking-wider text-outline">
+      <th class="py-2 px-4 w-3/5">Question</th><th class="py-2 px-4">Canonical answer</th>
+      <th class="py-2 px-4 text-right">Recur</th><th class="py-2 px-4 text-right">Conv.</th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr class="border-b border-black/5 align-top">
+        <td class="py-2.5 px-4 font-medium">{{ e.prompt }}</td>
+        <td class="py-2.5 px-4 text-on-surface-variant">{{ e.answer }}</td>
+        <td class="py-2.5 px-4 text-right font-mono-data">{{ e.total }}×</td>
+        <td class="py-2.5 px-4 text-right">
+          <span class="font-mono-data {{ 'text-success-teal' if e.convergence>=0.8 else 'text-electric-blue' }}">{{ (e.convergence*100)|round|int }}%</span>
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="4" class="py-8 text-center text-on-surface-variant">The Brain is empty — finalize a questionnaire to fold answers in.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
