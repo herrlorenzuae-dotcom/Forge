@@ -1,59 +1,37 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>DealProof — {% block title %}{% endblock %}</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
-<script>
-  tailwind.config = { theme: { extend: {
-    colors: {
-      "surface": "#f7f9fb", "surface-container-lowest": "#ffffff", "surface-container-low": "#f2f4f6",
-      "surface-container": "#eceef0", "surface-container-high": "#e6e8ea", "surface-variant": "#e0e3e5",
-      "surface-dim": "#d8dadc", "surface-gray": "#F1F5F9",
-      "on-surface": "#191c1e", "on-surface-variant": "#454650", "outline": "#757681", "outline-variant": "#c5c6d1",
-      "primary": "#000727", "primary-container": "#061c54", "deep-navy": "#061C54", "electric-blue": "#005EB8",
-      "secondary": "#005db6", "success-teal": "#00B2A9", "error": "#ba1a1a", "background": "#f7f9fb",
-    },
-    borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
-    fontFamily: {
-      "headline": ["Source Serif 4", "Georgia", "serif"], "display": ["Source Serif 4", "serif"],
-      "body": ["Hanken Grotesk", "system-ui", "sans-serif"], "mono-data": ["Spline Sans Mono", "monospace"],
-    },
-  }}}
-</script>
-<style>
-  body { -webkit-font-smoothing: antialiased; }
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; vertical-align: middle; }
-  .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
-</style>
+<link rel="stylesheet" href="/static/app.css"/>
 </head>
-<body class="bg-background text-on-surface font-body min-h-screen">
-<header class="bg-white/85 backdrop-blur-md sticky top-0 z-50 border-b border-black/5 shadow-sm">
-  <div class="mx-auto max-w-6xl flex items-center gap-3 px-6 h-16">
-    <a href="/structure" class="flex items-center gap-2.5 shrink-0">
-      <img src="/static/armira-logo.svg" alt="Armira" class="h-6 w-auto"/>
-      <span class="h-5 w-px bg-black/15"></span>
-      <span class="font-display text-xl font-bold tracking-tight text-deep-navy">DealProof</span>
+<body>
+<header class="header">
+  <div class="wrap header-row">
+    <a href="/structure" class="brand">
+      <img src="/static/armira-logo.svg" alt="Armira"/>
+      <span class="sep"></span>
+      <span class="name">DealProof</span>
     </a>
-    <span class="text-on-surface-variant text-sm hidden sm:inline">· {{ client.deal_name or client.name }}</span>
-    <nav class="ml-auto flex items-center gap-1 bg-surface-container-low border border-black/5 rounded-lg p-1">
+    <span class="client">· {{ client.deal_name or client.name }}</span>
+    <nav class="nav">
       {% for key, label in nav %}
-      <a href="/{{ key }}" class="px-3 py-1.5 rounded text-sm font-semibold {{ 'bg-white shadow-sm text-deep-navy' if active==key else 'text-on-surface-variant hover:text-on-surface' }}">{{ label }}</a>
+      <a href="/{{ key }}" class="{{ 'active' if active==key else '' }}">{{ label }}</a>
       {% endfor %}
     </nav>
-    <span class="ml-2 flex items-center gap-1 rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-on-surface-variant" title="{{ 'Model ready' if has_key else 'No model key — the KYC Brain answers from the corpus' }}">
-      <span class="h-1.5 w-1.5 rounded-full {{ 'bg-success-teal' if has_key else 'bg-electric-blue' }}"></span>
+    <span class="statuschip" title="{{ 'Model ready' if has_key else 'No model key — the KYC Brain answers from the corpus' }}">
+      <span class="dot" style="background: {{ '#00b2a9' if has_key else '#005eb8' }}"></span>
       {{ 'Model ready' if has_key else 'Brain-only' }}
     </span>
   </div>
 </header>
-<main class="mx-auto max-w-6xl px-6 py-8 space-y-8">
+<main class="wrap stack">
   {% block content %}{% endblock %}
 </main>
-<footer class="mx-auto max-w-6xl px-6 pb-10 text-xs text-on-surface-variant/70">
+<footer class="wrap footer">
   DealProof — every answer cites the structure fact it rests on; names are masked on-device before anything goes to a model. Demo client: Project Halcyon. Not legal advice.
 </footer>
 </body>
