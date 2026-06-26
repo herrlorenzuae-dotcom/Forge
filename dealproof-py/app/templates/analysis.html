@@ -38,13 +38,18 @@
   </div>
 </section>
 
-<!-- Per-question breakdown -->
+<!-- Per-question breakdown, grouped by the questionnaire's own sections -->
 <section class="card">
-  <div class="card-head"><h3 class="card-title">Questions</h3><span class="muted small">{{ a.total }} parsed</span></div>
+  <div class="card-head"><h3 class="card-title">Questions</h3><span class="muted small">{{ a.total }} parsed{% if a.sections|length > 1 %} · {{ a.sections|length }} sections{% endif %}</span></div>
   <table class="tbl">
     <thead><tr><th style="width:52%">Question</th><th>Source</th><th>Detail</th></tr></thead>
     <tbody>
+    {% set ns = namespace(cur='\x00') %}
     {% for it in a["items"] %}
+      {% if it.section != ns.cur %}
+        {% set ns.cur = it.section %}
+        <tr class="section-row"><td colspan="3" style="background:var(--surface); font-weight:700; letter-spacing:.03em; text-transform:uppercase; font-size:11px; color:var(--ink)">{{ it.section or 'General' }}</td></tr>
+      {% endif %}
       <tr>
         <td>{{ it.prompt }}</td>
         <td><span class="pill source-{{ it.source }}">{{ it.sourceLabel }}</span></td>

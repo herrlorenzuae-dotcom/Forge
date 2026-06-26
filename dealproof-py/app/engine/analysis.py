@@ -72,13 +72,14 @@ def build_analysis(questionnaire_id: str) -> dict:
             source, retrievable = SOURCE[ft]
             detail = field["source"]
         items.append({"questionId": q["id"], "prompt": q["prompt"], "fieldType": ft,
-                      "source": source, "sourceLabel": SOURCE_LABEL[source],
+                      "section": q["section"] or "", "source": source, "sourceLabel": SOURCE_LABEL[source],
                       "retrievable": retrievable, "detail": detail})
 
     by = {}
     for it in items:
         by[it["source"]] = by.get(it["source"], 0) + 1
     auto = sum(1 for it in items if it["retrievable"])
+    sections = list(dict.fromkeys(it["section"] for it in items))
     return {"questionnaireId": questionnaire_id, "total": len(items), "auto": auto,
             "request": len(items) - auto, "bySource": by, "items": items,
-            "coverage": (auto / len(items)) if items else 0}
+            "sections": sections, "coverage": (auto / len(items)) if items else 0}
