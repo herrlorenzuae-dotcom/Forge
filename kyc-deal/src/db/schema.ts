@@ -149,6 +149,21 @@ CREATE TABLE IF NOT EXISTS ai_calls (
   ok INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS info_requests (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES clients(id),
+  questionnaire_id TEXT,
+  question_id TEXT,
+  field_type TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  channel TEXT NOT NULL,           -- 'web' | 'request'
+  source TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open',  -- open | requested | received | verified | na
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_entities_client ON entities(client_id);
 CREATE INDEX IF NOT EXISTS idx_edges_client ON ownership_edges(client_id);
 CREATE INDEX IF NOT EXISTS idx_ubos_client ON ubos(client_id);
@@ -156,6 +171,7 @@ CREATE INDEX IF NOT EXISTS idx_attrs_entity ON entity_attributes(entity_id);
 CREATE INDEX IF NOT EXISTS idx_questions_qn ON questions(questionnaire_id);
 CREATE INDEX IF NOT EXISTS idx_questionnaires_client ON questionnaires(client_id);
 CREATE INDEX IF NOT EXISTS idx_syncs_client ON source_syncs(client_id);
+CREATE INDEX IF NOT EXISTS idx_requests_client ON info_requests(client_id);
 `;
 
 /** Idempotent column additions for databases created before a column existed.

@@ -10,6 +10,7 @@ import {
 } from '../api.js';
 import { useClient } from '../App.js';
 import { SectionTitle, Button, GhostButton, Pill, ErrorNote, ConfidenceBar, CitationRow } from '../components.js';
+import { CoveragePanel } from '../CoveragePanel.js';
 
 function StatusPill({ status }: { status: string }) {
   const tone = status === 'finalized' ? 'verdant' : status === 'mapped' ? 'ember' : 'neutral';
@@ -101,6 +102,8 @@ export function Questionnaires() {
   const [error, setError] = useState<string | null>(null);
   const [busyAll, setBusyAll] = useState(false);
   const [busyQ, setBusyQ] = useState<string | null>(null);
+  const [covVersion, setCovVersion] = useState(0);
+  const bumpCoverage = () => setCovVersion((v) => v + 1);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ requester: '', title: '', rawText: '' });
   const [showForm, setShowForm] = useState(false);
@@ -146,6 +149,7 @@ export function Questionnaires() {
       await post(`/questionnaires/${openId}/answer`);
       await reloadDetail();
       await loadList();
+      bumpCoverage();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -159,6 +163,7 @@ export function Questionnaires() {
     try {
       await post(`/questions/${qid}/answer`);
       await reloadDetail();
+      bumpCoverage();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -171,6 +176,7 @@ export function Questionnaires() {
     try {
       await post(`/questions/${qid}/set`, { value, status: 'edited' });
       await reloadDetail();
+      bumpCoverage();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -213,6 +219,8 @@ export function Questionnaires() {
           </div>
         </div>
         <ErrorNote error={error} />
+
+        <CoveragePanel questionnaireId={openId} clientId={clientId} version={covVersion} />
 
         {sections.map((section) => (
           <div key={section || '_'} className="mb-8">

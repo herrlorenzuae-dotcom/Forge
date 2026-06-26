@@ -16,6 +16,58 @@ export async function post<T>(path: string, body?: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+export async function patch<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
+  return (await res.json()) as T;
+}
+
+// ── Coverage & information requests ──
+export interface CoverageItem {
+  questionId: string;
+  position: number;
+  section: string;
+  prompt: string;
+  status: 'answered' | 'unverified' | 'gap';
+  value: string;
+  field: { fieldType: string; channel: 'web' | 'request'; source: string };
+  gapKind?: 'web' | 'request';
+  source?: string;
+}
+export interface CoverageReport {
+  questionnaireId: string;
+  total: number;
+  answered: number;
+  unverified: number;
+  gap: number;
+  webGaps: number;
+  requestGaps: number;
+  coverage: number;
+  items: CoverageItem[];
+}
+export interface InfoRequest {
+  id: string;
+  client_id: string;
+  questionnaire_id: string;
+  question_id: string;
+  field_type: string;
+  prompt: string;
+  channel: 'web' | 'request';
+  source: string;
+  status: 'open' | 'requested' | 'received' | 'verified' | 'na';
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+export const getCoverage = (qnId: string) => get<CoverageReport>(`/questionnaires/${qnId}/coverage`);
+export const generateRequests = (qnId: string) => post<InfoRequest[]>(`/questionnaires/${qnId}/requests`);
+export const getRequests = (clientId: string) => get<{ requests: InfoRequest[]; text: string }>(`/clients/${clientId}/requests`);
+export const updateRequest = (id: string, body: { status?: string; note?: string }) => patch<InfoRequest>(`/requests/${id}`, body);
+
 // ── Shapes (mirror src/types.ts) ──
 
 export interface Health {

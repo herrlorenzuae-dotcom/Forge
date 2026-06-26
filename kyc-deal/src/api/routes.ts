@@ -16,6 +16,8 @@ import { createQuestionnaire } from '../engine/intake.js';
 import { answerQuestion, answerQuestionnaire, setAnswer } from '../engine/mapping.js';
 import { listQuestionnaires, getQuestionnaire, finalizeQuestionnaire } from '../engine/questionnaire.js';
 import { listBrain, brainStats } from '../engine/brain.js';
+import { buildCoverage } from '../engine/coverage.js';
+import { listRequests, generateRequests, updateRequest, renderRequestList } from '../engine/requests.js';
 
 interface ClientRow {
   id: string;
@@ -169,6 +171,20 @@ export function registerRoutes(app: FastifyInstance): void {
   app.post<{ Params: { id: string }; Body: { value?: string; status?: 'accepted' | 'edited' } }>(
     '/api/questions/:id/set',
     (req, reply) => wrap(() => setAnswer(req.params.id, req.body?.value ?? '', req.body?.status ?? 'edited'))(req, reply),
+  );
+
+  // ── Coverage & information requests ──
+  app.get<{ Params: { id: string } }>('/api/questionnaires/:id/coverage', (req, reply) =>
+    wrap(() => buildCoverage(req.params.id))(req, reply),
+  );
+  app.post<{ Params: { id: string } }>('/api/questionnaires/:id/requests', (req, reply) =>
+    wrap(() => generateRequests(req.params.id))(req, reply),
+  );
+  app.get<{ Params: { id: string } }>('/api/clients/:id/requests', (req, reply) =>
+    wrap(() => ({ requests: listRequests(req.params.id), text: renderRequestList(req.params.id) }))(req, reply),
+  );
+  app.patch<{ Params: { id: string }; Body: { status?: string; note?: string } }>('/api/requests/:id', (req, reply) =>
+    wrap(() => updateRequest(req.params.id, { status: req.body?.status as never, note: req.body?.note }))(req, reply),
   );
 
   // ── Brain ──
