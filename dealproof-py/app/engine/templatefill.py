@@ -76,9 +76,9 @@ def _pdf_label(page, widget) -> str:
     return name + " " + " ".join(w for _, _, w in near)
 
 
-def fill_pdf(content: bytes, answered) -> bytes | None:
+def _fill_widgets(doc, answered) -> int:
+    """Fill AcroForm fields (text + checkboxes) by matching their label."""
     import fitz
-    doc = fitz.open(stream=content, filetype="pdf")
     filled = 0
     for page in doc:
         for w in (page.widgets() or []):
@@ -88,14 +88,72 @@ def fill_pdf(content: bytes, answered) -> bytes | None:
             _, val, kind = m
             try:
                 if w.field_type == fitz.PDF_WIDGET_TYPE_CHECKBOX:
-                    yes = bool(re.match(r"\s*(y|yes|true)\b", val, re.I))
-                    w.field_value = bool(yes)
+                    w.field_value = bool(re.match(r"\s*(y|yes|true)\b", val, re.I))
                 else:
                     w.field_value = str(val)
                 w.update()
                 filled += 1
             except Exception:
                 continue
+    return filled
+
+
+def _fill_table_overlay(doc, answered) -> int:
+    """For a flat PDF (no form fields) that is laid out as a No/Question/Answer
+    table: write each answer into the original Answer-column cell, preserving the
+    document's own layout. Skips cells that already hold an answer and packed
+    multi-sub-item rows (checklists)."""
+    import fitz
+    filled = 0
+    for page in doc:
+        try:
+            tables = page.find_tables().tables
+        except Exception:
+            continue
+        for t in tables:
+            qcol, acol = 1, None
+            if t.header and t.header.names:
+                names = [(n or "").strip().lower() for n in t.header.names]
+                if "question" in names:
+                    qcol = names.index("question")
+                if "answer" in names:
+                    acol = names.index("answer")
+            if acol is None:
+                acol = qcol + 1
+            try:
+                extracted = t.extract()
+            except Exception:
+                continue
+            for row, r in zip(t.rows, extracted):
+                if len(r) <= acol:
+                    continue
+                q = (r[qcol] or "").strip()
+                existing = (r[acol] or "").strip()
+                if not q or existing:                       # no question, or already answered
+                    continue
+                if len([x for x in (r[0] or "").split("\n") if x.strip()]) > 1:
+                    continue                                # packed checklist row — skip
+                m = _best(q, answered)
+                cells = row.cells
+                if not m or len(cells) <= acol or not cells[acol]:
+                    continue
+                rect = fitz.Rect(cells[acol])
+                box = fitz.Rect(rect.x0 + 3, rect.y0 + 2, rect.x1 - 3, rect.y1 - 2)
+                # shrink font until the answer fits the original cell
+                for size in (8, 7, 6, 5):
+                    if page.insert_textbox(box, m[1], fontsize=size, fontname="helv",
+                                           color=(0, 0.30, 0.66), align=0) >= 0:
+                        break
+                filled += 1
+    return filled
+
+
+def fill_pdf(content: bytes, answered) -> bytes | None:
+    import fitz
+    doc = fitz.open(stream=content, filetype="pdf")
+    filled = _fill_widgets(doc, answered)        # form fields first
+    if filled == 0:
+        filled = _fill_table_overlay(doc, answered)  # flat PDF → overlay into the table
     if not filled:
         return None
     out = BytesIO()
@@ -194,8 +252,9 @@ def one_original(questionnaire_id: str):
 
 
 def is_fillable(questionnaire_id: str) -> bool:
-    """True only when the original can actually be filled in place: a Word doc,
-    or a PDF that has real AcroForm fields (a flat/scanned PDF cannot)."""
+    """True when the original can be filled in place: a Word doc, a PDF with
+    AcroForm fields, or a flat PDF laid out as a table (answers overlaid into the
+    answer column). A scanned image-only PDF stays non-fillable."""
     orig = one_original(questionnaire_id)
     if not orig or not orig.get("content"):
         return False
@@ -206,7 +265,9 @@ def is_fillable(questionnaire_id: str) -> bool:
         try:
             import fitz
             doc = fitz.open(stream=orig["content"], filetype="pdf")
-            return any(True for pg in doc for _ in (pg.widgets() or []))
+            if any(True for pg in doc for _ in (pg.widgets() or [])):
+                return True
+            return any(pg.find_tables().tables for pg in doc)
         except Exception:
             return False
     return False
