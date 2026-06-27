@@ -267,3 +267,10 @@ def health():
 @app.get("/api/projects/{pid}/analysis/{qid}")
 def api_analysis(pid: str, qid: str):
     return build_analysis(qid)
+
+
+# Lets you start the app with plain `python -m app.main` (or `python app/main.py`).
+# Port via KYC_PORT env var, default 8000.
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="127.0.0.1", port=int(os.environ.get("KYC_PORT", "8000")), reload=True)
