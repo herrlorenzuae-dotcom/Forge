@@ -83,7 +83,9 @@ def rows_questions(qid):
 # ── Landing / projects ──
 @app.get("/", response_class=HTMLResponse)
 def landing(request: Request):
-    return templates.TemplateResponse(request, "landing.html", ctx(request, active="projects", projects=proj.list_projects()))
+    from .engine import connectors
+    return templates.TemplateResponse(request, "landing.html", ctx(request, active="projects",
+        projects=proj.list_projects(), connectors=connectors.status(), model=config.MODEL))
 
 
 @app.post("/projects")
@@ -256,7 +258,10 @@ def brain_page(request: Request):
 # ── JSON API ──
 @app.get("/api/health")
 def health():
-    return {"ok": True, "model": config.MODEL, "anthropicKey": config.HAS_KEY}
+    from .engine import connectors
+    return {"ok": True,
+            "anthropic": {"enabled": config.HAS_KEY, "model": config.MODEL},
+            "connectors": connectors.status()}
 
 
 @app.get("/api/projects/{pid}/analysis/{qid}")
