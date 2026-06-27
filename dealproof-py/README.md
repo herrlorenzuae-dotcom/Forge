@@ -22,7 +22,7 @@ All optional — DealProof runs fully offline with the KYC Brain + mock connecto
 | `ANTHROPIC_API_KEY` | Enables the model to draft cited answers / extract questions for items the Brain and connectors don't cover. |
 | `DEALPROOF_MODEL` | Model id (default `claude-opus-4-8`). |
 | `QUANTIUM_BASE_URL`, `QUANTIUM_API_KEY` | Quantium Technology (quantium.pe) — portfolio-company / fund / entity data. Live when both are set. |
-| `YSOLUTIONS_BASE_URL`, `YSOLUTIONS_API_KEY` | YSolutions — screening (PEP / sanctions / tax residence). Live when both are set. |
+| `YSOLUTIONS_BASE_URL`, `YSOLUTIONS_API_KEY` | YSolutions by YPOG (ysolutions.legal) — beneficial ownership / German Transparenzregister. Live when both are set. |
 | `DEALPROOF_MOCK_CONNECTORS` | `1` (default) falls back to labelled mock data when a connector isn't configured; `0` shows it as unavailable. |
 | `DEALPROOF_CONNECTOR_TIMEOUT` | Connector HTTP timeout in seconds (default `8`). |
 

@@ -24,6 +24,9 @@ RULES = [
     (r"(purpose|zweck).*(relationship|gesch[äa]ftsbeziehung|account|konto)|intended (nature|purpose)", "purpose_of_relationship", "request", "Manual entry"),
     (r"(expected|anticipated).*(volume|turnover|transaction)|transaktionsvolumen", "expected_volume", "request", "Manual entry"),
     (r"(date of birth|geburtsdatum|geburtsort|place of birth|nationalit|staatsangeh[öo]rigkeit)", "personal_details", "request", "Manual entry (UBO details)"),
+    # Beneficial ownership — checked late so PEP, passport/ID and certified-doc
+    # rules (which may also mention a UBO) win first.
+    (r"\b(ubo|ubos|beneficial owners?|beneficial ownership|wirtschaftlich berechtigt|controlling persons?|transparenzregister|transparency register)\b", "beneficial_owner", "request", "YSolutions (Transparenzregister / UBO)"),
 ]
 
 

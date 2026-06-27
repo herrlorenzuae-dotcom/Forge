@@ -5,7 +5,10 @@ Two providers:
                  PE platform: portfolio-company, fund-structure, ownership and
                  entity master data (registration no., registered office,
                  incorporation date, legal form, directors, ...).
-  • YSolutions — screening (PEP / sanctions / tax residence).
+  • YSolutions — YSolutions by YPOG (ysolutions.legal): beneficial ownership /
+                 German Transparenzregister (who the UBOs are, registration
+                 status). PEP/sanctions screening is NOT covered by either
+                 provider, so those questions stay manual.
 
 Each provider runs a LIVE HTTP query when its base URL + API key are configured
 (config.QUANTIUM_ENABLED / YSOLUTIONS_ENABLED); otherwise it returns clearly
@@ -32,7 +35,7 @@ SOURCE = {
     "registration_number": "quantium", "registered_office": "quantium",
     "incorporation_date": "quantium", "legal_form": "quantium", "directors": "quantium",
     "lei": "web", "listing": "web", "industry": "web",
-    "pep": "ysolutions", "tax_residence": "ysolutions",
+    "beneficial_owner": "ysolutions",
 }
 
 # Mock sample answers (clearly fictional) keyed by field_type
@@ -45,8 +48,7 @@ MOCK = {
     "lei": "391200CEDARBIDCO0007 (GLEIF — status: issued)",
     "listing": "Not listed on any stock exchange.",
     "industry": "Real-estate holding / logistics.",
-    "pep": "Screening clear — no beneficial owner identified as a politically exposed person.",
-    "tax_residence": "Luxembourg; CRS/FATCA classification: Passive NFE.",
+    "beneficial_owner": "Dr. Anna Vogt and Maximilian Stein (each indirectly >25%); recorded in the German Transparenzregister.",
 }
 LABEL = {"quantium": "Quantium", "ysolutions": "YSolutions", "web": "Web research", "on_file": "On file"}
 
@@ -108,19 +110,23 @@ def _quantium_live(subj: dict, field_type: str):
     return str(val) if val else None
 
 
-# ── YSolutions (screening) ──
+# ── YSolutions (beneficial ownership / Transparenzregister) ──
 def _ysolutions_live(subj: dict, field_type: str):
-    data = _get(config.YSOLUTIONS_BASE_URL, "/v1/screening",
-                {"name": subj.get("name"), "jurisdiction": subj.get("jurisdiction")},
-                config.YSOLUTIONS_API_KEY)
+    data = _get(config.YSOLUTIONS_BASE_URL, "/v1/beneficial-owners",
+                {"name": subj.get("name"), "jurisdiction": subj.get("jurisdiction"),
+                 "registrationNumber": subj.get("registration_no")}, config.YSOLUTIONS_API_KEY)
     if not isinstance(data, dict):
         return None
-    if field_type == "pep":
-        hits = data.get("pepMatches") or []
-        return ("Screening clear — no PEP match." if not hits
-                else f"{len(hits)} possible PEP match(es) — manual review required.")
-    if field_type == "tax_residence":
-        return data.get("taxResidence")
+    if field_type == "beneficial_owner":
+        owners = data.get("beneficialOwners") or []
+        if not owners:
+            return None
+        parts = []
+        for o in owners:
+            pct = f" ({o['share']}%)" if o.get("share") else ""
+            parts.append(f"{o.get('name', '?')}{pct}")
+        reg = data.get("transparencyRegister", "")
+        return "; ".join(parts) + (f" — {reg}" if reg else "")
     return None
 
 
