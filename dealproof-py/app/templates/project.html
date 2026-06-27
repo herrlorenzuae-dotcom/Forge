@@ -8,6 +8,27 @@
 </div>
 
 <section class="card card-pad">
+  <div class="row" style="justify-content:space-between; align-items:center">
+    <h2 class="card-title">Subject of this KYC</h2>
+    <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('editco').hidden=!document.getElementById('editco').hidden"><span class="icon">edit</span> Edit</button>
+  </div>
+  <div class="row" style="gap:28px; margin-top:10px; flex-wrap:wrap">
+    <div><div class="muted small">Company</div><div style="font-weight:600">{{ project.subject_company or '— not set —' }}</div></div>
+    <div><div class="muted small">Commercial register</div><div style="font-weight:600">{{ project.register_no or '—' }}</div></div>
+    <div><div class="muted small">Portfolio company / companies</div><div style="font-weight:600">{{ project.portfolio_company or '—' }}</div></div>
+  </div>
+  <form id="editco" hidden method="post" action="/projects/{{ project.id }}/edit" style="margin-top:14px; border-top:1px solid var(--line-soft); padding-top:14px">
+    <div class="field-grid">
+      <label class="formfield"><span class="field-label">Project name</span><input type="text" name="name" value="{{ project.name }}"/></label>
+      <label class="formfield"><span class="field-label">Company we are doing KYC for</span><input type="text" name="subject_company" value="{{ project.subject_company }}" placeholder="Legal name, e.g. Helio Thermal Systems GmbH"/></label>
+      <label class="formfield"><span class="field-label">Commercial register (Handelsregister)</span><input type="text" name="register_no" value="{{ project.register_no }}" placeholder="e.g. HRB 123456, Amtsgericht München"/></label>
+      <label class="formfield"><span class="field-label">Portfolio company / companies</span><input type="text" name="portfolio_company" value="{{ project.portfolio_company }}" placeholder="separate several with commas"/></label>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-sm"><span class="icon">save</span> Save</button></div>
+  </form>
+</section>
+
+<section class="card card-pad">
   <h2 class="card-title" style="margin-bottom:12px">Add a questionnaire</h2>
   <form method="post" action="/projects/{{ project.id }}/documents" enctype="multipart/form-data" id="upform">
     <label id="drop" class="dropzone">

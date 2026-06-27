@@ -30,26 +30,44 @@
 
 <section class="card card-pad">
   <h2 class="card-title" style="margin-bottom:12px">New project</h2>
-  <form method="post" action="/projects" class="row">
-    <input type="text" name="name" required placeholder="Project name (e.g. Project Atlas — Bank onboarding)" style="flex:1; min-width:280px"/>
-    <button class="btn"><span class="icon">add</span> Create project</button>
+  <form method="post" action="/projects">
+    <div class="field-grid">
+      <label class="formfield">
+        <span class="field-label">Project name <span style="color:var(--red)">*</span></span>
+        <input type="text" name="name" required placeholder="e.g. Project Atlas — Bank onboarding"/>
+      </label>
+      <label class="formfield">
+        <span class="field-label">Company we are doing KYC for</span>
+        <input type="text" name="subject_company" placeholder="Legal name, e.g. Helio Thermal Systems GmbH"/>
+      </label>
+      <label class="formfield">
+        <span class="field-label">Commercial register (Handelsregister)</span>
+        <input type="text" name="register_no" placeholder="e.g. HRB 123456, Amtsgericht München"/>
+      </label>
+      <label class="formfield">
+        <span class="field-label">Portfolio company / companies</span>
+        <input type="text" name="portfolio_company" placeholder="Affected portfolio company (separate several with commas)"/>
+      </label>
+    </div>
+    <div style="margin-top:14px"><button class="btn"><span class="icon">add</span> Create project</button></div>
   </form>
 </section>
 
 <section class="card">
   <div class="card-head"><h3 class="card-title">Your projects</h3><span class="muted small">{{ projects|length }} total</span></div>
   <table class="tbl">
-    <thead><tr><th>Project</th><th>Status</th><th style="text-align:right">Documents</th><th style="text-align:right">Updated</th></tr></thead>
+    <thead><tr><th>Project</th><th>Company</th><th>Status</th><th style="text-align:right">Documents</th><th style="text-align:right">Updated</th></tr></thead>
     <tbody>
     {% for p in projects %}
       <tr class="clickable" onclick="location.href='/projects/{{ p.id }}'">
         <td style="font-weight:600">{{ p.name }}</td>
+        <td class="small">{{ p.subject_company or '—' }}{% if p.portfolio_company %}<div class="muted" style="font-size:11px">PC: {{ p.portfolio_company }}</div>{% endif %}</td>
         <td><span class="pill {{ 'teal' if p.status=='closed' else 'blue' }}">{{ p.status }}</span></td>
         <td style="text-align:right" class="mono">{{ p.doc_count }}</td>
         <td style="text-align:right" class="muted small">{{ p.updated_at }}</td>
       </tr>
     {% else %}
-      <tr><td colspan="4" class="muted" style="text-align:center; padding:32px">No projects yet — create your first above.</td></tr>
+      <tr><td colspan="5" class="muted" style="text-align:center; padding:32px">No projects yet — create your first above.</td></tr>
     {% endfor %}
     </tbody>
   </table>

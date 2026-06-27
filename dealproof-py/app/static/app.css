@@ -108,6 +108,10 @@ textarea { font-family: var(--mono); font-size: 12px; }
 .field:focus, input:focus, textarea:focus, select:focus { border-color: rgba(0,94,184,.7);
   box-shadow: 0 0 0 4px rgba(0,94,184,.13); }
 select.inline { width: auto; padding: 4px 8px; font-size: 12px; }
+.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+@media (max-width: 640px) { .field-grid { grid-template-columns: 1fr; } }
+.formfield { display: flex; flex-direction: column; gap: 5px; }
+.field-label { font-size: 12px; font-weight: 600; color: var(--fog); }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .grid-form { display: grid; gap: 12px; }
 @media (min-width: 640px) { .grid-form.two { grid-template-columns: 1fr 1fr; } }

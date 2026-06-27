@@ -4,11 +4,30 @@ from ..db import db, gen_id, rows, one
 from .intake import create_questionnaire, parse_document
 
 
-def create_project(name: str) -> str:
+def create_project(name: str, subject_company: str = "", register_no: str = "",
+                   portfolio_company: str = "") -> str:
     pid = gen_id("proj")
     with db() as con:
-        con.execute("INSERT INTO clients (id, name, status) VALUES (?,?, 'open')", (pid, name.strip() or "Untitled project"))
+        con.execute(
+            "INSERT INTO clients (id, name, subject_company, register_no, portfolio_company, status) VALUES (?,?,?,?,?, 'open')",
+            (pid, name.strip() or "Untitled project", subject_company.strip(),
+             register_no.strip(), portfolio_company.strip()))
     return pid
+
+
+def update_project(pid: str, name: str = None, subject_company: str = None,
+                   register_no: str = None, portfolio_company: str = None) -> None:
+    sets, vals = [], []
+    for col, val in (("name", name), ("subject_company", subject_company),
+                     ("register_no", register_no), ("portfolio_company", portfolio_company)):
+        if val is not None:
+            sets.append(f"{col}=?")
+            vals.append(val.strip())
+    if not sets:
+        return
+    vals.append(pid)
+    with db() as con:
+        con.execute(f"UPDATE clients SET {', '.join(sets)}, updated_at=datetime('now') WHERE id=?", vals)
 
 
 def list_projects():

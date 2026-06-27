@@ -89,8 +89,17 @@ def landing(request: Request):
 
 
 @app.post("/projects")
-def create_project(name: str = Form(...)):
-    pid = proj.create_project(name)
+def create_project(name: str = Form(...), subject_company: str = Form(""),
+                   register_no: str = Form(""), portfolio_company: str = Form("")):
+    pid = proj.create_project(name, subject_company, register_no, portfolio_company)
+    return RedirectResponse(f"/projects/{pid}", status_code=303)
+
+
+@app.post("/projects/{pid}/edit")
+def edit_project(pid: str, name: str = Form(""), subject_company: str = Form(""),
+                 register_no: str = Form(""), portfolio_company: str = Form("")):
+    proj.update_project(pid, name=name, subject_company=subject_company,
+                        register_no=register_no, portfolio_company=portfolio_company)
     return RedirectResponse(f"/projects/{pid}", status_code=303)
 
 

@@ -120,8 +120,10 @@ def seed_demo() -> None:
     with db() as con:
         if one(con, "SELECT 1 FROM clients WHERE id=?", (DEMO_ID,)):
             return
-        con.execute("INSERT INTO clients (id, name, status, updated_at) VALUES (?,?, 'open', datetime('now'))",
-                    (DEMO_ID, DEMO_NAME))
+        con.execute("""INSERT INTO clients (id, name, subject_company, register_no, portfolio_company, status, updated_at)
+                       VALUES (?,?,?,?,?, 'open', datetime('now'))""",
+                    (DEMO_ID, DEMO_NAME, "Cedar BidCo S.à r.l.", "RCS Luxembourg B 271 904",
+                     "Helio Thermal Systems GmbH"))
 
     spa.apply_structure(DEMO_ID, spa.parse_structure_spec(SPEC))
 

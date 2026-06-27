@@ -10,6 +10,7 @@ SCHEMA = """
 -- A "project" is one KYC matter (named by the user, persisted, reopenable).
 CREATE TABLE IF NOT EXISTS clients (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, deal_name TEXT DEFAULT '',
+  subject_company TEXT DEFAULT '', register_no TEXT DEFAULT '', portfolio_company TEXT DEFAULT '',
   status TEXT DEFAULT 'open', created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS documents (
@@ -89,7 +90,9 @@ def db():
 # schema self-heals without dropping data. (SQLite ALTER ADD needs a constant
 # default, so updated_at backfills to '' on old rows.)
 MIGRATIONS = {
-    "clients": [("status", "TEXT DEFAULT 'open'"), ("updated_at", "TEXT DEFAULT ''")],
+    "clients": [("status", "TEXT DEFAULT 'open'"), ("updated_at", "TEXT DEFAULT ''"),
+                ("subject_company", "TEXT DEFAULT ''"), ("register_no", "TEXT DEFAULT ''"),
+                ("portfolio_company", "TEXT DEFAULT ''")],
     "documents": [("content", "BLOB")],
     "questions": [("source_answer", "TEXT DEFAULT ''")],
 }
