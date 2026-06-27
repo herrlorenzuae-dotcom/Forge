@@ -1,5 +1,30 @@
-"""Runtime config — all via environment variables, sensible local defaults."""
+"""Runtime config — all via environment variables, sensible local defaults.
+
+Keys can be set permanently in a `.env` file in the project root (gitignored,
+never committed). It is loaded here at import time; real shell environment
+variables always win over the file."""
 import os
+
+
+def _load_dotenv():
+    """Minimal .env loader (no dependency). KEY=value per line; # comments and
+    surrounding quotes are ignored. Does not override already-set env vars."""
+    path = os.path.join(os.path.dirname(__file__), "..", ".env")
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, val = line.split("=", 1)
+                key, val = key.strip(), val.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = val
+    except FileNotFoundError:
+        pass
+
+
+_load_dotenv()
 
 DB_PATH = os.environ.get("DEALPROOF_DB", os.path.join(os.path.dirname(__file__), "..", "dealproof.db"))
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")

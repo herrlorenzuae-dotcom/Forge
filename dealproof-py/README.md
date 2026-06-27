@@ -14,8 +14,14 @@ uvicorn app.main:app --reload --port 8000
 Open http://localhost:8000  (seeds the demo project "Demo — Project Cedar" on
 first run). The landing page shows a **Connections** panel for the status below.
 
-## Configuration (environment variables)
-All optional — DealProof runs fully offline with the KYC Brain + mock connectors.
+## Configuration
+Set keys permanently in a `.env` file in this folder (loaded automatically on
+startup, gitignored, never committed):
+```
+cp .env.example .env        # then edit .env and add your key(s)
+```
+Or export them in your shell — real environment variables override the file.
+All are optional; DealProof runs fully offline with the KYC Brain + mock connectors.
 
 | Variable | Purpose |
 |---|---|
