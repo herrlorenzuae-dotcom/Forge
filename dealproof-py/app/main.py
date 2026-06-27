@@ -282,4 +282,4 @@ def api_analysis(pid: str, qid: str):
 # Port via KYC_PORT env var, default 8000.
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=int(os.environ.get("KYC_PORT", "8000")), reload=True)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=int(os.environ.get("KYC_PORT", "3100")), reload=True)
