@@ -11,6 +11,7 @@ from . import config
 from .db import init_db, db, rows, one
 from .engine import projects as proj
 from .engine import spa as spa_engine
+from .engine import transparency
 from .engine import export as exporter
 from .engine.structure import get_structure
 from .engine.orgchart import build_orgchart, render_svg, default_subject
@@ -227,6 +228,18 @@ async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str 
         spa_engine.apply_structure(pid, spec)
         proj.touch(pid)
     return RedirectResponse(f"/projects/{pid}/structure?view={'full' if replace=='spec' else 'excerpt'}", status_code=303)
+
+
+@app.post("/projects/{pid}/ubos")
+async def import_ubos(pid: str, file: UploadFile = File(None), pasted: str = Form("")):
+    text = pasted
+    if file is not None and file.filename:
+        data = await file.read()
+        text = extract_text(file.filename, data)
+    if text.strip():
+        transparency.import_extract(pid, text)
+        proj.touch(pid)
+    return RedirectResponse(f"/projects/{pid}/structure?view=excerpt", status_code=303)
 
 
 # ── Structure / chart export ──

@@ -29,6 +29,23 @@ UBO: Dr. Katharina Brandt"></textarea>
   </form>
 </section>
 
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:6px">Add UBOs from a Transparenzregister extract</h2>
+  <p class="muted small" style="margin:0 0 12px">Upload (or paste) a Transparenzregister-Auszug. The beneficial owners are added to the chart above the subject company and folded into the KYC Brain, so the connectors only need to verify them. {% if not has_key %}No model key set — for a free-text extract use the simple format below.{% endif %}</p>
+  <form method="post" action="/projects/{{ project.id }}/ubos" enctype="multipart/form-data">
+    <label class="dropzone" id="dropubo" style="padding:18px">
+      <span class="icon" style="font-size:24px; color:var(--blue)">groups</span>
+      <span><b>Drop the extract</b> (PDF/TXT) or click to choose</span>
+      <input type="file" name="file" id="fileubo" accept=".pdf,.txt,.md" style="display:none"/>
+      <span id="fnameubo" class="muted small"></span>
+    </label>
+    <div style="margin:12px 0 6px" class="muted small">…or paste the UBOs (one per line):</div>
+    <textarea name="pasted" rows="4" placeholder="UBO: Dr. Anna Vogt | 12.03.1975 | München, DE | 25-50% Kapital
+UBO: Maximilian Stein | 1979 | Zürich, CH | control (gesetzlicher Vertreter)"></textarea>
+    <div style="margin-top:12px"><button class="btn"><span class="icon">groups</span> Import UBOs</button></div>
+  </form>
+</section>
+
 <section class="card">
   <div class="card-head">
     <h2 class="card-title">Organisation chart</h2>
@@ -104,11 +121,16 @@ UBO: Dr. Katharina Brandt"></textarea>
 </div>
 
 <script>
-  const drop=document.getElementById('drop'),file=document.getElementById('file'),fname=document.getElementById('fname');
-  if(file){file.addEventListener('change',()=>{if(file.files[0])fname.textContent=file.files[0].name;});
-  ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag');}));
-  ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag');}));
-  drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files[0]){file.files=ev.dataTransfer.files;fname.textContent=file.files[0].name;}});}
+  function wireDrop(dropId, fileId, nameId){
+    const drop=document.getElementById(dropId),file=document.getElementById(fileId),fname=document.getElementById(nameId);
+    if(!file)return;
+    file.addEventListener('change',()=>{if(file.files[0])fname.textContent=file.files[0].name;});
+    ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag');}));
+    ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag');}));
+    drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files[0]){file.files=ev.dataTransfer.files;fname.textContent=file.files[0].name;}});
+  }
+  wireDrop('drop','file','fname');
+  wireDrop('dropubo','fileubo','fnameubo');
 
   // ── Chart zoom + drag-to-pan ──
   const svg=document.getElementById('orgsvg'),wrap=document.getElementById('chartwrap'),zl=document.getElementById('zlabel');
