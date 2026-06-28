@@ -19,7 +19,7 @@ from .engine.analysis import build_analysis
 from .engine import requests as reqs
 from .engine import mapping
 from .engine import templatefill
-from .engine.brain import brain_stats, get_brain_options
+from .engine.brain import brain_stats, get_brain_options, learn_from_document
 
 BASE = os.path.dirname(__file__)
 app = FastAPI(title="DealProof")
@@ -260,8 +260,18 @@ def export_structure_xlsx(pid: str):
 
 # ── Brain (cross-project memory) ──
 @app.get("/brain", response_class=HTMLResponse)
-def brain_page(request: Request):
-    return templates.TemplateResponse(request, "brain.html", ctx(request, active="brain", entries=brain_stats()))
+def brain_page(request: Request, learned: int = Query(None), total: int = Query(None)):
+    return templates.TemplateResponse(request, "brain.html", ctx(request, active="brain",
+        entries=brain_stats(), learned=learned, total=total))
+
+
+@app.post("/brain/learn")
+async def brain_learn(file: UploadFile = File(None)):
+    if file is not None and file.filename:
+        data = await file.read()
+        res = learn_from_document(file.filename, data, extract_text(file.filename, data))
+        return RedirectResponse(f"/brain?learned={res['learned']}&total={res['total']}", status_code=303)
+    return RedirectResponse("/brain", status_code=303)
 
 
 # ── JSON API ──

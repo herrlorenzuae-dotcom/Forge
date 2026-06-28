@@ -47,6 +47,32 @@ def record_finalized_answer(prompt: str, value: str) -> None:
                         (gen_id("lib"), key, prompt, json.dumps([{"value": value, "count": 1}])))
 
 
+# answer-cell values that aren't real answers (don't learn these)
+NON_ANSWERS = {"", "n/a", "na", "n.a.", "none", "please select", "-", "–", "tbd", "yes/no", "y/n"}
+
+
+def learn_from_document(filename: str, content: bytes, raw_text: str = "") -> dict:
+    """Seed the Brain from a PAST, already-answered questionnaire: extract each
+    question + its given answer and fold it in. Existing cases entered this way
+    become the basis the connectors (Quantium / YSolutions) only verify.
+    Returns {total, learned, skipped}."""
+    from .intake import parse_document, docx_qa_pairs
+    name = (filename or "").lower()
+    if name.endswith(".docx") and content:
+        pairs = docx_qa_pairs(content)
+    else:  # PDF (table/markdown captures the answer cell) and anything else
+        pairs = [(q["prompt"], q.get("answer", "")) for q in parse_document(raw_text, filename, content)]
+    learned = skipped = 0
+    for prompt, ans in pairs:
+        ans = (ans or "").strip()
+        if prompt and ans and ans.lower() not in NON_ANSWERS:
+            record_finalized_answer(prompt, ans)
+            learned += 1
+        else:
+            skipped += 1
+    return {"total": len(pairs), "learned": learned, "skipped": skipped}
+
+
 def brain_stats():
     with db() as con:
         lib = [dict(r) for r in con.execute("SELECT * FROM answer_library ORDER BY total DESC").fetchall()]

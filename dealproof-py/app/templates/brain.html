@@ -7,6 +7,26 @@
   <p class="lead">Every finalized answer folds into a library keyed by the normalized question. The more questionnaires answered, the more the next one answers itself.</p>
 </div>
 
+{% if learned is not none %}
+<div class="card card-pad" style="border-left:4px solid var(--teal); background:rgba(0,178,169,.07)">
+  <b>Learned {{ learned }} answer{{ '' if learned==1 else 's' }}</b> from {{ total }} parsed question{{ '' if total==1 else 's' }}. They are now available to future questionnaires.
+</div>
+{% endif %}
+
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:6px">Teach the Brain from past questionnaires</h2>
+  <p class="muted small" style="margin:0 0 12px">Upload an earlier, already-answered questionnaire (PDF or Word) — the answers your side gave before. DealProof reads each answer and folds it in, so recurring questions (especially the upper structure and UBOs / Transparenzregister) answer themselves next time, and Quantium / YSolutions become a verification step.</p>
+  <form method="post" action="/brain/learn" enctype="multipart/form-data" id="learnform">
+    <label class="dropzone" id="drop">
+      <span class="icon" style="font-size:26px; color:var(--blue)">upload_file</span>
+      <span><b>Drop a completed questionnaire</b> (PDF/Word) or click to choose</span>
+      <span id="fname" class="muted small"></span>
+      <input type="file" name="file" id="file" accept=".pdf,.docx" style="display:none"/>
+    </label>
+    <div style="margin-top:12px"><button class="btn"><span class="icon">psychology</span> Learn from this file</button></div>
+  </form>
+</section>
+
 <section class="card">
   <table class="tbl">
     <thead><tr><th style="width:55%">Question</th><th>Canonical answer</th><th style="text-align:right">Recur</th><th style="text-align:right">Conv.</th></tr></thead>
@@ -18,8 +38,16 @@
         <td style="text-align:right" class="mono">{{ e.total }}×</td>
         <td style="text-align:right"><span class="mono" style="color: {{ '#00897e' if e.convergence>=0.8 else '#005eb8' }}">{{ (e.convergence*100)|round|int }}%</span></td>
       </tr>
-    {% else %}<tr><td colspan="4" class="muted" style="text-align:center; padding:32px">The Brain is empty — finalize a questionnaire to fold answers in.</td></tr>{% endfor %}
+    {% else %}<tr><td colspan="4" class="muted" style="text-align:center; padding:32px">The Brain is empty — upload a past questionnaire above, or finalize one, to fold answers in.</td></tr>{% endfor %}
     </tbody>
   </table>
 </section>
+
+<script>
+  const drop=document.getElementById('drop'),file=document.getElementById('file'),fname=document.getElementById('fname');
+  if(file){file.addEventListener('change',()=>{if(file.files[0])fname.textContent=file.files[0].name;});
+  ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files[0]){file.files=ev.dataTransfer.files;fname.textContent=file.files[0].name;}});}
+</script>
 {% endblock %}

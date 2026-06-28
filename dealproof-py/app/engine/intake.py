@@ -337,6 +337,32 @@ def parse_questions_table(data: bytes):
     return out or None
 
 
+def docx_qa_pairs(content: bytes):
+    """Extract (question, answer) pairs from an already-answered Word
+    questionnaire — Question/Answer tables and question→answer paragraph pairs —
+    for feeding the KYC Brain. Returns a list of (prompt, answer)."""
+    from io import BytesIO
+    from docx import Document
+    try:
+        doc = Document(BytesIO(content))
+    except Exception:
+        return []
+    pairs = []
+    for t in doc.tables:
+        for row in t.rows:
+            cells = [c.text.strip() for c in row.cells]
+            if len(cells) >= 2 and cells[0] and cells[0].lower() not in ("question", "no", "no #"):
+                ans = next((c for c in cells[1:] if c), "")
+                pairs.append((cells[0], ans))
+    paras = [p.text.strip() for p in doc.paragraphs]
+    for i, t in enumerate(paras):
+        if t and (t.endswith("?") or _looks_like_question(t)) and i + 1 < len(paras):
+            nxt = paras[i + 1]
+            if nxt and not nxt.endswith("?"):
+                pairs.append((t, nxt))
+    return pairs
+
+
 def parse_document(raw_text: str, filename: str = "", content: bytes = b""):
     """Pick the best extractor: table structure for PDFs, then model, then the
     text reflow heuristic."""
