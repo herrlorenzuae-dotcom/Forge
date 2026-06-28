@@ -33,9 +33,8 @@ h1, h2, h3 { font-family: var(--serif); color: var(--navy); margin: 0; font-weig
   backdrop-filter: blur(18px) saturate(1.4); border-bottom: 1px solid var(--line-soft);
   box-shadow: 0 4px 20px rgba(27,26,24,.06); }
 .header-row { display: flex; align-items: center; gap: 14px; height: 64px; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand img { height: 24px; }
-.brand .sep { width: 1px; height: 20px; background: rgba(0,0,0,.15); }
+.brand { display: flex; align-items: center; gap: 9px; }
+.brand .brandmark { display: block; border-radius: 7px; }
 .brand .name { font-family: var(--serif); font-weight: 700; font-size: 20px; letter-spacing: -.01em; color: var(--navy); }
 .client { color: var(--fog); font-size: 14px; }
 .nav { margin-left: auto; display: flex; gap: 2px; background: var(--surface-low);

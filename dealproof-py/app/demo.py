@@ -8,7 +8,7 @@ from .engine import spa, projects, brain
 DEMO_ID = "proj_demo"
 DEMO_NAME = "Demo — Project Cedar (acquisition of Helio Thermal Systems)"
 
-# A realistic, FICTIONAL PE structure modelled on the Armira shape: a GmbH &
+# A realistic, FICTIONAL PE structure: a GmbH &
 # Co. KG cascade where each KG is controlled by its general partner (Komplementär)
 # with no equity, running from the portfolio company up through the fund and
 # feeder vehicles to the individual partners. Names/figures are invented.

@@ -8,7 +8,7 @@
 
         Brandt Familienholding GmbH -> Halcyon Beteiligungs GmbH : 75%
         Lars Andersson -> Halcyon Beteiligungs GmbH : 25%
-        Armira I GP GmbH -> Halcyon Beteiligungs GmbH : control (General partner / Komplementär)
+        Halcyon GP GmbH -> Halcyon Beteiligungs GmbH : control (General partner / Komplementär)
         TARGET: Meridian Logistics Park S.A.
         UBO: Dr. Katharina Brandt
 
