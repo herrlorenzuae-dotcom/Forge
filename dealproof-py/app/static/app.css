@@ -80,6 +80,9 @@ main.wrap { padding-top: 32px; padding-bottom: 24px; }
   border-radius: 8px; padding: 8px 14px; font: 600 13px var(--sans); }
 .btn-ghost:hover { border-color: rgba(0,0,0,.22); }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
+.iconbtn { cursor: pointer; background: transparent; border: 0; color: var(--fog);
+  border-radius: 7px; padding: 5px 7px; line-height: 0; }
+.iconbtn:hover { background: rgba(214,37,24,.10); color: var(--red); }
 
 /* pills / chips */
 .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px;

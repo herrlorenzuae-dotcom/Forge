@@ -48,6 +48,20 @@ def touch(pid: str):
         con.execute("UPDATE clients SET updated_at=datetime('now') WHERE id=?", (pid,))
 
 
+def delete_project(pid: str) -> None:
+    """Delete a project and everything attached to it. The cross-project KYC
+    Brain (answer_library) is shared and deliberately left untouched."""
+    with db() as con:
+        con.execute("DELETE FROM answers WHERE question_id IN (SELECT q.id FROM questions q "
+                    "JOIN questionnaires qn ON qn.id=q.questionnaire_id WHERE qn.client_id=?)", (pid,))
+        con.execute("DELETE FROM questions WHERE questionnaire_id IN (SELECT id FROM questionnaires WHERE client_id=?)", (pid,))
+        con.execute("DELETE FROM entity_attributes WHERE entity_id IN (SELECT id FROM entities WHERE client_id=?)", (pid,))
+        for t in ("questionnaires", "documents", "info_requests", "ownership_edges", "ubos", "entities"):
+            col = "project_id" if t == "documents" else "client_id"
+            con.execute(f"DELETE FROM {t} WHERE {col}=?", (pid,))
+        con.execute("DELETE FROM clients WHERE id=?", (pid,))
+
+
 def list_documents(pid: str):
     with db() as con:
         return rows(con, "SELECT * FROM documents WHERE project_id=? ORDER BY uploaded_at DESC", (pid,))

@@ -10,7 +10,13 @@
 <section class="card card-pad">
   <div class="row" style="justify-content:space-between; align-items:center">
     <h2 class="card-title">Subject of this KYC</h2>
-    <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('editco').hidden=!document.getElementById('editco').hidden"><span class="icon">edit</span> Edit</button>
+    <div class="row" style="gap:6px">
+      <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('editco').hidden=!document.getElementById('editco').hidden"><span class="icon">edit</span> Edit</button>
+      <form method="post" action="/projects/{{ project.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Delete this project and all its documents, answers and structure? This cannot be undone.')">
+        <button class="btn-ghost btn-sm" style="color:var(--red)"><span class="icon">delete</span> Delete project</button>
+      </form>
+    </div>
   </div>
   <div class="row" style="gap:28px; margin-top:10px; flex-wrap:wrap">
     <div><div class="muted small">Company</div><div style="font-weight:600">{{ project.subject_company or '— not set —' }}</div></div>

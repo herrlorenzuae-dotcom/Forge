@@ -104,6 +104,12 @@ def edit_project(pid: str, name: str = Form(""), subject_company: str = Form("")
     return RedirectResponse(f"/projects/{pid}", status_code=303)
 
 
+@app.post("/projects/{pid}/delete")
+def delete_project(pid: str):
+    proj.delete_project(pid)
+    return RedirectResponse("/", status_code=303)
+
+
 @app.get("/projects/{pid}", response_class=HTMLResponse)
 def project_page(request: Request, pid: str):
     project = proj.get_project(pid)

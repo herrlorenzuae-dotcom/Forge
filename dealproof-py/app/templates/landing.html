@@ -56,7 +56,7 @@
 <section class="card">
   <div class="card-head"><h3 class="card-title">Your projects</h3><span class="muted small">{{ projects|length }} total</span></div>
   <table class="tbl">
-    <thead><tr><th>Project</th><th>Company</th><th>Status</th><th style="text-align:right">Documents</th><th style="text-align:right">Updated</th></tr></thead>
+    <thead><tr><th>Project</th><th>Company</th><th>Status</th><th style="text-align:right">Documents</th><th style="text-align:right">Updated</th><th></th></tr></thead>
     <tbody>
     {% for p in projects %}
       <tr class="clickable" onclick="location.href='/projects/{{ p.id }}'">
@@ -65,9 +65,16 @@
         <td><span class="pill {{ 'teal' if p.status=='closed' else 'blue' }}">{{ p.status }}</span></td>
         <td style="text-align:right" class="mono">{{ p.doc_count }}</td>
         <td style="text-align:right" class="muted small">{{ p.updated_at }}</td>
+        <td style="text-align:right">
+          <form method="post" action="/projects/{{ p.id }}/delete" style="display:inline"
+                onclick="event.stopPropagation()"
+                onsubmit="return confirm('Delete “{{ p.name|replace('\'','') }}” and all its documents, answers and structure? This cannot be undone.')">
+            <button class="iconbtn" title="Delete project"><span class="icon">delete</span></button>
+          </form>
+        </td>
       </tr>
     {% else %}
-      <tr><td colspan="5" class="muted" style="text-align:center; padding:32px">No projects yet — create your first above.</td></tr>
+      <tr><td colspan="6" class="muted" style="text-align:center; padding:32px">No projects yet — create your first above.</td></tr>
     {% endfor %}
     </tbody>
   </table>
