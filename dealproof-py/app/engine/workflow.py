@@ -16,7 +16,7 @@ from ..db import db, rows, one
 
 
 def _latest_questionnaire(con, project_id):
-    return one(con, "SELECT id FROM questionnaires WHERE client_id=? ORDER BY created_at DESC LIMIT 1", (project_id,))
+    return one(con, "SELECT id, reviewed_by FROM questionnaires WHERE client_id=? ORDER BY created_at DESC LIMIT 1", (project_id,))
 
 
 def steps(project_id: str, active: str = "") -> list:
@@ -36,22 +36,28 @@ def steps(project_id: str, active: str = "") -> list:
 
     company = bool((proj.get("subject_company") or "").strip())
     base = f"/projects/{project_id}"
+
+    def n(count, word):
+        return f"{count} {word}{'' if count == 1 else 's'}"
+
     out = [
         {"key": "project", "label": "Project", "href": base,
          "done": company, "meta": (proj.get("subject_company") or "set the company")[:28]},
         {"key": "questionnaire", "label": "Questionnaire", "href": base,
-         "done": bool(qid), "meta": f"{q_total} questions" if qid else "upload the request"},
+         "done": bool(qid), "meta": n(q_total, "question") if qid else "upload the request"},
         {"key": "data", "label": "Data", "href": f"{base}/profile",
-         "done": attrs >= 5, "meta": f"{attrs} fields on file" if attrs else "fill or pull"},
+         "done": attrs >= 5, "meta": n(attrs, "field") + " on file" if attrs else "fill or pull"},
         {"key": "answers", "label": "Answers", "href": f"{base}/analysis/{qid}" if qid else base,
          "done": bool(qid) and q_total > 0 and (q_answered + q_flagged) >= q_total,
          "meta": f"{q_answered}/{q_total} answered" if qid else "after upload"},
         {"key": "structure", "label": "Structure", "href": f"{base}/structure",
-         "done": ents > 1, "meta": f"{ents} entities" if ents else "import or build"},
+         "done": ents > 1, "meta": n(ents, "entity").replace("entitys", "entities") if ents else "import or build"},
     ]
+    reviewed = (qn or {}).get("reviewed_by", "") if qn else ""
     ready = out[3]["done"] and out[4]["done"]
     out.append({"key": "deliver", "label": "Deliver", "href": f"{base}/deliver",
-                "done": False, "meta": "filled doc + chart" if ready else "final step"})
+                "done": bool(reviewed),
+                "meta": f"reviewed by {reviewed}"[:26] if reviewed else ("ready to deliver" if ready else "final step")})
     # current = the active page if given, else the first not-done step
     cur = active if active in {s["key"] for s in out} else next((s["key"] for s in out if not s["done"]), "deliver")
     for s in out:

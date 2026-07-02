@@ -78,7 +78,18 @@ def _completed(questionnaire_id: str) -> dict:
                       "answer": val, "source": SOURCE_LABEL.get(a["answered_by"], "") if a and val else "",
                       "status": (a["status"] if a else "") or ""})
     return {"title": (qn["title"] if qn else "Questionnaire"), "items": items,
-            "answered": answered, "total": len(items)}
+            "answered": answered, "total": len(items),
+            "reviewed_by": (qn["reviewed_by"] if qn else "") or "",
+            "reviewed_at": (qn["reviewed_at"] if qn else "") or ""}
+
+
+def _status_line(d: dict) -> str:
+    line = f"Completed questionnaire — {d['answered']} of {d['total']} questions answered."
+    if d["reviewed_by"]:
+        line += f" Reviewed by {d['reviewed_by']} on {d['reviewed_at']}."
+    else:
+        line += " Not yet reviewed."
+    return line
 
 
 def questionnaire_docx(questionnaire_id: str) -> bytes:
@@ -87,7 +98,7 @@ def questionnaire_docx(questionnaire_id: str) -> bytes:
     d = _completed(questionnaire_id)
     doc = Document()
     doc.add_heading(d["title"], level=0)
-    p = doc.add_paragraph(f"Completed questionnaire — {d['answered']} of {d['total']} questions answered.")
+    p = doc.add_paragraph(_status_line(d))
     p.runs[0].italic = True
     cur = None
     for it in d["items"]:
@@ -120,8 +131,9 @@ def questionnaire_xlsx(questionnaire_id: str) -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.title = "Questionnaire"
+    ws.append([_status_line(d), "", "", "", ""])
     ws.append(["Section", "Question", "Answer", "Source", "Status"])
-    for c in ws[1]:
+    for c in ws[2]:
         c.font = Font(bold=True)
     for it in d["items"]:
         ws.append([it["section"], it["prompt"], it["answer"], it["source"], it["status"]])
@@ -166,8 +178,7 @@ def questionnaire_pdf(questionnaire_id: str) -> bytes:
         y += gap
 
     line(d["title"], size=18, bold=True, gap=2)
-    line(f"Completed questionnaire — {d['answered']} of {d['total']} questions answered.",
-         size=9, color=(0.43, 0.42, 0.39), gap=10)
+    line(_status_line(d), size=9, color=(0.43, 0.42, 0.39), gap=10)
     cur = None
     for it in d["items"]:
         if it["section"] != cur:

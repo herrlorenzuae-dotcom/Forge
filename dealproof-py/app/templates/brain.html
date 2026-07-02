@@ -28,17 +28,33 @@
 </section>
 
 <section class="card">
+  <div class="card-head"><h3 class="card-title">Learned answers</h3>
+    <span class="muted small">{{ entries|length }} entries · click a row to correct or forget it</span></div>
   <table class="tbl">
-    <thead><tr><th style="width:55%">Question</th><th>Canonical answer</th><th style="text-align:right">Recur</th><th style="text-align:right">Conv.</th></tr></thead>
+    <thead><tr><th style="width:48%">Question</th><th>Canonical answer</th><th style="text-align:right">Recur</th><th style="text-align:right">Conv.</th><th></th></tr></thead>
     <tbody>
     {% for e in entries %}
-      <tr>
+      <tr class="clickable" onclick="const r=document.getElementById('edit-{{ e.id }}'); r.hidden=!r.hidden">
         <td style="font-weight:600">{{ e.prompt }}</td>
         <td class="muted">{{ e.answer }}</td>
         <td style="text-align:right" class="mono">{{ e.total }}×</td>
         <td style="text-align:right"><span class="mono" style="color: {{ '#00897e' if e.convergence>=0.8 else '#005eb8' }}">{{ (e.convergence*100)|round|int }}%</span></td>
+        <td style="text-align:right">
+          <form method="post" action="/brain/{{ e.id }}/delete" style="display:inline" onclick="event.stopPropagation()"
+                onsubmit="return confirm('Forget this learned answer? Future questionnaires will no longer be pre-filled with it.')">
+            <button class="iconbtn" title="Forget this entry"><span class="icon">delete</span></button>
+          </form>
+        </td>
       </tr>
-    {% else %}<tr><td colspan="4" class="muted" style="text-align:center; padding:32px">The Brain is empty — upload a past questionnaire above, or finalize one, to fold answers in.</td></tr>{% endfor %}
+      <tr id="edit-{{ e.id }}" hidden>
+        <td colspan="5" style="background:#fcfdfe; padding:12px 20px">
+          <form method="post" action="/brain/{{ e.id }}/update" class="row" style="align-items:flex-start" onclick="event.stopPropagation()">
+            <textarea name="value" rows="2" style="flex:1; font-family:var(--sans); font-size:13px">{{ e.answer }}</textarea>
+            <button class="btn-ghost btn-sm" style="margin-top:2px" title="This becomes THE answer; other learned variants are discarded"><span class="icon">save</span> Correct answer</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="5" class="muted" style="text-align:center; padding:32px">The Brain is empty — upload a past questionnaire above, or finalize one, to fold answers in.</td></tr>{% endfor %}
     </tbody>
   </table>
 </section>

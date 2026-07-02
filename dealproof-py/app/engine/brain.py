@@ -81,6 +81,27 @@ def brain_stats():
         variants = sorted(json.loads(r["variants_json"] or "[]"), key=lambda v: -v["count"])
         total = r["total"] or 1
         top = variants[0] if variants else {"value": "", "count": 0}
-        entries.append({"prompt": r["sample_prompt"], "total": r["total"], "optionality": len(variants),
-                        "convergence": top["count"] / total, "answer": top["value"]})
+        entries.append({"id": r["id"], "prompt": r["sample_prompt"], "total": r["total"],
+                        "optionality": len(variants), "convergence": top["count"] / total,
+                        "answer": top["value"]})
     return entries
+
+
+def update_entry(entry_id: str, value: str) -> None:
+    """Correct a learned answer: the given value becomes THE canonical answer
+    (all previous variants are replaced, convergence resets to 100%)."""
+    value = (value or "").strip()
+    if not value:
+        return
+    with db() as con:
+        row = one(con, "SELECT total FROM answer_library WHERE id=?", (entry_id,))
+        if row:
+            total = max(row["total"] or 1, 1)
+            con.execute("UPDATE answer_library SET variants_json=?, updated_at=datetime('now') WHERE id=?",
+                        (json.dumps([{"value": value, "count": total}]), entry_id))
+
+
+def delete_entry(entry_id: str) -> None:
+    """Forget a learned question/answer entirely."""
+    with db() as con:
+        con.execute("DELETE FROM answer_library WHERE id=?", (entry_id,))

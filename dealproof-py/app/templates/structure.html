@@ -8,7 +8,14 @@
 </div>
 
 <section class="card card-pad">
-  <h2 class="card-title" style="margin-bottom:6px">Add structure from an SPA</h2>
+  <h2 class="card-title" style="margin-bottom:10px">Add or extend the structure</h2>
+  <div class="row tabbar" style="gap:6px; margin-bottom:14px">
+    <button type="button" class="btn-ghost btn-sm tab-btn active" data-tab="tab-spa" onclick="showTab(this)"><span class="icon">description</span> From an SPA</button>
+    {% if other_projects %}<button type="button" class="btn-ghost btn-sm tab-btn" data-tab="tab-copy" onclick="showTab(this)"><span class="icon">content_copy</span> From another project</button>{% endif %}
+    <button type="button" class="btn-ghost btn-sm tab-btn" data-tab="tab-ubo" onclick="showTab(this)"><span class="icon">groups</span> UBOs from Transparenzregister</button>
+  </div>
+
+  <div id="tab-spa" class="tabpanel">
   <p class="muted small" style="margin:0 0 12px">{% if has_key %}Upload the SPA — the model extracts entities, percentages and control.{% else %}No model key set, so paste the structure in the simple format below (the model emits the same when a key is configured).{% endif %}</p>
   <form method="post" action="/projects/{{ project.id }}/structure" enctype="multipart/form-data">
     <label class="dropzone" id="drop" style="padding:18px">
@@ -44,23 +51,21 @@ UBO: Dr. Katharina Brandt"></textarea>
     {% endif %}
     <div style="margin-top:12px"><button class="btn"><span class="icon">account_tree</span> Build structure</button></div>
   </form>
-</section>
+  </div>
 
-{% if other_projects %}
-<section class="card card-pad">
-  <h2 class="card-title" style="margin-bottom:6px">Start from an existing chart</h2>
-  <p class="muted small" style="margin:0 0 12px">Take over the structure of another project (e.g. the standing fund structure), then merge the new company underneath via the SPA card above.{% if chart.nodes %} <b>Replaces</b> the current chart.{% endif %}</p>
+  {% if other_projects %}
+  <div id="tab-copy" class="tabpanel" hidden>
+  <p class="muted small" style="margin:0 0 12px">Take over the structure of another project (e.g. the standing fund structure), then merge the new company underneath via the SPA tab.{% if chart.nodes %} <b>Replaces</b> the current chart.{% endif %}</p>
   <form method="post" action="/projects/{{ project.id }}/structure/copy" class="row">
     <select name="source_project" class="inline" style="font-size:13px; min-width:280px" required>
       {% for p in other_projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
     </select>
     <button class="btn-ghost"><span class="icon">content_copy</span> Copy structure into this project</button>
   </form>
-</section>
-{% endif %}
+  </div>
+  {% endif %}
 
-<section class="card card-pad">
-  <h2 class="card-title" style="margin-bottom:6px">Add UBOs from a Transparenzregister extract</h2>
+  <div id="tab-ubo" class="tabpanel" hidden>
   <p class="muted small" style="margin:0 0 12px">Upload (or paste) a Transparenzregister-Auszug. The beneficial owners are added to the chart above the subject company and folded into the KYC Brain, so the connectors only need to verify them. {% if not has_key %}No model key set — for a free-text extract use the simple format below.{% endif %}</p>
   <form method="post" action="/projects/{{ project.id }}/ubos" enctype="multipart/form-data">
     <label class="dropzone" id="dropubo" style="padding:18px">
@@ -74,6 +79,7 @@ UBO: Dr. Katharina Brandt"></textarea>
 UBO: Maximilian Stein | 1979 | Zürich, CH | control (gesetzlicher Vertreter)"></textarea>
     <div style="margin-top:12px"><button class="btn"><span class="icon">groups</span> Import UBOs</button></div>
   </form>
+  </div>
 </section>
 
 <section class="card">
@@ -161,6 +167,13 @@ UBO: Maximilian Stein | 1979 | Zürich, CH | control (gesetzlicher Vertreter)"><
   }
   wireDrop('drop','file','fname');
   wireDrop('dropubo','fileubo','fnameubo');
+
+  function showTab(btn){
+    document.querySelectorAll('.tabpanel').forEach(p=>p.hidden=true);
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).hidden=false;
+    btn.classList.add('active');
+  }
 
   // ── Chart zoom + drag-to-pan ──
   const svg=document.getElementById('orgsvg'),wrap=document.getElementById('chartwrap'),zl=document.getElementById('zlabel');

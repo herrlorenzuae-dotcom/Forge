@@ -53,3 +53,7 @@ YSOLUTIONS_ENABLED = bool(YSOLUTIONS_BASE_URL and YSOLUTIONS_API_KEY)
 # the demo works; set to 0 to surface unconfigured connectors as "unavailable").
 MOCK_CONNECTORS = os.environ.get("DEALPROOF_MOCK_CONNECTORS", "1") == "1"
 CONNECTOR_TIMEOUT = float(os.environ.get("DEALPROOF_CONNECTOR_TIMEOUT", "8"))
+
+# Optional access protection: set DEALPROOF_PASSWORD to require a login.
+# Unset (default) = open, for local single-user use.
+PASSWORD = os.environ.get("DEALPROOF_PASSWORD", "")

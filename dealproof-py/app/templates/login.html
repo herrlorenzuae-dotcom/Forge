@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DealProof — Sign in</title>
+<link rel="stylesheet" href="/static/app.css"/>
+</head>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh">
+<div class="card card-pad" style="width:360px">
+  <div class="brand" style="margin-bottom:18px">
+    <span class="org">YSolutions</span>
+    <span class="sep"></span>
+    <span class="name">DealProof</span>
+  </div>
+  <form method="post" action="/login">
+    <label class="formfield">
+      <span class="field-label">Password</span>
+      <input type="password" name="password" autofocus/>
+    </label>
+    {% if error %}<p class="small" style="color:var(--red); margin:8px 0 0">{{ error }}</p>{% endif %}
+    <div style="margin-top:14px"><button class="btn" style="width:100%">Sign in</button></div>
+  </form>
+</div>
+</body>
+</html>

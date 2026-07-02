@@ -76,6 +76,10 @@ def answer_all(questionnaire_id: str) -> int:
         answer_question(qid)
     with db() as con:
         con.execute("UPDATE questionnaires SET status='mapped' WHERE id=?", (questionnaire_id,))
+    # whatever could not be answered is manual by definition — flag it right away
+    # so the questionnaire is fully triaged after one click
+    from .requests import generate_requests
+    generate_requests(questionnaire_id)
     return len(qids)
 
 

@@ -22,12 +22,42 @@ from .engine.analysis import build_analysis
 from .engine import requests as reqs
 from .engine import mapping
 from .engine import templatefill
-from .engine.brain import brain_stats, get_brain_options, learn_from_document
+from .engine.brain import brain_stats, get_brain_options, learn_from_document, update_entry, delete_entry
 
 BASE = os.path.dirname(__file__)
 app = FastAPI(title="DealProof")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE, "templates"))
+
+
+# ── Optional access protection (set DEALPROOF_PASSWORD to enable) ──
+def _auth_token() -> str:
+    import hashlib
+    return hashlib.sha256(("dealproof:" + config.PASSWORD).encode()).hexdigest()
+
+
+@app.middleware("http")
+async def _require_login(request: Request, call_next):
+    if config.PASSWORD:
+        path = request.url.path
+        open_paths = path.startswith("/static") or path in ("/login", "/api/health")
+        if not open_paths and request.cookies.get("dp_auth") != _auth_token():
+            return RedirectResponse("/login", status_code=303)
+    return await call_next(request)
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse(request, "login.html", {"request": request, "error": ""})
+
+
+@app.post("/login")
+async def do_login(request: Request, password: str = Form("")):
+    if config.PASSWORD and password == config.PASSWORD:
+        resp = RedirectResponse("/", status_code=303)
+        resp.set_cookie("dp_auth", _auth_token(), httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30)
+        return resp
+    return templates.TemplateResponse(request, "login.html", {"request": request, "error": "Wrong password."})
 
 
 @app.on_event("startup")
@@ -168,9 +198,23 @@ async def upload_document(pid: str, file: UploadFile = File(None), pasted: str =
 # ── Analysis ──
 @app.get("/projects/{pid}/analysis/{qid}", response_class=HTMLResponse)
 def analysis_page(request: Request, pid: str, qid: str):
+    analysis = build_analysis(qid)
+    questions = rows_questions(qid)
+    # one unified list: plan (where the answer can come from) + actual state
+    plan = {it["questionId"]: it for it in analysis["items"]}
+    req_by_q = {r["question_id"]: r for r in reqs.list_requests(pid)}
+    for q in questions:
+        q["plan"] = plan.get(q["id"], {})
+        q["req"] = req_by_q.get(q["id"])
+        if q["answer"] and (q["answer"]["value"] or "").strip():
+            q["state"] = "answered"
+        elif q["req"] or q["plan"].get("source") == "request":
+            q["state"] = "manual"
+        else:
+            q["state"] = "open"
     return templates.TemplateResponse(request, "analysis.html", ctx(request,
-        active="project", project=proj.get_project(pid), qn=one_qn(qid), questions=rows_questions(qid),
-        analysis=build_analysis(qid), coverage=build_coverage(qid), fillable=templatefill.is_fillable(qid),
+        active="project", project=proj.get_project(pid), qn=one_qn(qid), questions=questions,
+        analysis=analysis, coverage=build_coverage(qid), fillable=templatefill.is_fillable(qid),
         requests=reqs.list_requests(pid), request_text=reqs.render_request_list(pid),
         wf=workflow.steps(pid, "answers")))
 
@@ -328,9 +372,10 @@ def export_structure_xlsx(pid: str):
 
 # ── Deliver (final step: filled original + chart files) ──
 @app.get("/projects/{pid}/deliver", response_class=HTMLResponse)
-def deliver_page(request: Request, pid: str):
+def deliver_page(request: Request, pid: str, qn_id: str = Query(None)):
     with db() as con:
-        qn = one(con, "SELECT * FROM questionnaires WHERE client_id=? ORDER BY created_at DESC LIMIT 1", (pid,))
+        qns = rows(con, "SELECT * FROM questionnaires WHERE client_id=? ORDER BY created_at DESC", (pid,))
+        qn = next((q for q in qns if q["id"] == qn_id), qns[0] if qns else None)
         stats = {"answered": 0, "total": 0, "manual": 0, "entities": 0}
         if qn:
             stats["total"] = one(con, "SELECT COUNT(*) c FROM questions WHERE questionnaire_id=?", (qn["id"],))["c"]
@@ -339,9 +384,27 @@ def deliver_page(request: Request, pid: str):
             stats["manual"] = one(con, "SELECT COUNT(*) c FROM info_requests WHERE questionnaire_id=?", (qn["id"],))["c"]
         stats["entities"] = one(con, "SELECT COUNT(*) c FROM entities WHERE client_id=?", (pid,))["c"]
     return templates.TemplateResponse(request, "deliver.html", ctx(request,
-        active="deliver", project=proj.get_project(pid), qn=qn, stats=stats,
+        active="deliver", project=proj.get_project(pid), qn=qn, qns=qns, stats=stats,
         fillable=templatefill.is_fillable(qn["id"]) if qn else False,
         wf=workflow.steps(pid, "deliver")))
+
+
+@app.post("/projects/{pid}/questionnaires/{qid}/review")
+def mark_reviewed(pid: str, qid: str, reviewer: str = Form(...)):
+    with db() as con:
+        con.execute("UPDATE questionnaires SET reviewed_by=?, reviewed_at=date('now') WHERE id=?",
+                    (reviewer.strip(), qid))
+    proj.touch(pid)
+    return RedirectResponse(f"/projects/{pid}/deliver?qn_id={qid}", status_code=303)
+
+
+# ── Backup ──
+@app.get("/backup")
+def backup():
+    from datetime import date
+    data = open(config.DB_PATH, "rb").read()
+    return Response(data, media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="dealproof-backup-{date.today().isoformat()}.db"'})
 
 
 # ── Brain (cross-project memory) ──
@@ -357,6 +420,18 @@ async def brain_learn(file: UploadFile = File(None)):
         data = await file.read()
         res = learn_from_document(file.filename, data, extract_text(file.filename, data))
         return RedirectResponse(f"/brain?learned={res['learned']}&total={res['total']}", status_code=303)
+    return RedirectResponse("/brain", status_code=303)
+
+
+@app.post("/brain/{entry_id}/update")
+def brain_update(entry_id: str, value: str = Form(...)):
+    update_entry(entry_id, value)
+    return RedirectResponse("/brain", status_code=303)
+
+
+@app.post("/brain/{entry_id}/delete")
+def brain_delete(entry_id: str):
+    delete_entry(entry_id)
     return RedirectResponse("/brain", status_code=303)
 
 

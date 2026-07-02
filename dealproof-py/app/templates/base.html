@@ -19,12 +19,6 @@
     {% if project %}<span class="client">· {{ project.name }}</span>{% endif %}
     <nav class="nav">
       <a href="/" class="{{ 'active' if active=='projects' else '' }}">Projects</a>
-      {% if project %}
-      <a href="/projects/{{ project.id }}" class="{{ 'active' if active=='project' else '' }}">Overview</a>
-      <a href="/projects/{{ project.id }}/profile" class="{{ 'active' if active=='data' else '' }}">Data</a>
-      <a href="/projects/{{ project.id }}/structure" class="{{ 'active' if active=='structure' else '' }}">Structure</a>
-      <a href="/projects/{{ project.id }}/deliver" class="{{ 'active' if active=='deliver' else '' }}">Deliver</a>
-      {% endif %}
       <a href="/brain" class="{{ 'active' if active=='brain' else '' }}">KYC Brain</a>
     </nav>
     <span class="statuschip" title="{{ 'Model ready' if has_key else 'No model key — the KYC Brain answers from the corpus' }}">

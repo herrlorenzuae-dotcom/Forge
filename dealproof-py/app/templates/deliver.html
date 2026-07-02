@@ -8,6 +8,17 @@
   <p class="lead">Everything that goes back out: the bank's own questionnaire with the answers filled in, and the structure chart as an image or PDF.</p>
 </div>
 
+{% if qns and qns|length > 1 %}
+<section class="card card-pad">
+  <div class="row">
+    <span class="muted small">This project has {{ qns|length }} questionnaires — deliver:</span>
+    <select class="inline" onchange="location.href='/projects/{{ project.id }}/deliver?qn_id='+this.value">
+      {% for q in qns %}<option value="{{ q.id }}" {{ 'selected' if qn and q.id==qn.id }}>{{ q.title }} ({{ q.created_at[:10] }})</option>{% endfor %}
+    </select>
+  </div>
+</section>
+{% endif %}
+
 <section class="card card-pad">
   <div class="row" style="gap:28px; flex-wrap:wrap">
     <div><div class="muted small">Questions answered</div>
@@ -21,6 +32,27 @@
   <p class="muted small" style="margin:12px 0 0">Not everything is answered yet — you can still export now, or go back to <a href="/projects/{{ project.id }}/analysis/{{ qn.id }}" style="color:var(--blue)">Answers</a> first. Unanswered items appear as “to be added manually”.</p>
   {% endif %}
 </section>
+
+{% if qn %}
+<section class="card card-pad" style="border-left:4px solid {{ 'var(--teal)' if qn.reviewed_by else 'var(--amber, #b8860b)' }}">
+  {% if qn.reviewed_by %}
+  <div class="row" style="justify-content:space-between">
+    <div><b>Reviewed by {{ qn.reviewed_by }}</b> <span class="muted small">on {{ qn.reviewed_at }}</span> — the exports carry this sign-off.</div>
+    <form method="post" action="/projects/{{ project.id }}/questionnaires/{{ qn.id }}/review">
+      <input type="hidden" name="reviewer" value=""/>
+      <button class="btn-ghost btn-sm" title="Remove the sign-off">Reset review</button>
+    </form>
+  </div>
+  {% else %}
+  <h3 class="card-title" style="margin-bottom:6px">Review before sending</h3>
+  <p class="muted small" style="margin:0 0 10px">Four-eyes check: confirm the answers were reviewed. The reviewer and date appear in the exported documents.</p>
+  <form method="post" action="/projects/{{ project.id }}/questionnaires/{{ qn.id }}/review" class="row">
+    <input type="text" name="reviewer" required placeholder="Reviewer name" style="max-width:260px"/>
+    <button class="btn"><span class="icon">verified</span> Mark as reviewed</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
 
 {% if qn %}
 <section class="card card-pad">

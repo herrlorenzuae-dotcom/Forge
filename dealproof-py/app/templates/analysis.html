@@ -1,33 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Analysis{% endblock %}
+{% block title %}Answers{% endblock %}
 {% block content %}
 {% set a = analysis %}
-{% set req_by_q = {} %}
-{% for r in requests %}{% if req_by_q.update({r.question_id: r}) %}{% endif %}{% endfor %}
-{% set src_order = [('source','In source'),('on_file','On file'),('brain','KYC Brain'),('quantium','Quantium'),('ysolutions','YSolutions'),('web','Web research'),('request','Manual input')] %}
 
 <div class="row" style="justify-content:space-between; align-items:flex-end">
   <div>
     <a href="/projects/{{ project.id }}" class="small" style="color:var(--blue); font-weight:600">← {{ project.name }}</a>
-    <p class="muted small" style="text-transform:uppercase; letter-spacing:.04em; margin:6px 0 0">Analysis</p>
+    <p class="muted small" style="text-transform:uppercase; letter-spacing:.04em; margin:6px 0 0">Answers</p>
     <h1 class="h1" style="font-size:30px">{{ qn.title }}</h1>
   </div>
   <div class="row">
     <form method="post" action="/projects/{{ project.id }}/analysis/{{ qn.id }}/answer">
-      <button class="btn" title="Ab geht die Lutzi 🚀"><span class="icon">auto_awesome</span> Answer all</button>
+      <button class="btn" title="Answer everything that can be answered; the rest is flagged as manual input"><span class="icon">auto_awesome</span> Answer all</button>
     </form>
-    <form method="post" action="/projects/{{ project.id }}/analysis/{{ qn.id }}/requests">
-      <button class="btn-ghost"><span class="icon">add_task</span> Flag manual items</button>
-    </form>
-    {% if fillable %}
-    <a class="btn" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/fill" title="Write the answers back into the original form, preserving its layout"><span class="icon">edit_document</span> Fill original</a>
-    {% endif %}
-    <div class="row" style="gap:4px">
-      <span class="muted small">Export filled:</span>
-      <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/export.docx"><span class="icon">description</span> Word</a>
-      <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/export.pdf"><span class="icon">picture_as_pdf</span> PDF</a>
-      <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/export.xlsx"><span class="icon">table</span> Excel</a>
-    </div>
+    <a class="btn-ghost" href="/projects/{{ project.id }}/deliver?qn_id={{ qn.id }}"><span class="icon">outbox</span> Go to Deliver</a>
   </div>
 </div>
 
@@ -37,100 +23,81 @@
     <h2 class="card-title">Where each answer can come from</h2>
     <span class="mono" style="font-weight:700; color:var(--blue)">{{ (a.coverage*100)|round|int }}% retrievable</span>
   </div>
-  <p class="muted small" style="margin:4px 0 10px">{{ a.auto }} of {{ a.total }} questions can be answered from the source document, existing data, the connectors, web research or the KYC Brain. {{ a.request }} must be added manually.</p>
+  <p class="muted small" style="margin:4px 0 10px">{{ a.auto }} of {{ a.total }} questions can be answered from the source document, existing data, the connectors, web research or the KYC Brain. {{ a.request }} must be added manually — “Answer all” flags them automatically.</p>
   <div class="row">
+    {% set src_order = [('source','In source'),('on_file','On file'),('brain','KYC Brain'),('quantium','Quantium'),('ysolutions','YSolutions'),('web','Web research'),('request','Manual input')] %}
     {% for key, label in src_order %}
-      {% if a.bySource.get(key) %}
-        <span class="pill source-{{ key }}">{{ label }}: {{ a.bySource.get(key) }}</span>
-      {% endif %}
+      {% if a.bySource.get(key) %}<span class="pill source-{{ key }}">{{ label }}: {{ a.bySource.get(key) }}</span>{% endif %}
     {% endfor %}
   </div>
 </section>
 
-<!-- Per-question breakdown, grouped by the questionnaire's own sections -->
+<!-- Unified question list: plan + state + expandable answer -->
 <section class="card">
-  <div class="card-head"><h3 class="card-title">Questions</h3><span class="muted small">{{ a.total }} parsed{% if a.sections|length > 1 %} · {{ a.sections|length }} sections{% endif %}</span></div>
-  <table class="tbl">
-    <thead><tr><th style="width:52%">Question</th><th>Source</th><th>Detail</th></tr></thead>
-    <tbody>
-    {% set ns = namespace(cur='\x00') %}
-    {% for it in a["items"] %}
-      {% if it.section != ns.cur %}
-        {% set ns.cur = it.section %}
-        <tr class="section-row"><td colspan="3" style="background:var(--surface); font-weight:700; letter-spacing:.03em; text-transform:uppercase; font-size:11px; color:var(--ink)">{{ it.section or 'General' }}</td></tr>
-      {% endif %}
-      <tr>
-        <td>{{ it.prompt }}</td>
-        <td><span class="pill source-{{ it.source }}">{{ it.sourceLabel }}</span></td>
-        <td class="muted small">{{ it.detail }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</section>
-
-<!-- Manual-input items -->
-{% if requests %}
-<section class="card card-pad">
-  <h3 class="card-title" style="margin-bottom:10px">To add manually</h3>
-  <div class="divide">
-  {% for r in requests if r.channel == 'request' %}
-    <div class="row" style="padding:8px 0">
-      <span style="font-size:14px">{{ r.prompt }}</span>
-      <span class="pill neutral">{{ r.source }}</span>
-      <span style="margin-left:auto">
-        <form method="post" action="/requests/{{ r.id }}" style="display:inline">
+  <div class="card-head"><h3 class="card-title">Questions &amp; answers</h3>
+    <span class="muted small">{{ a.total }} parsed{% if a.sections|length > 1 %} · {{ a.sections|length }} sections{% endif %}</span></div>
+  <div class="qa-list">
+  {% set ns = namespace(cur='\x00') %}
+  {% for q in questions %}
+    {% if q.section != ns.cur %}{% set ns.cur = q.section %}
+    <div class="qa-section">{{ q.section or 'General' }}</div>
+    {% endif %}
+    <details class="qa-row {{ q.state }}">
+      <summary>
+        <span class="qa-state" title="{{ q.state }}">
+          {% if q.state=='answered' %}<span class="icon" style="color:var(--teal)">check_circle</span>
+          {% elif q.state=='manual' %}<span class="icon" style="color:#9a2017">edit_note</span>
+          {% else %}<span class="icon" style="color:var(--fog)">radio_button_unchecked</span>{% endif %}
+        </span>
+        <span class="qa-prompt">{{ q.prompt }}</span>
+        <span class="pill source-{{ q.plan.get('source','request') }}" style="flex:none">{{ q.plan.get('sourceLabel','Manual input') }}</span>
+        <span class="qa-preview muted small">{{ (q.answer.value[:60] ~ ('…' if q.answer.value|length>60)) if q.answer and q.answer.value else '' }}</span>
+      </summary>
+      <div class="qa-body">
+        {% if q.answer and q.answer.value %}
+          {% set ablabel = {'source':'from source document','brain':'from KYC Brain','on_file':'on file','quantium':'via Quantium','ysolutions':'via YSolutions','web':'via web research','model':'drafted by model','human':'by reviewer'} %}
+          <div class="row" style="justify-content:space-between; margin-bottom:6px">
+            <span class="pill {{ 'teal' if q.answer.answered_by in ['brain','on_file','source'] else 'neutral' if q.answer.answered_by=='human' else 'blue' }}">{{ ablabel.get(q.answer.answered_by, q.answer.answered_by) }}</span>
+            <span class="muted small">confidence {{ (q.answer.confidence*100)|round|int }}%</span>
+          </div>
+          {% if q.answer.rationale %}<p class="muted small" style="margin:0 0 8px; font-style:italic">{{ q.answer.rationale }}</p>{% endif %}
+        {% elif q.state=='manual' %}
+          <p class="muted small" style="margin:0 0 8px">Not retrievable — add the answer below.
+            {% if q.plan.get('detail') %}({{ q.plan.get('detail') }}){% endif %}</p>
+        {% else %}
+          <p class="muted small" style="margin:0 0 8px">Not answered yet. {{ q.plan.get('detail','') }}</p>
+        {% endif %}
+        <form method="post" action="/questions/{{ q.id }}/set" class="row" style="align-items:flex-start">
           <input type="hidden" name="pid" value="{{ project.id }}"/><input type="hidden" name="qid" value="{{ qn.id }}"/>
-          <select name="status" class="inline" onchange="this.form.submit()">
-            {% set slabels = {'open':'open','requested':'in progress','received':'added','verified':'verified','na':'n/a'} %}
-            {% for s in ['open','requested','received','verified','na'] %}
-              <option value="{{ s }}" {{ 'selected' if r.status==s }}>{{ slabels[s] }}</option>
-            {% endfor %}
-          </select>
+          <textarea name="value" rows="2" style="flex:1; font-family:var(--sans); font-size:13.5px" placeholder="Type or correct the answer …">{{ q.answer.value if q.answer else '' }}</textarea>
+          <button class="btn-ghost btn-sm" style="margin-top:2px"><span class="icon">save</span> Save</button>
         </form>
-      </span>
-    </div>
+        <div class="row" style="margin-top:8px; gap:6px; flex-wrap:wrap">
+          <form method="post" action="/questions/{{ q.id }}/answer" style="display:inline">
+            <input type="hidden" name="pid" value="{{ project.id }}"/><input type="hidden" name="qid" value="{{ qn.id }}"/>
+            <button class="btn-ghost btn-sm">{{ 'Re-answer automatically' if q.answer and q.answer.value else 'Answer automatically' }}</button>
+          </form>
+          {% if q.req %}
+          <form method="post" action="/requests/{{ q.req.id }}" style="display:inline">
+            <input type="hidden" name="pid" value="{{ project.id }}"/><input type="hidden" name="qid" value="{{ qn.id }}"/>
+            <select name="status" class="inline" onchange="this.form.submit()" title="Manual-item status">
+              {% set slabels = {'open':'manual: open','requested':'manual: in progress','received':'manual: added','verified':'manual: verified','na':'manual: n/a'} %}
+              {% for s in ['open','requested','received','verified','na'] %}
+                <option value="{{ s }}" {{ 'selected' if q.req.status==s }}>{{ slabels[s] }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          {% endif %}
+          {% for o in q.options %}
+          <form method="post" action="/questions/{{ q.id }}/set" style="display:inline">
+            <input type="hidden" name="pid" value="{{ project.id }}"/><input type="hidden" name="qid" value="{{ qn.id }}"/><input type="hidden" name="value" value="{{ o.value }}"/>
+            <button class="btn-ghost btn-sm" title="Prior answer from the KYC Brain"><span class="mono">{{ (o.share*100)|round|int }}%</span> · {{ o.value[:48] }}{{ '…' if o.value|length>48 }}</button>
+          </form>
+          {% endfor %}
+        </div>
+      </div>
+    </details>
   {% endfor %}
   </div>
 </section>
-{% endif %}
-
-<!-- Drafted answers -->
-{% for q in questions %}
-<section class="card card-pad">
-  <div class="row" style="align-items:flex-start">
-    <span class="pill neutral mono">Q{{ loop.index }}</span>
-    <p style="font-weight:600; flex:1; margin:0">{{ q.prompt }}</p>
-    <span class="pill neutral">{{ q.kind|replace('_',' ') }}</span>
-  </div>
-  {% if q.answer and q.answer.value %}
-  <div class="answer"><p style="margin:0; font-size:14px">{{ q.answer.value }}</p>
-    {% if q.answer.rationale %}<p class="muted small" style="margin:6px 0 0; font-style:italic">{{ q.answer.rationale }}</p>{% endif %}</div>
-  <div class="row" style="justify-content:space-between; margin-top:8px">
-    {% set ablabel = {'source':'from source document','brain':'from KYC Brain','on_file':'on file','quantium':'via Quantium','ysolutions':'via YSolutions','web':'via web research','model':'drafted by model','human':'by reviewer'} %}
-    <span class="pill {{ 'teal' if q.answer.answered_by in ['brain','on_file','source'] else 'neutral' if q.answer.answered_by=='human' else 'blue' }}">
-      {{ ablabel.get(q.answer.answered_by, q.answer.answered_by) }}
-    </span>
-    <span class="muted small">confidence {{ (q.answer.confidence*100)|round|int }}%</span>
-  </div>
-  {% else %}<p class="muted small" style="margin-top:12px">Not answered yet.</p>{% endif %}
-  {% if q.options %}
-  <div style="border-top:1px solid var(--line-soft); margin-top:12px; padding-top:10px">
-    <p class="muted small" style="text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin:0 0 6px">Prior answers in the Brain</p>
-    {% for o in q.options %}
-    <form method="post" action="/questions/{{ q.id }}/set" style="display:inline">
-      <input type="hidden" name="pid" value="{{ project.id }}"/><input type="hidden" name="qid" value="{{ qn.id }}"/><input type="hidden" name="value" value="{{ o.value }}"/>
-      <button class="btn-ghost btn-sm" style="margin:0 6px 6px 0"><span class="mono">{{ (o.share*100)|round|int }}%</span> · {{ o.value[:64] }}{{ '…' if o.value|length>64 }}</button>
-    </form>
-    {% endfor %}
-  </div>
-  {% endif %}
-  <div style="margin-top:12px">
-    <form method="post" action="/questions/{{ q.id }}/answer" style="display:inline">
-      <input type="hidden" name="pid" value="{{ project.id }}"/><input type="hidden" name="qid" value="{{ qn.id }}"/>
-      <button class="btn-ghost btn-sm">{{ 'Re-answer' if q.answer else 'Answer' }}</button>
-    </form>
-  </div>
-</section>
-{% endfor %}
 {% endblock %}

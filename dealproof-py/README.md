@@ -31,6 +31,11 @@ All are optional; DealProof runs fully offline with the KYC Brain + mock connect
 | `YSOLUTIONS_BASE_URL`, `YSOLUTIONS_API_KEY` | YSolutions by YPOG (ysolutions.legal) — beneficial ownership / German Transparenzregister. Live when both are set. |
 | `DEALPROOF_MOCK_CONNECTORS` | `1` (default) falls back to labelled mock data when a connector isn't configured; `0` shows it as unavailable. |
 | `DEALPROOF_CONNECTOR_TIMEOUT` | Connector HTTP timeout in seconds (default `8`). |
+| `DEALPROOF_PASSWORD` | Optional: require a login (for shared/server use). Unset = open (local single-user). |
+
+Backups: the landing page has a **Download backup** link (the full SQLite database
+— projects, answers, structure, Brain). To restore, replace `dealproof.db` with
+the downloaded file while the app is stopped.
 
 Example:
 ```

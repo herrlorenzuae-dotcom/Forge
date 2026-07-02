@@ -37,7 +37,9 @@ CREATE TABLE IF NOT EXISTS entity_attributes (
 );
 CREATE TABLE IF NOT EXISTS questionnaires (
   id TEXT PRIMARY KEY, client_id TEXT NOT NULL, requester TEXT DEFAULT '', title TEXT DEFAULT '',
-  format TEXT DEFAULT '', status TEXT DEFAULT 'new', created_at TEXT DEFAULT (datetime('now'))
+  format TEXT DEFAULT '', status TEXT DEFAULT 'new',
+  reviewed_by TEXT DEFAULT '', reviewed_at TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS questions (
   id TEXT PRIMARY KEY, questionnaire_id TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0,
@@ -95,6 +97,7 @@ MIGRATIONS = {
                 ("portfolio_company", "TEXT DEFAULT ''")],
     "documents": [("content", "BLOB")],
     "questions": [("source_answer", "TEXT DEFAULT ''")],
+    "questionnaires": [("reviewed_by", "TEXT DEFAULT ''"), ("reviewed_at", "TEXT DEFAULT ''")],
 }
 
 

@@ -10,12 +10,12 @@
 <section class="card card-pad">
   <div class="row" style="justify-content:space-between; align-items:center">
     <h3 class="card-title">Connections</h3>
-    <span class="muted small">configured via environment variables</span>
+    <a href="/backup" class="muted small" style="text-decoration:none" title="Download a backup of all projects, answers and the Brain"><span class="icon" style="font-size:14px; vertical-align:-2px">download</span> Download backup</a>
   </div>
   <div class="row" style="margin-top:10px; gap:8px; flex-wrap:wrap">
-    <span class="pill {{ 'teal' if has_key else 'neutral' }}" title="ANTHROPIC_API_KEY">
+    <span class="pill {{ 'teal' if has_key else 'neutral' }}" title="Set ANTHROPIC_API_KEY in .env to enable">
       <span class="icon" style="font-size:14px">{{ 'check_circle' if has_key else 'radio_button_unchecked' }}</span>
-      Anthropic{{ ' · ' ~ model if has_key else ' — not configured' }}
+      AI{{ ' · ' ~ model if has_key else ' — off' }}
     </span>
     <span class="pill {{ 'teal' if connectors.quantium.enabled else 'neutral' }}" title="QUANTIUM_BASE_URL / QUANTIUM_API_KEY">
       <span class="icon" style="font-size:14px">{{ 'check_circle' if connectors.quantium.enabled else 'radio_button_unchecked' }}</span>
