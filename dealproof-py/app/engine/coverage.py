@@ -7,6 +7,7 @@ import re
 # (regex, field, channel, source) — first match wins. German + English.
 RULES = [
     (r"\b(lei|legal entity identifier)\b", "lei", "web", "GLEIF (gleif.org)"),
+    (r"(full\s+)?legal name|name of the (entity|company)|company name|\bfirma\b", "legal_name", "web", "Commercial register (Handelsregister)"),
     (r"(registration|register)\s*(no|number|nr)|handelsregister|hrb|hra|commercial register", "registration_number", "web", "Commercial register (Handelsregister)"),
     (r"(registered|business)\s*(office|address|seat)|(eingetragener\s*)?sitz|gesch[äa]ftsanschrift", "registered_office", "web", "Commercial register (Handelsregister)"),
     (r"(date|datum).*(incorporat|gr[üu]ndung|establish)|incorporation date|gr[üu]ndungsdatum", "incorporation_date", "web", "Commercial register (Handelsregister)"),

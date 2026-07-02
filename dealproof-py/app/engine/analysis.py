@@ -16,6 +16,7 @@ from .structure import get_structure
 
 # field_type -> (source, retrievable?)
 SOURCE = {
+    "legal_name": ("quantium", True),
     "registration_number": ("quantium", True),
     "registered_office": ("quantium", True),
     "incorporation_date": ("quantium", True),
@@ -53,10 +54,9 @@ def _source_answer(q) -> bool:
 
 
 def _on_file(structure, field_type) -> bool:
+    from .connectors import NEEDLES
     keys = " ".join(a["key"].lower() for a in structure["attributes"])
-    needle = {"registration_number": "registration", "registered_office": "registered address",
-              "incorporation_date": "incorporation", "lei": "lei", "tax_residence": "tax",
-              "source_of_funds": "source of funds", "pep": "pep"}.get(field_type)
+    needle = NEEDLES.get(field_type)
     return bool(needle and needle in keys)
 
 

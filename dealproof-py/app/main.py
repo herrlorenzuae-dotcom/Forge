@@ -12,6 +12,7 @@ from .db import init_db, db, rows, one
 from .engine import projects as proj
 from .engine import spa as spa_engine
 from .engine import transparency
+from .engine import profile as profile_engine
 from .engine import export as exporter
 from .engine.structure import get_structure
 from .engine.orgchart import build_orgchart, render_svg, default_subject
@@ -108,6 +109,29 @@ def edit_project(pid: str, name: str = Form(""), subject_company: str = Form("")
 def delete_project(pid: str):
     proj.delete_project(pid)
     return RedirectResponse("/", status_code=303)
+
+
+# ── Entity profile (master-data sheet) ──
+@app.get("/projects/{pid}/profile", response_class=HTMLResponse)
+def profile_page(request: Request, pid: str, pulled: int = Query(None)):
+    return templates.TemplateResponse(request, "profile.html", ctx(request,
+        active="data", project=proj.get_project(pid),
+        profile=profile_engine.get_profile(pid), pulled=pulled))
+
+
+@app.post("/projects/{pid}/profile")
+async def profile_save(request: Request, pid: str):
+    form = await request.form()
+    profile_engine.save_profile(pid, {k: v for k, v in form.items()})
+    proj.touch(pid)
+    return RedirectResponse(f"/projects/{pid}/profile", status_code=303)
+
+
+@app.post("/projects/{pid}/profile/pull")
+def profile_pull(pid: str):
+    res = profile_engine.pull_profile(pid)
+    proj.touch(pid)
+    return RedirectResponse(f"/projects/{pid}/profile?pulled={res['pulled']}", status_code=303)
 
 
 @app.get("/projects/{pid}", response_class=HTMLResponse)

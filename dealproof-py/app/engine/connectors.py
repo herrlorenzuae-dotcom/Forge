@@ -53,11 +53,20 @@ MOCK = {
 LABEL = {"quantium": "Quantium", "ysolutions": "YSolutions", "web": "Web research", "on_file": "On file"}
 
 
-# ── On-file (the project's own structure facts) ──
+# ── On-file (the project's own structure facts / entity profile) ──
+# field_type -> substring that identifies the attribute key holding the value
+NEEDLES = {
+    "legal_name": "full legal name",
+    "registration_number": "registration", "registered_office": "registered address",
+    "incorporation_date": "incorporation", "lei": "lei", "tax_residence": "tax residence",
+    "source_of_funds": "source of funds", "pep": "pep", "legal_form": "legal form",
+    "directors": "directors", "listing": "listing", "beneficial_owner": "beneficial owner",
+    "signatory": "signator", "purpose_of_relationship": "purpose",
+}
+
+
 def _on_file_value(project_id: str, field_type: str):
-    needle = {"registration_number": "registration", "registered_office": "registered address",
-              "incorporation_date": "incorporation", "lei": "lei", "tax_residence": "tax",
-              "source_of_funds": "source of funds", "pep": "pep"}.get(field_type)
+    needle = NEEDLES.get(field_type)
     if not needle:
         return None
     with db() as con:
@@ -161,6 +170,13 @@ def answer(project_id: str, prompt: str):
     if onf:
         return {"value": onf["value"], "source": "on_file", "source_label": "On file",
                 "detail": f"Held in the project's structure facts (source: {onf['source'] or 'on file'})."}
+
+    if ft == "legal_name":
+        from .projects import get_project
+        name = ((get_project(project_id) or {}).get("subject_company") or "").strip() or _subject(project_id).get("name", "")
+        if name:
+            return {"value": name, "source": "on_file", "source_label": "On file",
+                    "detail": "The project's subject company."}
 
     src = SOURCE.get(ft)
     if src in ("quantium", "ysolutions"):

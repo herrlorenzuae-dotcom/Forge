@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Data{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between; align-items:flex-end">
+  <div>
+    <a href="/projects/{{ project.id }}" class="small" style="color:var(--blue); font-weight:600">← {{ project.name }}</a>
+    <p class="eyebrow" style="margin:6px 0 0">Master data</p>
+    <h1 class="h1" style="font-size:30px">Entity profile</h1>
+    <p class="lead">The recurring substance of KYC requests. Fill it once — manually or pulled from the sources — and the analysis answers from here first.</p>
+  </div>
+  <div class="row">
+    <form method="post" action="/projects/{{ project.id }}/profile/pull">
+      <button class="btn" title="Fill empty fields from GLEIF, Quantium and YSolutions (stored values are never overwritten)"><span class="icon">cloud_download</span> Pull from sources</button>
+    </form>
+  </div>
+</div>
+
+{% if pulled is not none %}
+<div class="card card-pad" style="border-left:4px solid var(--teal); background:rgba(0,178,169,.07)">
+  <b>Pulled {{ pulled }} value{{ '' if pulled==1 else 's' }}</b> from the sources. Values you already stored were left untouched.
+</div>
+{% endif %}
+
+<section class="card card-pad">
+  <div class="row" style="justify-content:space-between">
+    <span class="muted small">Completion</span>
+    <span class="mono" style="font-weight:700; color:var(--blue)">{{ profile.filled }} / {{ profile.total }} fields</span>
+  </div>
+  <div style="height:6px; background:var(--line-soft); border-radius:3px; margin-top:8px">
+    <div style="height:6px; width:{{ (100 * profile.filled / profile.total)|round|int }}%; background:var(--teal); border-radius:3px"></div>
+  </div>
+</section>
+
+<form method="post" action="/projects/{{ project.id }}/profile">
+{% for group, fields in profile.groups %}
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:12px">{{ group }}</h2>
+  <div class="divide">
+  {% for f in fields %}
+    <div class="profile-row">
+      <div class="profile-label">
+        <div style="font-weight:600; font-size:13.5px">{{ f.key }}</div>
+        {% if f.hint %}<div class="muted" style="font-size:11.5px">{{ f.hint }}</div>{% endif %}
+      </div>
+      <div class="profile-input">
+        <input type="text" name="{{ f.id }}" value="{{ f.value }}" placeholder="{{ '—' }}"/>
+        <div class="row" style="gap:6px; margin-top:4px">
+          <span class="pill {{ 'blue' if f.provider else 'neutral' }}" style="font-size:10px" title="Where this value can come from">{{ f.provider_label }}</span>
+          {% if f.value and f.source %}<span class="muted" style="font-size:10.5px">from {{ f.source }}{% if f.as_of %} · {{ f.as_of }}{% endif %}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+{% endfor %}
+<div class="card card-pad" style="position:sticky; bottom:12px">
+  <div class="row" style="justify-content:space-between">
+    <span class="muted small">Saved values feed the analysis as “On file”.</span>
+    <button class="btn"><span class="icon">save</span> Save profile</button>
+  </div>
+</div>
+</form>
+{% endblock %}

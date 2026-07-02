@@ -83,6 +83,8 @@ main.wrap { padding-top: 32px; padding-bottom: 24px; }
 .iconbtn { cursor: pointer; background: transparent; border: 0; color: var(--fog);
   border-radius: 7px; padding: 5px 7px; line-height: 0; }
 .iconbtn:hover { background: rgba(214,37,24,.10); color: var(--red); }
+.profile-row { display: grid; grid-template-columns: 280px 1fr; gap: 16px; padding: 10px 0; align-items: start; }
+@media (max-width: 720px) { .profile-row { grid-template-columns: 1fr; gap: 6px; } }
 
 /* pills / chips */
 .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px;
