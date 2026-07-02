@@ -25,9 +25,39 @@ Halcyon Beteiligungs GmbH -> Halcyon BidCo S.à r.l. : 100%
 Halcyon BidCo S.à r.l. -> Meridian Logistics Park S.A. : 94%
 TARGET: Meridian Logistics Park S.A.
 UBO: Dr. Katharina Brandt"></textarea>
+    {% if chart.nodes %}
+    <div style="margin:14px 0 0; border-top:1px solid var(--line-soft); padding-top:12px">
+      <div class="row" style="gap:18px">
+        <label class="row" style="gap:6px; font-size:13px"><input type="radio" name="mode" value="replace" checked onchange="document.getElementById('attachrow').style.display='none'"/> Replace current structure</label>
+        <label class="row" style="gap:6px; font-size:13px"><input type="radio" name="mode" value="merge" onchange="document.getElementById('attachrow').style.display='flex'"/> Merge into current structure</label>
+      </div>
+      <div id="attachrow" class="row" style="display:none; margin-top:10px; gap:8px; flex-wrap:wrap">
+        <span class="muted small">Hang the new structure under</span>
+        <select name="attach_to" class="inline" style="font-size:13px">
+          <option value="">— keep unconnected —</option>
+          {% for n in chart.nodes %}<option value="{{ n.id }}">{{ n.name }}</option>{% endfor %}
+        </select>
+        <input type="text" name="attach_rel" placeholder="e.g. 80% or control" style="width:150px; padding:5px 10px; font-size:13px"/>
+        <span class="muted" style="font-size:11.5px">relationship of the anchor to the new top entity</span>
+      </div>
+    </div>
+    {% endif %}
     <div style="margin-top:12px"><button class="btn"><span class="icon">account_tree</span> Build structure</button></div>
   </form>
 </section>
+
+{% if other_projects %}
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:6px">Start from an existing chart</h2>
+  <p class="muted small" style="margin:0 0 12px">Take over the structure of another project (e.g. the standing fund structure), then merge the new company underneath via the SPA card above.{% if chart.nodes %} <b>Replaces</b> the current chart.{% endif %}</p>
+  <form method="post" action="/projects/{{ project.id }}/structure/copy" class="row">
+    <select name="source_project" class="inline" style="font-size:13px; min-width:280px" required>
+      {% for p in other_projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+    </select>
+    <button class="btn-ghost"><span class="icon">content_copy</span> Copy structure into this project</button>
+  </form>
+</section>
+{% endif %}
 
 <section class="card card-pad">
   <h2 class="card-title" style="margin-bottom:6px">Add UBOs from a Transparenzregister extract</h2>

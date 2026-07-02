@@ -139,3 +139,68 @@ def apply_structure(project_id: str, spec: dict) -> dict:
                 con.execute("INSERT INTO ubos (id, client_id, entity_id, basis, pct, pep, residence, as_of) VALUES (?,?,?,?,?,?,?, date('now'))",
                             (gen_id("ubo"), project_id, ids[name], "ownership", 0, 0, ""))
     return {"entities": len(spec["entities"]), "edges": len(spec["edges"])}
+
+
+def merge_structure(project_id: str, spec: dict, attach_to: str = "", attach_rel: str = "") -> dict:
+    """Graft the parsed spec INTO the existing structure instead of replacing it.
+    Entities are matched by name (case-insensitive) and reused; new ones are
+    added; duplicate edges are skipped. If attach_to (an existing entity id) is
+    given, every root of the new spec (an entity without a parent inside the
+    spec) is hung underneath it — attach_rel is either a percentage ("80") or
+    "control" (general partner / Komplementär)."""
+    from .structure import get_structure
+    s = get_structure(project_id)
+    ids = {e["name"].lower(): e["id"] for e in s["entities"]}
+    have_edge = {(e["parent_id"], e["child_id"]) for e in s["edges"]}
+    have_ubo = {u["entity_id"] for u in s["ubos"]}
+    added_e = added_edges = 0
+    with db() as con:
+        for e in spec["entities"]:
+            key = e["name"].lower()
+            if key in ids:
+                continue
+            eid = gen_id("ent"); ids[key] = eid; added_e += 1
+            con.execute("INSERT INTO entities (id, client_id, name, kind, role, as_of) VALUES (?,?,?,?,?, date('now'))",
+                        (eid, project_id, e["name"], e["kind"], e.get("role", "other")))
+        for e in spec["edges"]:
+            p, c = ids.get(e["parent"].lower()), ids.get(e["child"].lower())
+            if not p or not c or (p, c) in have_edge:
+                continue
+            con.execute("INSERT INTO ownership_edges (id, client_id, parent_id, child_id, pct, kind, mechanism, as_of) VALUES (?,?,?,?,?,?,?, date('now'))",
+                        (gen_id("edge"), project_id, p, c, e.get("pct", 0), e.get("kind", "shares"), e.get("mechanism", "")))
+            have_edge.add((p, c)); added_edges += 1
+        for name in spec["ubos"]:
+            eid = ids.get(name.lower())
+            if eid and eid not in have_ubo:
+                con.execute("INSERT INTO ubos (id, client_id, entity_id, basis, pct, pep, residence, as_of) VALUES (?,?,?,?,?,?,?, date('now'))",
+                            (gen_id("ubo"), project_id, eid, "ownership", 0, 0, ""))
+                con.execute("UPDATE entities SET role='ubo' WHERE id=? AND role='other'", (eid,))
+        # hang the new structure's roots under the chosen anchor
+        if attach_to:
+            children_in_spec = {e["child"].lower() for e in spec["edges"]}
+            parents_in_spec = {e["parent"].lower() for e in spec["edges"]}
+            # roots: top of the pasted chain — parents that are nobody's child;
+            # a single-entity spec (just the new company) is its own root
+            root_names = [n for n in parents_in_spec if n not in children_in_spec] or \
+                         ([spec["entities"][0]["name"].lower()] if len(spec["entities"]) == 1 else [])
+            roots = [ids[n] for n in root_names if n in ids]
+            rel = (attach_rel or "").strip().lower()
+            ctrl = rel.startswith("control") or rel in ("gp", "komplementär", "komplementar")
+            pm = PCT_RE.search(attach_rel or "")
+            pct = float(pm.group(1).replace(",", ".")) if pm else (0.0 if ctrl else 100.0)
+            for r in roots:
+                if r != attach_to and (attach_to, r) not in have_edge:
+                    con.execute("INSERT INTO ownership_edges (id, client_id, parent_id, child_id, pct, kind, mechanism, as_of) VALUES (?,?,?,?,?,?,?, date('now'))",
+                                (gen_id("edge"), project_id, attach_to, r,
+                                 0 if ctrl else pct, "control" if ctrl else "shares",
+                                 "General partner (Komplementär)" if ctrl else ""))
+                    have_edge.add((attach_to, r)); added_edges += 1
+    return {"entities": added_e, "edges": added_edges}
+
+
+def copy_structure(dst_project_id: str, src_project_id: str) -> dict:
+    """Take over an existing chart from another project as the starting point."""
+    spec_text = structure_to_spec(src_project_id)
+    if not spec_text.strip():
+        return {"entities": 0, "edges": 0}
+    return apply_structure(dst_project_id, parse_structure_spec(spec_text))

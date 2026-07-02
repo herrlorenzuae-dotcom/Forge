@@ -236,14 +236,18 @@ def structure_page(request: Request, pid: str, view: str = Query("excerpt"), sub
     chart = build_orgchart(pid)
     excerpt = view == "excerpt"
     subj = subject or default_subject(chart["nodes"], chart["edges"])
+    other_projects = [p for p in proj.list_projects() if p["id"] != pid]
     return templates.TemplateResponse(request, "structure.html", ctx(request,
         active="structure", project=proj.get_project(pid), structure=get_structure(pid),
         chart=chart, chart_svg=render_svg(pid, subject=subj, excerpt=excerpt),
-        view=view, subject=subj, spec=spa_engine.structure_to_spec(pid)))
+        view=view, subject=subj, spec=spa_engine.structure_to_spec(pid),
+        other_projects=other_projects))
 
 
 @app.post("/projects/{pid}/structure")
-async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str = Form(""), replace: str = Form("")):
+async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str = Form(""),
+                           replace: str = Form(""), mode: str = Form("replace"),
+                           attach_to: str = Form(""), attach_rel: str = Form("")):
     text = pasted
     if file is not None and file.filename:
         data = await file.read()
@@ -255,9 +259,20 @@ async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str 
             spec = spa_engine.parse_structure_spec(text)
         else:
             spec = spa_engine.extract_from_spa(text, pid)
-        spa_engine.apply_structure(pid, spec)
+        if mode == "merge" and replace != "spec":
+            spa_engine.merge_structure(pid, spec, attach_to=attach_to, attach_rel=attach_rel)
+        else:
+            spa_engine.apply_structure(pid, spec)
         proj.touch(pid)
-    return RedirectResponse(f"/projects/{pid}/structure?view={'full' if replace=='spec' else 'excerpt'}", status_code=303)
+    return RedirectResponse(f"/projects/{pid}/structure?view={'full' if replace=='spec' or mode=='merge' else 'excerpt'}", status_code=303)
+
+
+@app.post("/projects/{pid}/structure/copy")
+def copy_structure(pid: str, source_project: str = Form(...)):
+    if source_project and source_project != pid:
+        spa_engine.copy_structure(pid, source_project)
+        proj.touch(pid)
+    return RedirectResponse(f"/projects/{pid}/structure?view=full", status_code=303)
 
 
 @app.post("/projects/{pid}/ubos")
