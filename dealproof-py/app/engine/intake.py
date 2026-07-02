@@ -29,20 +29,25 @@ INTERROGATIVE = re.compile(
     r"^(is|are|was|were|does|do|did|has|have|had|will|would|can|could|should|"
     r"may|might|please|provide|describe|list|state|specify|confirm|indicate|"
     r"name|identify|explain|detail|attach|upload|set out|give|"
-    r"who|what|which|where|when|why|how)\b", re.I)
+    r"who|what|which|where|when|why|how|"
+    # German (KYC forms are often German)
+    r"ist|sind|hat|haben|liegt|liegen|besteht|bestehen|wird|werden|kann|"
+    r"k[öo]nnen|gibt|bitte|geben|nennen|beschreiben|best[äa]tigen|erl[äa]utern|"
+    r"f[üu]gen|legen|wer|was|wann|wo|wie|welche[rs]?)\b", re.I)
 
 
 def infer_kind(prompt: str) -> str:
     p = prompt.lower()
-    if re.search(r"\b(y/n|yes/no|yes or no)\b", p) or re.match(r"^(is|are|does|do|has|have|will)\b", p):
+    if re.search(r"\b(y/n|yes/no|yes or no|ja/nein)\b", p) or \
+       re.match(r"^(is|are|does|do|has|have|will|ist|sind|hat|haben|liegt|liegen|besteht|gibt)\b", p):
         return "yesno"
-    if re.search(r"\b(percent|percentage|%|shareholding|ownership stake)\b", p):
+    if re.search(r"\b(percent|percentage|%|shareholding|ownership stake|kapitalanteile|stimmanteile|beteiligung)\b", p):
         return "pct"
-    if re.search(r"\b(date|incorporat|established|founded)\b", p):
+    if re.search(r"\b(date|incorporat|established|founded|datum|gegr[üu]ndet|gr[üu]ndung)\b", p):
         return "date"
-    if re.search(r"\b(ubo|beneficial owner|controlling person)\b", p):
+    if re.search(r"\b(ubo|beneficial owner|controlling person|wirtschaftlich berechtigt)\w*\b", p):
         return "ubo_list"
-    if re.search(r"\b(name of|legal name|company|entity|registered)\b", p):
+    if re.search(r"\b(name of|legal name|company|entity|registered|firma|gesellschaft|bezeichnung)\b", p):
         return "entity"
     return "text"
 
@@ -337,6 +342,181 @@ def parse_questions_table(data: bytes):
     return out or None
 
 
+# Response-cell template lines ("Confirmed:", "Provided", "Yes", checkboxes) —
+# scaffolding for the answer, not an answer.
+TEMPLATE_LINE = re.compile(
+    r"^\s*(?:[☐□▢◻✓xX]\s*)?(?:confirmed(?:\s+(?:yes|no))?|provided|not\s+(?:applicable|regulated)|n/?a|"
+    r"yes|no|ja|nein|name|position|date|datum|title|signature|unterschrift|comments?)\s*[:.]?\s*$", re.I)
+INSTRUCTION_LINE = re.compile(r"^\s*(?:if\b|please\b|falls\b|wenn\b|bitte\b|sofern\b)", re.I)
+
+
+def _cell_answer(text: str) -> str:
+    """Real content of a response cell — '' when it only holds templates
+    ('Confirmed: / Provided:'), bare labels, option lists, checkboxes or
+    conditional instructions."""
+    lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+    # an option list: several short label lines without values ("Hedge Fund" …)
+    if len(lines) >= 3 and sum(1 for s in lines if len(s) <= 32 and ":" not in s) / len(lines) >= 0.6:
+        return ""
+    vals = []
+    for s in lines:
+        # side-by-side templates ("Provided     Not Regulated")
+        segs = re.split(r"\s{2,}|\t", s)
+        if all(TEMPLATE_LINE.match(x) for x in segs if x):
+            continue
+        if TEMPLATE_LINE.match(s) or INSTRUCTION_LINE.match(s) or re.match(r"^[^:]{2,60}:$", s):
+            continue
+        m = re.match(r"^([^:]{2,40}):\s*(.+)$", s)
+        if m and TEMPLATE_LINE.match(m.group(1) + ":"):
+            vals.append(m.group(2).strip())
+            continue
+        vals.append(s)
+    return re.sub(r"\s{2,}", " ", " ".join(vals)).strip(" .")
+
+
+def parse_questions_docx(content: bytes):
+    """Word request lists (e.g. bank KYC requirements): section headings as
+    paragraphs, then 2-column tables — left cell the request, right cell the
+    response template (or a given answer). Walks body order so each table lands
+    under its heading. Returns the standard shape or None."""
+    try:
+        from io import BytesIO
+        from docx import Document
+        from docx.table import Table
+        from docx.text.paragraph import Paragraph
+        from docx.oxml.ns import qn
+        doc = Document(BytesIO(content))
+    except Exception:
+        return None
+    out, section, seen = [], "", set()
+
+    def add(prompt, answer=""):
+        prompt = re.sub(r"\s{2,}", " ", prompt.replace("\n", " ")).strip(" -–")
+        if len(prompt) < 6:
+            return
+        key = section + "|" + prompt.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append({"section": section, "prompt": prompt, "kind": infer_kind(prompt), "answer": answer})
+
+    for child in doc.element.body.iterchildren():
+        if child.tag == qn("w:p"):
+            t = Paragraph(child, doc).text.strip()
+            if t and len(t) <= 70 and (t.endswith(":") or _is_heading(t)):
+                section = t.rstrip(":").strip()
+        elif child.tag == qn("w:tbl"):
+            for row in Table(child, doc).rows:
+                cells = row.cells
+                if not cells:
+                    continue
+                left = cells[0].text.strip()
+                if not left or left.lower() in ("question", "no", "no #", "item", "answer"):
+                    continue
+                # merged full-width row → sub-heading, not a request
+                if len(cells) > 1 and cells[0]._tc is cells[-1]._tc:
+                    if len(left) <= 70:
+                        section = left.rstrip(":").strip()
+                    continue
+                right = cells[-1].text.strip() if len(cells) > 1 else ""
+                add(left, _cell_answer(right))
+    return out or None
+
+
+def parse_questions_acroform(data: bytes):
+    """Fillable PDF forms (AcroForm): the widgets themselves are the items to
+    answer. Build each question from the text printed next to its field (same
+    row to the left, else directly above, else directly below — German forms
+    often label under the line); checkbox pairs (Ja/Nein) collapse onto the
+    question line above them. Sections come from numbered headings (I. / 1.)."""
+    try:
+        import fitz
+        doc = fitz.open(stream=data, filetype="pdf")
+    except Exception:
+        return None
+    widgets_total = sum(1 for pg in doc for _ in (pg.widgets() or []))
+    if widgets_total < 3:
+        return None
+    # headings: roman numerals ("I. Identifizierung …") or upper/title-case lines,
+    # NOT "2. Sind die Stimmanteile …" (numbered items are usually questions)
+    HEAD = re.compile(r"^\s*[IVX]{1,4}\.\s+\S")
+    GENERIC = re.compile(r"(?i)^(?:text|check\s*box|kontrollk[äa]stchen|feld|field|untitled|unbenannt)?[\s_\-]*\d*$")
+    YESNO = re.compile(r"(?i)^\s*(?:ja|nein|yes|no)\b[\s:.]*(?:\(.*\))?\s*$")
+    out, seen, section = [], set(), ""
+
+    def add(prompt, kind):
+        prompt = re.sub(r"[_\s]{2,}", " ", prompt).strip(" :;-–_")
+        prompt = re.sub(r"Row\d+$", "", prompt).strip()      # form-field artefacts
+        if len(prompt) < 4:
+            return
+        if prompt[0].islower() and len(prompt) < 40:          # wrapped-line fragment
+            return
+        if re.match(r"^\d+\s", prompt) and len(prompt) < 40:  # footnote ("1 Vgl. …")
+            return
+        key = prompt.lower()
+        # near-duplicates from checkbox pairs: one label often contains the other
+        if any(key in k or k in key for k in seen):
+            return
+        seen.add(key)
+        out.append({"section": section, "prompt": prompt, "kind": kind, "answer": ""})
+
+    for page in doc:
+        widgets = sorted((page.widgets() or []), key=lambda w: (round(w.rect.y0), w.rect.x0))
+        if not widgets:
+            continue
+        words = page.get_text("words")
+        # words grouped into visual lines
+        lines = []
+        for w in sorted(words, key=lambda w: (round(w[1] / 4), w[0])):
+            if lines and abs(w[1] - lines[-1][0]) < 4:
+                lines[-1][2].append(w)
+            else:
+                lines.append([w[1], w[3], [w]])
+        vlines = [(y0, y1, " ".join(t[4] for t in toks)) for y0, y1, toks in lines]
+
+        def nearby(r):
+            same = [t[4] for t in words if t[2] <= r.x0 + 2 and r.x0 - t[2] < 260
+                    and t[1] < r.y1 - 1 and t[3] > r.y0 + 1]
+            if same:
+                return " ".join(same)
+            # up to two wrapped label lines directly above, in reading order
+            above = sorted((t for t in words if t[3] <= r.y0 + 2 and r.y0 - t[3] < 30
+                            and t[0] > r.x0 - 200 and t[2] < r.x1 + 200),
+                           key=lambda t: (round(t[1] / 4), t[0]))
+            if above:
+                return " ".join(t[4] for t in above)
+            below = [t[4] for t in words if t[1] >= r.y1 - 2 and t[1] - r.y1 < 14
+                     and t[0] > r.x0 - 180 and t[2] < r.x1 + 180]
+            return " ".join(below)
+
+        for w in widgets:
+            r = w.rect
+            # running section: nearest heading line above the widget
+            heads = [t for (y0, y1, t) in vlines if y1 <= r.y0 and HEAD.match(t) and len(t) <= 90]
+            if heads:
+                section = re.sub(r"^\s*(?:[IVX]{1,4}\.|\d{1,2}\.)\s*", "", heads[-1]).strip()
+            label = nearby(r)
+            name = (w.field_name or "").strip()
+            if not label and not GENERIC.match(name):
+                label = name.replace("_", " ")
+            import fitz as _f
+            is_box = w.field_type == _f.PDF_WIDGET_TYPE_CHECKBOX
+            if is_box and YESNO.match(label or ""):
+                # Ja/Nein pair → the question is the text just above (join up to
+                # two wrapped lines so the full sentence survives)
+                cand = [(y0, t) for (y0, y1, t) in vlines if y1 <= r.y0 + 2 and len(t) > 12
+                        and not YESNO.match(t)]
+                if cand:
+                    qlines = [t for _, t in cand[-2:]]
+                    if len(qlines) == 2 and cand[-1][0] - cand[-2][0] > 30:
+                        qlines = qlines[-1:]          # not adjacent → single line
+                    add(" ".join(qlines), "yesno")
+                continue
+            if label:
+                add(label, "yesno" if is_box else infer_kind(label))
+    return out or None
+
+
 def docx_qa_pairs(content: bytes):
     """Extract (question, answer) pairs from an already-answered Word
     questionnaire — Question/Answer tables and question→answer paragraph pairs —
@@ -366,7 +546,15 @@ def docx_qa_pairs(content: bytes):
 def parse_document(raw_text: str, filename: str = "", content: bytes = b""):
     """Pick the best extractor: table structure for PDFs, then model, then the
     text reflow heuristic."""
-    if (filename or "").lower().endswith(".pdf") and content:
+    name = (filename or "").lower()
+    if name.endswith(".docx") and content:
+        d = parse_questions_docx(content)             # request lists in 2-col tables
+        if d and len(d) >= 3:
+            return d
+    if name.endswith(".pdf") and content:
+        af = parse_questions_acroform(content)        # fillable form → fields are the items
+        if af and len(af) >= 5:
+            return af
         md = parse_questions_markdown(content)        # layout-aware, best for tables
         if md and len(md) >= 5:
             return md

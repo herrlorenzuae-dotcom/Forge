@@ -31,8 +31,13 @@ RULES = [
 
 
 def classify_field(prompt: str) -> dict:
+    """Classify on the question HEAD (text before the first colon) when it is
+    substantial: long request items often carry an explanatory tail ("… as per
+    the Commercial Register …") whose keywords would misroute the whole item."""
+    head = prompt.split(":", 1)[0].strip()
+    text = head if len(head) >= 40 else prompt
     for pat, field, channel, source in RULES:
-        if re.search(pat, prompt, re.I):
+        if re.search(pat, text, re.I):
             return {"fieldType": field, "channel": channel, "source": source}
     return {"fieldType": "other", "channel": "request", "source": "Manual entry (to clarify)"}
 

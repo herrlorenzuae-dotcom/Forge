@@ -18,7 +18,14 @@ from ..db import db, rows, one
 STOP = {"the", "of", "a", "an", "is", "are", "to", "for", "and", "or", "in",
         "on", "any", "all", "each", "please", "provide", "entity", "contracting",
         "this", "that", "with", "as", "be", "your", "you", "do", "does", "has",
-        "have", "what", "which", "who", "name"}
+        "have", "what", "which", "who", "name",
+        "below", "information", "kindly", "confirm", "correct", "attached",
+        "relevant", "return", "complete", "via", "if", "not", "form",
+        # German
+        "der", "die", "das", "und", "oder", "ein", "eine", "einer", "eines",
+        "des", "dem", "den", "ist", "sind", "bitte", "sie", "ihre", "ihren",
+        "von", "vom", "zur", "zum", "nach", "bei", "mit", "auf", "aus", "im",
+        "für", "sowie", "sofern", "vorhanden", "geben", "an"}
 
 
 def _norm(s: str) -> str:
@@ -58,7 +65,7 @@ def _best(label: str, answered):
         s = (cov + cov2) / 2
         if s > score:
             best, score = (prompt, val, kind), s
-    return best if score >= 0.45 else None
+    return best if score >= 0.6 else None
 
 
 # ── PDF AcroForm ──
@@ -187,18 +194,30 @@ def fill_docx(content: bytes, answered) -> bytes | None:
                 filled += 1
                 break
 
-    # 2) Question/Answer tables: first cell = question, fill an empty later cell
+    # 2) Question/Answer tables: first cell = question. The parse built its
+    #    prompts from these same cells, so match EXACTLY first (normalised
+    #    text) and only fall back to fuzzy for foreign templates. Fill an empty
+    #    response cell directly; a template cell ("Confirmed: / Provided:")
+    #    gets the answer appended underneath so the scaffolding stays intact.
+    def _normtxt(s):
+        return re.sub(r"\s+", " ", (s or "").replace("\n", " ")).strip(" -–").lower()
+    exact = {_normtxt(p): (p, v, k) for p, v, k, _ in answered}
     for tbl in doc.tables:
         for row in tbl.rows:
             cells = row.cells
-            if len(cells) < 2:
+            if len(cells) < 2 or cells[0]._tc is cells[-1]._tc:   # merged heading row
                 continue
-            m = _best(cells[0].text, answered)
+            m = exact.get(_normtxt(cells[0].text)) or _best(cells[0].text, answered)
             if not m:
                 continue
             target = next((c for c in cells[1:] if not c.text.strip()), cells[-1])
             if not target.text.strip():
                 _docx_set(target.paragraphs[0], m[1])
+                filled += 1
+            elif m[1] not in target.text:                          # append, don't overwrite
+                p = target.add_paragraph()
+                run = p.add_run(f"→ {m[1]}")
+                run.bold = True
                 filled += 1
 
     # 3) Question paragraphs: write the answer into the next empty paragraph
