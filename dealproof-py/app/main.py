@@ -38,7 +38,14 @@ def _startup():
 
 
 def ctx(request, **kw):
-    return {"request": request, "has_key": config.HAS_KEY, **kw}
+    out = {"request": request, "has_key": config.HAS_KEY, **kw}
+    # The guided step rail renders on EVERY page that has a project in context —
+    # injected here centrally so no route can forget it.
+    p = kw.get("project")
+    if p and "wf" not in kw:
+        step_key = {"data": "data", "structure": "structure", "deliver": "deliver"}.get(kw.get("active", ""), "")
+        out["wf"] = workflow.steps(p["id"], step_key)
+    return out
 
 
 def extract_text(filename: str, data: bytes) -> str:
