@@ -13,6 +13,7 @@ from .engine import projects as proj
 from .engine import spa as spa_engine
 from .engine import transparency
 from .engine import profile as profile_engine
+from .engine import workflow
 from .engine import export as exporter
 from .engine.structure import get_structure
 from .engine.orgchart import build_orgchart, render_svg, default_subject
@@ -116,7 +117,7 @@ def delete_project(pid: str):
 def profile_page(request: Request, pid: str, pulled: int = Query(None)):
     return templates.TemplateResponse(request, "profile.html", ctx(request,
         active="data", project=proj.get_project(pid),
-        profile=profile_engine.get_profile(pid), pulled=pulled))
+        profile=profile_engine.get_profile(pid), pulled=pulled, wf=workflow.steps(pid, "data")))
 
 
 @app.post("/projects/{pid}/profile")
@@ -140,7 +141,8 @@ def project_page(request: Request, pid: str):
     if not project:
         return RedirectResponse("/")
     return templates.TemplateResponse(request, "project.html",
-        ctx(request, active="project", project=project, documents=proj.list_documents(pid)))
+        ctx(request, active="project", project=project, documents=proj.list_documents(pid),
+            wf=workflow.steps(pid)))
 
 
 @app.post("/projects/{pid}/documents")
@@ -162,7 +164,8 @@ def analysis_page(request: Request, pid: str, qid: str):
     return templates.TemplateResponse(request, "analysis.html", ctx(request,
         active="project", project=proj.get_project(pid), qn=one_qn(qid), questions=rows_questions(qid),
         analysis=build_analysis(qid), coverage=build_coverage(qid), fillable=templatefill.is_fillable(qid),
-        requests=reqs.list_requests(pid), request_text=reqs.render_request_list(pid)))
+        requests=reqs.list_requests(pid), request_text=reqs.render_request_list(pid),
+        wf=workflow.steps(pid, "answers")))
 
 
 @app.get("/projects/{pid}/analysis/{qid}/export.docx")
@@ -241,7 +244,7 @@ def structure_page(request: Request, pid: str, view: str = Query("excerpt"), sub
         active="structure", project=proj.get_project(pid), structure=get_structure(pid),
         chart=chart, chart_svg=render_svg(pid, subject=subj, excerpt=excerpt),
         view=view, subject=subj, spec=spa_engine.structure_to_spec(pid),
-        other_projects=other_projects))
+        other_projects=other_projects, wf=workflow.steps(pid, "structure")))
 
 
 @app.post("/projects/{pid}/structure")
@@ -314,6 +317,24 @@ def export_structure_xlsx(pid: str):
     body = exporter.structure_xlsx(pid)
     return Response(body, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": f'attachment; filename="structure-{pid}.xlsx"'})
+
+
+# ── Deliver (final step: filled original + chart files) ──
+@app.get("/projects/{pid}/deliver", response_class=HTMLResponse)
+def deliver_page(request: Request, pid: str):
+    with db() as con:
+        qn = one(con, "SELECT * FROM questionnaires WHERE client_id=? ORDER BY created_at DESC LIMIT 1", (pid,))
+        stats = {"answered": 0, "total": 0, "manual": 0, "entities": 0}
+        if qn:
+            stats["total"] = one(con, "SELECT COUNT(*) c FROM questions WHERE questionnaire_id=?", (qn["id"],))["c"]
+            stats["answered"] = one(con, """SELECT COUNT(*) c FROM answers a JOIN questions q ON q.id=a.question_id
+                                            WHERE q.questionnaire_id=? AND a.value!=''""", (qn["id"],))["c"]
+            stats["manual"] = one(con, "SELECT COUNT(*) c FROM info_requests WHERE questionnaire_id=?", (qn["id"],))["c"]
+        stats["entities"] = one(con, "SELECT COUNT(*) c FROM entities WHERE client_id=?", (pid,))["c"]
+    return templates.TemplateResponse(request, "deliver.html", ctx(request,
+        active="deliver", project=proj.get_project(pid), qn=qn, stats=stats,
+        fillable=templatefill.is_fillable(qn["id"]) if qn else False,
+        wf=workflow.steps(pid, "deliver")))
 
 
 # ── Brain (cross-project memory) ──

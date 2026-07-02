@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Deliver{% endblock %}
+{% block content %}
+<div>
+  <a href="/projects/{{ project.id }}" class="small" style="color:var(--blue); font-weight:600">← {{ project.name }}</a>
+  <p class="eyebrow" style="margin:6px 0 0">Final step</p>
+  <h1 class="h1" style="font-size:30px">Deliver</h1>
+  <p class="lead">Everything that goes back out: the bank's own questionnaire with the answers filled in, and the structure chart as an image or PDF.</p>
+</div>
+
+<section class="card card-pad">
+  <div class="row" style="gap:28px; flex-wrap:wrap">
+    <div><div class="muted small">Questions answered</div>
+      <div class="mono" style="font-size:22px; font-weight:700; color:{{ 'var(--teal)' if stats.total and stats.answered==stats.total else 'var(--blue)' }}">{{ stats.answered }} / {{ stats.total }}</div></div>
+    <div><div class="muted small">Flagged for manual input</div>
+      <div class="mono" style="font-size:22px; font-weight:700">{{ stats.manual }}</div></div>
+    <div><div class="muted small">Entities in the chart</div>
+      <div class="mono" style="font-size:22px; font-weight:700">{{ stats.entities }}</div></div>
+  </div>
+  {% if qn and stats.answered < stats.total %}
+  <p class="muted small" style="margin:12px 0 0">Not everything is answered yet — you can still export now, or go back to <a href="/projects/{{ project.id }}/analysis/{{ qn.id }}" style="color:var(--blue)">Answers</a> first. Unanswered items appear as “to be added manually”.</p>
+  {% endif %}
+</section>
+
+{% if qn %}
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:6px">1 · The filled questionnaire</h2>
+  <p class="muted small" style="margin:0 0 12px">{{ qn.title }}{% if fillable %} — the answers are written back into the original file itself.{% else %} — the original is not fillable in place (flat/scanned file), so DealProof generates a clean completed version instead.{% endif %}</p>
+  <div class="row">
+    {% if fillable %}
+    <a class="btn" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/fill"><span class="icon">edit_document</span> Fill the original document</a>
+    <span class="muted small">or generated:</span>
+    {% endif %}
+    <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/export.docx"><span class="icon">description</span> Word</a>
+    <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/export.pdf"><span class="icon">picture_as_pdf</span> PDF</a>
+    <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/analysis/{{ qn.id }}/export.xlsx"><span class="icon">table</span> Excel</a>
+  </div>
+</section>
+{% else %}
+<section class="card card-pad">
+  <h2 class="card-title">1 · The filled questionnaire</h2>
+  <p class="muted small" style="margin:6px 0 0">No questionnaire uploaded yet — start at <a href="/projects/{{ project.id }}" style="color:var(--blue)">the project page</a>.</p>
+</section>
+{% endif %}
+
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:6px">2 · The structure chart</h2>
+  {% if stats.entities > 0 %}
+  <p class="muted small" style="margin:0 0 12px">As shown on the <a href="/projects/{{ project.id }}/structure" style="color:var(--blue)">Structure</a> page — excerpt (strand up to the UBOs) or the full chart.</p>
+  <div class="row" style="gap:18px; flex-wrap:wrap">
+    <div>
+      <div class="muted small" style="margin-bottom:6px">Excerpt → UBOs</div>
+      <div class="row" style="gap:4px">
+        <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/structure.png?view=excerpt"><span class="icon">image</span> PNG</a>
+        <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/structure.pdf?view=excerpt"><span class="icon">picture_as_pdf</span> PDF</a>
+      </div>
+    </div>
+    <div>
+      <div class="muted small" style="margin-bottom:6px">Full structure</div>
+      <div class="row" style="gap:4px">
+        <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/structure.png?view=full"><span class="icon">image</span> PNG</a>
+        <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/structure.pdf?view=full"><span class="icon">picture_as_pdf</span> PDF</a>
+        <a class="btn-ghost btn-sm" href="/projects/{{ project.id }}/structure.xlsx"><span class="icon">table</span> Excel tables</a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted small" style="margin:6px 0 0">No structure yet — build it on the <a href="/projects/{{ project.id }}/structure" style="color:var(--blue)">Structure</a> page (import an SPA, take over an existing chart, or paste the chain).</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -23,6 +23,7 @@
       <a href="/projects/{{ project.id }}" class="{{ 'active' if active=='project' else '' }}">Overview</a>
       <a href="/projects/{{ project.id }}/profile" class="{{ 'active' if active=='data' else '' }}">Data</a>
       <a href="/projects/{{ project.id }}/structure" class="{{ 'active' if active=='structure' else '' }}">Structure</a>
+      <a href="/projects/{{ project.id }}/deliver" class="{{ 'active' if active=='deliver' else '' }}">Deliver</a>
       {% endif %}
       <a href="/brain" class="{{ 'active' if active=='brain' else '' }}">KYC Brain</a>
     </nav>
@@ -32,6 +33,23 @@
     </span>
   </div>
 </header>
+{% if wf %}
+<div class="steps-rail-wrap">
+  <div class="wrap">
+    <ol class="steps-rail">
+      {% for s in wf %}
+      <li class="step {{ 'done' if s.done }} {{ 'current' if s.current }}">
+        <a href="{{ s.href }}">
+          <span class="step-dot">{% if s.done %}<span class="icon" style="font-size:14px">check</span>{% else %}{{ loop.index }}{% endif %}</span>
+          <span class="step-text"><span class="step-label">{{ s.label }}</span><span class="step-meta">{{ s.meta }}</span></span>
+        </a>
+        {% if not loop.last %}<span class="step-line"></span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+{% endif %}
 <main class="wrap stack">
   {% block content %}{% endblock %}
 </main>
