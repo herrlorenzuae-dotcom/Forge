@@ -116,10 +116,25 @@ def _demo_word(text: str) -> bytes:
     return bio.getvalue()
 
 
+# UBO legal basis for the demo, as a real Transparenzregister extract would
+# state it: (entity name, Art des wirtschaftlichen Interesses, Umfang)
+UBO_BASIS = {
+    "Dr. Anna Vogt": ("Beteiligung an der Vereinigung, Höhe der Kapitalanteile (§ 19 Abs. 3 Nr. 1a GwG)", "28 %"),
+    "Maximilian Stein": ("Ausübung von Kontrolle auf sonstige Weise als Managing Partner der Cedar Verwaltungs GmbH", ""),
+}
+
+
 def seed_demo() -> None:
     with db() as con:
-        if one(con, "SELECT 1 FROM clients WHERE id=?", (DEMO_ID,)):
-            return
+        existing = one(con, "SELECT 1 FROM clients WHERE id=?", (DEMO_ID,))
+        current = one(con, "SELECT 1 FROM ubos WHERE client_id=? AND note!='' LIMIT 1", (DEMO_ID,)) if existing else None
+    if existing and current:
+        return
+    if existing:
+        # seeded by an OLDER version (no UBO legal-basis notes) → refresh once,
+        # so pulled updates are actually visible in the demo
+        projects.delete_project(DEMO_ID)
+    with db() as con:
         con.execute("""INSERT INTO clients (id, name, subject_company, register_no, portfolio_company, status, updated_at)
                        VALUES (?,?,?,?,?, 'open', datetime('now'))""",
                     (DEMO_ID, DEMO_NAME, "Cedar BidCo S.à r.l.", "RCS Luxembourg B 271 904",
@@ -133,6 +148,14 @@ def seed_demo() -> None:
             if row:
                 con.execute("INSERT INTO entity_attributes (id, entity_id, key, value, source, as_of) VALUES (?,?,?,?,?, date('now'))",
                             (gen_id("attr"), row["id"], key, value, src))
+        # UBO records carry the legal basis (§ note), exactly like a register import
+        from .engine.ubolaw import classify_extent
+        for ent_name, (art, umfang) in UBO_BASIS.items():
+            row = one(con, "SELECT id FROM entities WHERE client_id=? AND name=?", (DEMO_ID, ent_name))
+            if row:
+                c = classify_extent(art, umfang)
+                con.execute("UPDATE ubos SET basis=?, pct=?, note=? WHERE client_id=? AND entity_id=?",
+                            (c["basis"], c["pct"], c["note"], DEMO_ID, row["id"]))
 
     for prompt, value, n in BRAIN:
         for _ in range(n):
