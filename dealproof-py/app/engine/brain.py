@@ -59,13 +59,20 @@ def learn_from_document(filename: str, content: bytes, raw_text: str = "") -> di
     beneficial owners are learned under the company they belong to.
     Returns {total, learned, skipped[, kind, company]}."""
     from .intake import parse_document, docx_qa_pairs
-    from . import transparency
+    from . import transparency, chartpdf
+    # a drawn structure chart is structural data, not Q&A — recognise it and
+    # point the user to the right place instead of "learning 0 answers"
+    if (filename or "").lower().endswith(".pdf") and content and chartpdf.is_chart_pdf(content):
+        spec = chartpdf.extract_spec(content) or {"entities": [], "edges": []}
+        return {"total": len(spec["edges"]), "learned": len(spec["entities"]),
+                "skipped": 0, "kind": "structurechart", "company": ""}
     if raw_text and transparency.is_tr_extract(raw_text):
         ubos = transparency.extract_ubos(raw_text)
-        company = transparency.tr_company(raw_text)
-        transparency.learn_ubos_into_brain(ubos, company=company)
-        return {"total": len(ubos), "learned": len(ubos) if company or ubos else 0,
-                "skipped": 0, "kind": "transparenzregister", "company": company}
+        if ubos:                                   # a blank UBO form falls through
+            company = transparency.tr_company(raw_text)
+            transparency.learn_ubos_into_brain(ubos, company=company)
+            return {"total": len(ubos), "learned": len(ubos),
+                    "skipped": 0, "kind": "transparenzregister", "company": company}
     name = (filename or "").lower()
     if name.endswith(".docx") and content:
         pairs = docx_qa_pairs(content)

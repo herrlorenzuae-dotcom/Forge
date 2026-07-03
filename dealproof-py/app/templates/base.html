@@ -25,6 +25,12 @@
       <span class="dot" style="background: {{ '#00b2a9' if has_key else '#005eb8' }}"></span>
       {{ 'Model ready' if has_key else 'Brain-only' }}
     </span>
+    {% if tenant %}
+    <span class="statuschip" title="Signed-in client (Mandant) — all data, including the KYC Brain, is kept separately per client">
+      <span class="icon" style="font-size:14px">business</span> {{ tenant.name }}
+      <a href="/logout" style="margin-left:6px; color:var(--fog); text-decoration:none" title="Sign out"><span class="icon" style="font-size:14px">logout</span></a>
+    </span>
+    {% endif %}
   </div>
 </header>
 {% if wf %}

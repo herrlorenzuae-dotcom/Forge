@@ -30,34 +30,73 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="
 templates = Jinja2Templates(directory=os.path.join(BASE, "templates"))
 
 
-# ── Optional access protection (set DEALPROOF_PASSWORD to enable) ──
-def _auth_token() -> str:
+# ── Tenant (Mandant) login: every session belongs to one tenant, and each
+# tenant works on its OWN database file — projects, structures and the KYC
+# Brain never cross tenants. The mock login is designed to be swapped for SSO
+# or real user accounts later (only this block changes).
+def _tenant_by_slug(slug: str):
+    return next((t for t in config.TENANTS if t["slug"] == slug), None)
+
+
+def _tenant_token(t) -> str:
     import hashlib
-    return hashlib.sha256(("dealproof:" + config.PASSWORD).encode()).hexdigest()
+    return hashlib.sha256(f"dealproof:{t['slug']}:{t['password']}".encode()).hexdigest()
+
+
+def _init_tenant(t) -> str:
+    """Point this request at the tenant's database, creating it on first use."""
+    os.makedirs(config.DATA_DIR, exist_ok=True)
+    path = config.tenant_db_path(t["slug"])
+    from .db import set_db_path
+    set_db_path(path)
+    if path not in _initialized_dbs:
+        init_db()
+        from .demo import seed_demo
+        seed_demo()
+        _initialized_dbs.add(path)
+    return path
+
+
+_initialized_dbs = set()
 
 
 @app.middleware("http")
-async def _require_login(request: Request, call_next):
-    if config.PASSWORD:
-        path = request.url.path
-        open_paths = path.startswith("/static") or path in ("/login", "/api/health")
-        if not open_paths and request.cookies.get("dp_auth") != _auth_token():
-            return RedirectResponse("/login", status_code=303)
+async def _require_tenant(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/static") or path in ("/login", "/api/health"):
+        return await call_next(request)
+    t = _tenant_by_slug(request.cookies.get("dp_tenant", ""))
+    if not t or request.cookies.get("dp_auth") != _tenant_token(t):
+        return RedirectResponse("/login", status_code=303)
+    _init_tenant(t)
+    request.state.tenant = t
     return await call_next(request)
 
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"request": request, "error": ""})
+    return templates.TemplateResponse(request, "login.html",
+        {"request": request, "error": "", "tenants": config.TENANTS})
 
 
 @app.post("/login")
-async def do_login(request: Request, password: str = Form("")):
-    if config.PASSWORD and password == config.PASSWORD:
+async def do_login(request: Request, tenant: str = Form(""), password: str = Form("")):
+    t = _tenant_by_slug(tenant) or (config.TENANTS[0] if len(config.TENANTS) == 1 else None)
+    if t and password == t["password"]:
         resp = RedirectResponse("/", status_code=303)
-        resp.set_cookie("dp_auth", _auth_token(), httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30)
+        resp.set_cookie("dp_tenant", t["slug"], httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30)
+        resp.set_cookie("dp_auth", _tenant_token(t), httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30)
         return resp
-    return templates.TemplateResponse(request, "login.html", {"request": request, "error": "Wrong password."})
+    return templates.TemplateResponse(request, "login.html",
+        {"request": request, "error": "Wrong password.", "tenants": config.TENANTS})
+
+
+@app.get("/logout")
+def logout():
+    resp = RedirectResponse("/login", status_code=303)
+    resp.delete_cookie("dp_tenant")
+    resp.delete_cookie("dp_auth")
+    return resp
 
 
 @app.on_event("startup")
@@ -68,7 +107,8 @@ def _startup():
 
 
 def ctx(request, **kw):
-    out = {"request": request, "has_key": config.HAS_KEY, **kw}
+    out = {"request": request, "has_key": config.HAS_KEY,
+           "tenant": getattr(request.state, "tenant", None), **kw}
     # The guided step rail renders on EVERY page that has a project in context —
     # injected here centrally so no route can forget it. The highlighted step is
     # the page the user is ON (the Overview hosts steps 1+2: highlight Project
@@ -409,13 +449,15 @@ def mark_reviewed(pid: str, qid: str, reviewer: str = Form(...)):
     return RedirectResponse(f"/projects/{pid}/deliver?qn_id={qid}", status_code=303)
 
 
-# ── Backup ──
+# ── Backup (per tenant — the file IS the tenant's complete data) ──
 @app.get("/backup")
-def backup():
+def backup(request: Request):
     from datetime import date
-    data = open(config.DB_PATH, "rb").read()
+    from .db import current_db_path
+    slug = getattr(request.state, "tenant", {}).get("slug", "workspace")
+    data = open(current_db_path(), "rb").read()
     return Response(data, media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="dealproof-backup-{date.today().isoformat()}.db"'})
+        headers={"Content-Disposition": f'attachment; filename="dealproof-{slug}-{date.today().isoformat()}.db"'})
 
 
 # ── Brain (cross-project memory) ──

@@ -132,8 +132,11 @@ _TR_BLOCK = re.compile(
 
 
 def is_tr_extract(text: str) -> bool:
+    """The OFFICIAL register extract — not just any document that mentions the
+    register (a blank UBO questionnaire does too)."""
     t = text.lower()
-    return "transparenzregister" in t and ("wirtschaftlich berechtigt" in t or "§ 19 gwg" in t)
+    return ("auszug aus dem transparenzregister" in t
+            or ("transparenzregister" in t and "angaben zu wirtschaftlich berechtigten" in t))
 
 
 def tr_company(text: str) -> str:

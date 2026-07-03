@@ -3,8 +3,23 @@
 questionnaires map onto it; finalized answers fold into the KYC Brain."""
 import sqlite3
 import secrets
+import contextvars
 from contextlib import contextmanager
 from . import config
+
+# The active database file — one per tenant (Mandant). The middleware sets it
+# per request; contextvars survive Starlette's threadpool, so every db() call
+# in the request works on the tenant's own file (projects, structures AND the
+# Brain are strictly tenant-scoped).
+_db_path = contextvars.ContextVar("dealproof_db_path", default=config.DB_PATH)
+
+
+def set_db_path(path: str) -> None:
+    _db_path.set(path)
+
+
+def current_db_path() -> str:
+    return _db_path.get()
 
 SCHEMA = """
 -- A "project" is one KYC matter (named by the user, persisted, reopenable).
@@ -72,7 +87,7 @@ def gen_id(prefix: str) -> str:
 
 
 def connect() -> sqlite3.Connection:
-    con = sqlite3.connect(config.DB_PATH)
+    con = sqlite3.connect(current_db_path())
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con

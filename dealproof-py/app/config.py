@@ -54,6 +54,37 @@ YSOLUTIONS_ENABLED = bool(YSOLUTIONS_BASE_URL and YSOLUTIONS_API_KEY)
 MOCK_CONNECTORS = os.environ.get("DEALPROOF_MOCK_CONNECTORS", "1") == "1"
 CONNECTOR_TIMEOUT = float(os.environ.get("DEALPROOF_CONNECTOR_TIMEOUT", "8"))
 
-# Optional access protection: set DEALPROOF_PASSWORD to require a login.
-# Unset (default) = open, for local single-user use.
+# ── Tenants (Mandanten) ────────────────────────────────────────────────────
+# Every session belongs to ONE tenant; each tenant gets its own database file
+# (projects, structures AND the KYC Brain are strictly per tenant). Configure
+# via DEALPROOF_TENANTS="Name:password,Other:pw2". This is the mock login —
+# the login layer is designed to be swapped for SSO / real accounts later.
+# Legacy DEALPROOF_PASSWORD maps to a single "Workspace" tenant; with nothing
+# configured a "Demo" tenant (password "demo") keeps local use working.
 PASSWORD = os.environ.get("DEALPROOF_PASSWORD", "")
+
+
+def _parse_tenants():
+    raw = os.environ.get("DEALPROOF_TENANTS", "").strip()
+    out = []
+    for part in raw.split(","):
+        if ":" in part:
+            name, pw = part.split(":", 1)
+            if name.strip() and pw.strip():
+                out.append({"name": name.strip(), "password": pw.strip()})
+    if not out and PASSWORD:
+        out = [{"name": "Workspace", "password": PASSWORD}]
+    if not out:
+        out = [{"name": "Demo", "password": "demo"}]
+    import re as _re
+    for t in out:
+        t["slug"] = _re.sub(r"[^a-z0-9]+", "-", t["name"].lower()).strip("-") or "tenant"
+    return out
+
+
+TENANTS = _parse_tenants()
+DATA_DIR = os.environ.get("DEALPROOF_DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data"))
+
+
+def tenant_db_path(slug: str) -> str:
+    return os.path.join(DATA_DIR, f"{slug}.db")

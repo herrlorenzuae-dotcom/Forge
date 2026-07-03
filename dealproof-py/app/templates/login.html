@@ -14,12 +14,24 @@
     <span class="name">DealProof</span>
   </div>
   <form method="post" action="/login">
+    {% if tenants|length > 1 %}
+    <label class="formfield" style="margin-bottom:12px">
+      <span class="field-label">Client (Mandant)</span>
+      <select name="tenant">
+        {% for t in tenants %}<option value="{{ t.slug }}">{{ t.name }}</option>{% endfor %}
+      </select>
+    </label>
+    {% else %}
+    <input type="hidden" name="tenant" value="{{ tenants[0].slug }}"/>
+    <p class="muted small" style="margin:0 0 12px">Client: <b>{{ tenants[0].name }}</b></p>
+    {% endif %}
     <label class="formfield">
       <span class="field-label">Password</span>
       <input type="password" name="password" autofocus/>
     </label>
     {% if error %}<p class="small" style="color:var(--red); margin:8px 0 0">{{ error }}</p>{% endif %}
     <div style="margin-top:14px"><button class="btn" style="width:100%">Sign in</button></div>
+    <p class="muted" style="font-size:11px; margin:14px 0 0">Each client works in its own separate data store — projects, structures and the KYC Brain never cross clients.</p>
   </form>
 </div>
 </body>
