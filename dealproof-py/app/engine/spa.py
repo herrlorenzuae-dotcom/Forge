@@ -20,7 +20,7 @@ from ..db import db, gen_id
 from .. import config, llm
 from .. import anonymize
 
-LEGAL = r"(?:GmbH & Co\. KG|GmbH & Co\. KGaA|GmbH|gGmbH|AG|KGaA|KG|S\.à r\.l\.|S\.A\.|S\.C\.S\.|SE & Co\. KG|SE|B\.V\.|N\.V\.|Ltd\.?|LLC|L\.P\.|LP|Holding|Beteiligungs[\wäöü-]*)"
+LEGAL = r"(?:GmbH & Co\. KG|GmbH & Co\. KGaA|GmbH|gGmbH|mbH|AG|KGaA|KG|S\.à r\.l\.|S\.A\.|S\.C\.S\.|SE & Co\. KG|SE|B\.V\.|N\.V\.|Ltd\.?|LLC|L\.P\.|LP|Holding|Beteiligungs[\wäöü-]*|Verwaltungs[\wäöü-]*|Inc\.?)"
 EDGE_RE = re.compile(r"^\s*(?P<a>.+?)\s*-+>\s*(?P<b>.+?)\s*:\s*(?P<rel>.+?)\s*$")
 PCT_RE = re.compile(r"(\d{1,3}(?:[.,]\d+)?)\s*%")
 
@@ -56,7 +56,10 @@ def parse_structure_spec(text: str) -> dict:
         if not m:
             continue
         a, b, rel = ent(m["a"]), ent(m["b"]), m["rel"].strip()
-        if rel.lower().startswith("control"):
+        if rel.lower().startswith("attribution"):
+            edges.append({"parent": a, "child": b, "pct": 0.0, "kind": "attribution",
+                          "mechanism": "per Transparenzregister"})
+        elif rel.lower().startswith("control"):
             mech = re.search(r"\((.*?)\)", rel)
             edges.append({"parent": a, "child": b, "pct": 0.0, "kind": "control",
                           "mechanism": (mech.group(1).strip() if mech else "General partner (Komplementär)")})
@@ -107,7 +110,9 @@ def structure_to_spec(project_id: str) -> str:
     lines = []
     for e in s["edges"]:
         a, b = name.get(e["parent_id"], "?"), name.get(e["child_id"], "?")
-        if e["kind"] == "control":
+        if e["kind"] == "attribution":
+            lines.append(f"{a} -> {b} : attribution (per Transparenzregister)")
+        elif e["kind"] == "control":
             lines.append(f"{a} -> {b} : control ({e['mechanism'] or 'General partner / Komplementär'})")
         else:
             pct = (str(int(e["pct"])) if float(e["pct"]).is_integer() else f"{e['pct']}")
@@ -128,8 +133,11 @@ def apply_structure(project_id: str, spec: dict) -> dict:
         ids = {}
         for e in spec["entities"]:
             eid = gen_id("ent"); ids[e["name"]] = eid
-            con.execute("INSERT INTO entities (id, client_id, name, kind, role, as_of) VALUES (?,?,?,?,?, date('now'))",
-                        (eid, project_id, e["name"], e["kind"], e.get("role", "other")))
+            con.execute("INSERT INTO entities (id, client_id, name, kind, role, registration_no, as_of) VALUES (?,?,?,?,?,?, date('now'))",
+                        (eid, project_id, e["name"], e["kind"], e.get("role", "other"), e.get("registration_no", "")))
+            if e.get("directors"):
+                con.execute("INSERT INTO entity_attributes (id, entity_id, key, value, source, as_of) VALUES (?,?,?,?,?, date('now'))",
+                            (gen_id("attr"), eid, "Directors", "; ".join(e["directors"]), "chart import"))
         for e in spec["edges"]:
             if e["parent"] in ids and e["child"] in ids:
                 con.execute("INSERT INTO ownership_edges (id, client_id, parent_id, child_id, pct, kind, mechanism, as_of) VALUES (?,?,?,?,?,?,?, date('now'))",
@@ -160,8 +168,11 @@ def merge_structure(project_id: str, spec: dict, attach_to: str = "", attach_rel
             if key in ids:
                 continue
             eid = gen_id("ent"); ids[key] = eid; added_e += 1
-            con.execute("INSERT INTO entities (id, client_id, name, kind, role, as_of) VALUES (?,?,?,?,?, date('now'))",
-                        (eid, project_id, e["name"], e["kind"], e.get("role", "other")))
+            con.execute("INSERT INTO entities (id, client_id, name, kind, role, registration_no, as_of) VALUES (?,?,?,?,?,?, date('now'))",
+                        (eid, project_id, e["name"], e["kind"], e.get("role", "other"), e.get("registration_no", "")))
+            if e.get("directors"):
+                con.execute("INSERT INTO entity_attributes (id, entity_id, key, value, source, as_of) VALUES (?,?,?,?,?, date('now'))",
+                            (gen_id("attr"), eid, "Directors", "; ".join(e["directors"]), "chart import"))
         for e in spec["edges"]:
             p, c = ids.get(e["parent"].lower()), ids.get(e["child"].lower())
             if not p or not c or (p, c) in have_edge:

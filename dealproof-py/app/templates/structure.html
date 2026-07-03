@@ -16,12 +16,12 @@
   </div>
 
   <div id="tab-spa" class="tabpanel">
-  <p class="muted small" style="margin:0 0 12px">Upload an SPA{% if has_key %} (the model extracts entities, percentages and control){% endif %} — or a <b>drawn structure chart as a vector PDF</b>: boxes, percentages and connections are read geometrically, fully on this machine. The result is a draft; review it in the correction box below the chart.{% if not has_key %} Without a model key, free-text SPAs need the simple paste format below.{% endif %}</p>
+  <p class="muted small" style="margin:0 0 12px">Upload an SPA{% if has_key %} (the model extracts entities, percentages and control){% endif %} — or a <b>drawn structure chart (PowerPoint or vector PDF)</b>: boxes, percentages and connections are read geometrically, fully on this machine. The result is a draft; review it in the correction box below the chart.{% if not has_key %} Without a model key, free-text SPAs need the simple paste format below.{% endif %}</p>
   <form method="post" action="/projects/{{ project.id }}/structure" enctype="multipart/form-data">
     <label class="dropzone" id="drop" style="padding:18px">
       <span class="icon" style="font-size:24px; color:var(--blue)">description</span>
-      <span><b>Drop the SPA or chart PDF</b> or click to choose</span>
-      <input type="file" name="file" id="file" accept=".pdf,.txt,.md" style="display:none"/>
+      <span><b>Drop the SPA or a chart (PDF / PowerPoint)</b> or click to choose</span>
+      <input type="file" name="file" id="file" accept=".pdf,.pptx,.txt,.md" style="display:none"/>
       <span id="fname" class="muted small"></span>
     </label>
     <div style="margin:12px 0 6px" class="muted small">…or paste the structure:</div>
@@ -131,18 +131,46 @@ UBO: Maximilian Stein | 1979 | Zürich, CH | control (gesetzlicher Vertreter)"><
   </form>
 </section>
 
-<div class="grid2">
-  <section class="card card-pad">
-    <h3 class="card-title" style="margin-bottom:12px">Ultimate beneficial owners</h3>
-    <div class="divide">
-    {% for u in structure.ubos %}
-      <div class="row" style="justify-content:space-between; padding:8px 0">
-        <div><div style="font-weight:600">{{ u.entity_name }}</div><div class="muted small">{{ u.basis|replace('_',' ') }}{% if u.residence %} · {{ u.residence }}{% endif %}</div></div>
-        <span class="pill {{ 'red' if u.pep else 'teal' }}">{{ 'PEP' if u.pep else 'not PEP' }}</span>
+<section class="card card-pad">
+  <h3 class="card-title" style="margin-bottom:4px">Ultimate beneficial owners — and why</h3>
+  <p class="muted small" style="margin:0 0 12px">The bank-checkable derivation: the legal basis from the Transparenzregister and the strand(s) through the structure, with cumulative capital shares.</p>
+  <div class="divide">
+  {% for d in derivation %}
+    <div style="padding:12px 0">
+      <div class="row" style="justify-content:space-between">
+        <div style="font-weight:700; font-size:15px">{{ d.name }}</div>
+        <span class="pill {{ 'red' if d.pep else 'teal' }}">{{ 'PEP' if d.pep else 'not PEP' }}</span>
       </div>
-    {% else %}<p class="muted small">No beneficial owners recorded yet.</p>{% endfor %}
+      {% if d.note %}
+      <div class="small" style="margin:6px 0 0; padding:8px 10px; background:rgba(214,37,24,.05); border-left:3px solid var(--red); border-radius:0 6px 6px 0">
+        <b>UBO basis:</b> {{ d.note }}
+      </div>
+      {% endif %}
+      {% for s in d.strands %}
+      <div class="small" style="margin:8px 0 0; font-family:var(--mono); font-size:11.5px">
+        <span class="muted">Capital strand:</span>
+        {{ d.name }}{% for h in s.hops %} —{{ h.label }}→ {{ h.to }}{% endfor %}
+        {% if s.cum is not none %}<b style="color:var(--blue)"> · cumulative {{ ('%.2f'|format(s.cum)).replace('.', ',') }} %</b>{% endif %}
+      </div>
+      {% endfor %}
+      {% for s in d.control_strands %}
+      <div class="small" style="margin:8px 0 0; font-family:var(--mono); font-size:11.5px; color:#b45a08">
+        <span style="color:#b45a08; font-weight:700">Control strand:</span>
+        {{ d.name }}{% for h in s.hops %} —{{ h.label }}→ {{ h.to }}{% endfor %}
+      </div>
+      {% endfor %}
+      {% if d.attribution and not d.strands and not d.control_strands %}
+      <div class="small" style="margin:8px 0 0; color:var(--fog); font-style:italic">
+        Named per Transparenzregister — the chain is not modelled in this chart yet. Import the structure chart or SPA to show the strand.
+      </div>
+      {% endif %}
+      {% if d.residence %}<div class="muted" style="font-size:11px; margin-top:4px">{{ d.residence }}</div>{% endif %}
     </div>
-  </section>
+  {% else %}<p class="muted small">No beneficial owners recorded yet — import a Transparenzregister extract above.</p>{% endfor %}
+  </div>
+</section>
+
+<div class="grid2">
   <section class="card card-pad">
     <h3 class="card-title" style="margin-bottom:12px">Entities</h3>
     <div class="divide">

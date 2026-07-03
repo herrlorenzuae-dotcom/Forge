@@ -336,10 +336,12 @@ def structure_page(request: Request, pid: str, view: str = Query("excerpt"), sub
     excerpt = view == "excerpt"
     subj = subject or default_subject(chart["nodes"], chart["edges"])
     other_projects = [p for p in proj.list_projects() if p["id"] != pid]
+    from .engine.derivation import ubo_derivation
     return templates.TemplateResponse(request, "structure.html", ctx(request,
         active="structure", project=proj.get_project(pid), structure=get_structure(pid),
         chart=chart, chart_svg=render_svg(pid, subject=subj, excerpt=excerpt),
         view=view, subject=subj, spec=spa_engine.structure_to_spec(pid),
+        derivation=ubo_derivation(pid, subj),
         other_projects=other_projects, wf=workflow.steps(pid, "structure")))
 
 
@@ -347,12 +349,15 @@ def structure_page(request: Request, pid: str, view: str = Query("excerpt"), sub
 async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str = Form(""),
                            replace: str = Form(""), mode: str = Form("replace"),
                            attach_to: str = Form(""), attach_rel: str = Form("")):
-    from .engine import chartpdf
+    from .engine import chartpdf, pptxchart
     text, spec = pasted, None
     if file is not None and file.filename:
         data = await file.read()
-        # a DRAWN chart PDF (vector org chart) is read geometrically, fully local
-        if file.filename.lower().endswith(".pdf") and chartpdf.is_chart_pdf(data):
+        # drawn charts are read geometrically, fully local: PowerPoint decks and
+        # vector PDF charts
+        if file.filename.lower().endswith(".pptx"):
+            spec = pptxchart.extract_spec(data)
+        elif file.filename.lower().endswith(".pdf") and chartpdf.is_chart_pdf(data):
             spec = chartpdf.extract_spec(data)
         if spec is None:
             text = extract_text(file.filename, data)

@@ -5,6 +5,7 @@ from .structure import get_structure
 BLUE = "#1c86c8"; BLUE_FILL = "#d7ecfb"; INK = "#13344d"; FOG = "#6d6a63"
 RED = "#d62518"; GREEN = "#00a14b"; GREEN_FILL = "#d8f0e2"; CHART_BG = "#eef7fe"
 CONTROL = "#e8710a"   # control (general partner / Komplementär) — clearly distinct from ownership blue
+ATTR = "#8a8f98"      # attribution link ("per Transparenzregister") — a statement, not a strand
 BOX_W, BOX_H, COL, ROW, PAD = 208, 64, 244, 150, 40
 
 
@@ -33,7 +34,9 @@ def _fit_name(name: str, avail: float):
 
 def build_orgchart(client_id: str) -> dict:
     s = get_structure(client_id)
-    nodes = [{"id": e["id"], "name": e["name"], "kind": e["kind"], "role": e["role"], "jurisdiction": e["jurisdiction"]} for e in s["entities"]]
+    ubo_note = {u["entity_id"]: (u.get("note") or "") for u in s["ubos"]}
+    nodes = [{"id": e["id"], "name": e["name"], "kind": e["kind"], "role": e["role"],
+              "jurisdiction": e["jurisdiction"], "ubo_note": ubo_note.get(e["id"], "")} for e in s["entities"]]
     edges = [{"parent": e["parent_id"], "child": e["child_id"], "pct": e["pct"], "kind": e["kind"], "mechanism": e["mechanism"]}
              for e in s["edges"] if any(n["id"] == e["parent_id"] for n in nodes) and any(n["id"] == e["child_id"] for n in nodes)]
     return {"nodes": nodes, "edges": edges}
@@ -124,23 +127,26 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
     pct = lambda p: (str(int(p)) if float(p).is_integer() else f"{p:.2f}").replace(".", ",") + " %"
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" id="orgsvg" viewBox="0 0 {w} {total_h}" width="{w}" height="{total_h}" data-w="{w}" data-h="{total_h}" style="display:block;font-family:\'Hanken Grotesk\',sans-serif;background:{CHART_BG}">',
              f'<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{BLUE}"/></marker>'
-             f'<marker id="arrc" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{CONTROL}"/></marker></defs>']
+             f'<marker id="arrc" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{CONTROL}"/></marker>'
+             f'<marker id="arra" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{ATTR}"/></marker></defs>']
     for e in edges:
         if e["parent"] not in pos or e["child"] not in pos:
             continue
         ax, ay = pos[e["parent"]]; bx, by = pos[e["child"]]
         x1, y1 = ax + BOX_W / 2, ay + BOX_H; x2, y2 = bx + BOX_W / 2, by; my = (y1 + y2) / 2
         ctrl = e["kind"] == "control"
-        color = CONTROL if ctrl else BLUE
-        dash = ' stroke-dasharray="5 3"' if ctrl else ""
-        marker = "arrc" if ctrl else "arr"
+        attr = e["kind"] == "attribution"
+        color = ATTR if attr else (CONTROL if ctrl else BLUE)
+        dash = ' stroke-dasharray="2 3"' if attr else (' stroke-dasharray="5 3"' if ctrl else "")
+        marker = "arra" if attr else ("arrc" if ctrl else "arr")
         width_ = "1.6" if ctrl else "1.3"
         parts.append(f'<path d="M{x1},{y1} L{x1},{my} L{x2},{my} L{x2},{y2}" fill="none" stroke="{color}" stroke-width="{width_}"{dash} marker-end="url(#{marker})"/>')
-        label = ("Control" if ctrl else (pct(e["pct"]) if e["pct"] else ""))
+        label = ("per TR" if attr else ("Control" if ctrl else (pct(e["pct"]) if e["pct"] else "")))
         if label:
             mx = (x1 + x2) / 2
-            parts.append(f'<rect x="{mx-22}" y="{my-8}" width="44" height="16" rx="3" fill="{CHART_BG}"/>'
-                         f'<text x="{mx}" y="{my+4}" text-anchor="middle" font-size="10.5" font-weight="{700 if ctrl else 400}" fill="{CONTROL if ctrl else INK}">{escape(label)}</text>')
+            lw = 52 if attr else 44
+            parts.append(f'<rect x="{mx-lw/2}" y="{my-8}" width="{lw}" height="16" rx="3" fill="{CHART_BG}"/>'
+                         f'<text x="{mx}" y="{my+4}" text-anchor="middle" font-size="{9.5 if attr else 10.5}" font-weight="{700 if ctrl else 400}" font-style="{"italic" if attr else "normal"}" fill="{ATTR if attr else (CONTROL if ctrl else INK)}">{escape(label)}</text>')
     for n in nodes:
         x, y = pos[n["id"]]
         green = n["role"] == "target" or n["kind"] == "operating"
@@ -158,7 +164,13 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
         else:
             parts.append(f'<text x="{x+12}" y="{y+19}" font-size="{size}" font-family="\'Source Serif 4\',Georgia,serif" fill="{name_fill}">{escape(lines[0])}</text>')
             parts.append(f'<text x="{x+12}" y="{y+19+size+2}" font-size="{size}" font-family="\'Source Serif 4\',Georgia,serif" fill="{name_fill}">{escape(lines[1])}</text>')
-        parts.append(f'<text x="{x+12}" y="{y+BOX_H-9}" font-size="9" fill="{FOG}">{escape(n["jurisdiction"] or n["kind"])}</text>')
+        if n["role"] == "ubo" and n.get("ubo_note"):
+            short = n["ubo_note"].split(" — ")[0]
+            maxc = int((BOX_W - 24) / (7.6 * 0.55))
+            short = (short[:maxc - 1] + "…") if len(short) > maxc else short
+            parts.append(f'<text x="{x+12}" y="{y+BOX_H-9}" font-size="7.6" font-weight="700" fill="{RED}">UBO · {escape(short)}</text>')
+        else:
+            parts.append(f'<text x="{x+12}" y="{y+BOX_H-9}" font-size="9" fill="{FOG}">{escape(n["jurisdiction"] or n["kind"])}</text>')
     if legend:
         ly = h + 8
         parts.append(f'<rect x="0" y="{h}" width="{w}" height="{legend_h}" fill="#ffffff"/>')
@@ -170,6 +182,9 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
         parts.append(f'<line x1="{lx}" y1="{ly+14}" x2="{lx+26}" y2="{ly+14}" stroke="{CONTROL}" stroke-width="1.6" stroke-dasharray="5 3"/>')
         parts.append(f'<text x="{lx+32}" y="{ly+18}" font-size="10.5" fill="{INK}">Control (e.g. general partner / Komplementär)</text>')
         lx += 320
+        parts.append(f'<line x1="{lx}" y1="{ly+14}" x2="{lx+26}" y2="{ly+14}" stroke="{ATTR}" stroke-width="1.4" stroke-dasharray="2 3"/>')
+        parts.append(f'<text x="{lx+32}" y="{ly+18}" font-size="10.5" fill="{INK}">UBO attribution (per Transparenzregister)</text>')
+        lx += 265
         parts.append(f'<rect x="{lx}" y="{ly+8}" width="12" height="12" rx="2" fill="{RED}"/>')
         parts.append(f'<text x="{lx+18}" y="{ly+18}" font-size="10.5" fill="{INK}">UBO / acquisition vehicle</text>')
         lx += 185

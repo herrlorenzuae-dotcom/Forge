@@ -108,6 +108,18 @@ def extract_spec(data: bytes, xtol: float = 40):
         b["id"] = i
         b["name"] = clean_name(name_in(b["r"]))
         b["cx"] = (b["r"].x0 + b["r"].x1) / 2
+    # bracket-style boxes (3-line borders) sometimes carry their label just
+    # ABOVE the frame — retry with the rect expanded upwards, but only where
+    # that zone doesn't overlap another box
+    for b in boxes:
+        if re.search(r"[A-Za-zÄÖÜäöü]", b["name"]) and len(b["name"]) >= 4:
+            continue
+        up = fitz.Rect(b["r"].x0, b["r"].y0 - min(60, b["r"].height * 0.4), b["r"].x1, b["r"].y0 + 4)
+        if any(o is not b and o["r"].intersects(up) and re.search(r"[A-Za-zÄÖÜäöü]", o["name"]) and len(o["name"]) >= 4 for o in boxes):
+            continue
+        cand = clean_name(name_in(up))
+        if len(cand) >= 4:
+            b["name"] = cand
     named = [b for b in boxes
              if re.search(r"[A-Za-zÄÖÜäöü]", b["name"])
              and len(b["name"]) >= 4 and not FRAGMENT.match(b["name"])]

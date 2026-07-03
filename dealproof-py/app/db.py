@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS ownership_edges (
 );
 CREATE TABLE IF NOT EXISTS ubos (
   id TEXT PRIMARY KEY, client_id TEXT NOT NULL, entity_id TEXT NOT NULL, basis TEXT NOT NULL,
-  pct REAL NOT NULL DEFAULT 0, pep INTEGER NOT NULL DEFAULT 0, residence TEXT DEFAULT '', as_of TEXT DEFAULT ''
+  pct REAL NOT NULL DEFAULT 0, pep INTEGER NOT NULL DEFAULT 0, residence TEXT DEFAULT '',
+  note TEXT DEFAULT '', as_of TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS entity_attributes (
   id TEXT PRIMARY KEY, entity_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT DEFAULT '',
@@ -113,6 +114,7 @@ MIGRATIONS = {
     "documents": [("content", "BLOB")],
     "questions": [("source_answer", "TEXT DEFAULT ''")],
     "questionnaires": [("reviewed_by", "TEXT DEFAULT ''"), ("reviewed_at", "TEXT DEFAULT ''")],
+    "ubos": [("note", "TEXT DEFAULT ''")],
 }
 
 
