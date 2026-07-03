@@ -18,7 +18,7 @@ SOURCE_LABEL = {
 
 
 def chart_svg(project_id: str, excerpt: bool = False) -> str:
-    inner = render_svg(project_id, excerpt=excerpt)
+    inner = render_svg(project_id, excerpt=excerpt, legend=True)
     if not inner.lstrip().startswith("<svg"):
         inner = f'<svg xmlns="http://www.w3.org/2000/svg" width="400" height="60"><text x="8" y="32">No structure</text></svg>'
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + inner

@@ -4,7 +4,31 @@ from .structure import get_structure
 
 BLUE = "#1c86c8"; BLUE_FILL = "#d7ecfb"; INK = "#13344d"; FOG = "#6d6a63"
 RED = "#d62518"; GREEN = "#00a14b"; GREEN_FILL = "#d8f0e2"; CHART_BG = "#eef7fe"
-BOX_W, BOX_H, COL, ROW, PAD = 188, 64, 224, 150, 40
+CONTROL = "#e8710a"   # control (general partner / Komplementär) — clearly distinct from ownership blue
+BOX_W, BOX_H, COL, ROW, PAD = 208, 64, 244, 150, 40
+
+
+def _fit_name(name: str, avail: float):
+    """Fit the FULL name into the box: shrink the font stepwise and wrap onto
+    two balanced lines — no silent truncation."""
+    est = lambda s, size: len(s) * size * 0.55
+    for size in (11.5, 10.5, 9.5, 8.5):
+        if est(name, size) <= avail:
+            return [name], size
+        words = name.split()
+        if len(words) > 1:
+            best = None
+            for i in range(1, len(words)):
+                l1, l2 = " ".join(words[:i]), " ".join(words[i:])
+                m = max(est(l1, size), est(l2, size))
+                if best is None or m < best[0]:
+                    best = (m, [l1, l2])
+            if best and best[0] <= avail:
+                return best[1], size
+    size = 8.5
+    maxc = max(int(avail / (size * 0.55)), 8)
+    rest = name[maxc:]
+    return [name[:maxc], (rest[:maxc - 1] + "…") if len(rest) > maxc else rest], size
 
 
 def build_orgchart(client_id: str) -> dict:
@@ -84,7 +108,7 @@ def ancestors(subject: str, edges) -> set:
     return seen
 
 
-def render_svg(client_id: str, subject: str = None, excerpt: bool = False) -> str:
+def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legend: bool = False) -> str:
     data = build_orgchart(client_id)
     nodes, edges = data["nodes"], data["edges"]
     if not nodes:
@@ -95,22 +119,28 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False) -> st
         nodes = [n for n in nodes if n["id"] in keep]
         edges = [e for e in edges if e["parent"] in keep and e["child"] in keep]
     pos, w, h = _layout(nodes, edges)
+    legend_h = 46 if legend else 0
+    total_h = h + legend_h
     pct = lambda p: (str(int(p)) if float(p).is_integer() else f"{p:.2f}").replace(".", ",") + " %"
-    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" id="orgsvg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" data-w="{w}" data-h="{h}" style="display:block;font-family:\'Hanken Grotesk\',sans-serif;background:{CHART_BG}">',
-             f'<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{BLUE}"/></marker></defs>']
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" id="orgsvg" viewBox="0 0 {w} {total_h}" width="{w}" height="{total_h}" data-w="{w}" data-h="{total_h}" style="display:block;font-family:\'Hanken Grotesk\',sans-serif;background:{CHART_BG}">',
+             f'<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{BLUE}"/></marker>'
+             f'<marker id="arrc" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{CONTROL}"/></marker></defs>']
     for e in edges:
         if e["parent"] not in pos or e["child"] not in pos:
             continue
         ax, ay = pos[e["parent"]]; bx, by = pos[e["child"]]
         x1, y1 = ax + BOX_W / 2, ay + BOX_H; x2, y2 = bx + BOX_W / 2, by; my = (y1 + y2) / 2
         ctrl = e["kind"] == "control"
+        color = CONTROL if ctrl else BLUE
         dash = ' stroke-dasharray="5 3"' if ctrl else ""
-        parts.append(f'<path d="M{x1},{y1} L{x1},{my} L{x2},{my} L{x2},{y2}" fill="none" stroke="{BLUE}" stroke-width="1.3"{dash} marker-end="url(#arr)"/>')
+        marker = "arrc" if ctrl else "arr"
+        width_ = "1.6" if ctrl else "1.3"
+        parts.append(f'<path d="M{x1},{y1} L{x1},{my} L{x2},{my} L{x2},{y2}" fill="none" stroke="{color}" stroke-width="{width_}"{dash} marker-end="url(#{marker})"/>')
         label = ("Control" if ctrl else (pct(e["pct"]) if e["pct"] else ""))
         if label:
             mx = (x1 + x2) / 2
             parts.append(f'<rect x="{mx-22}" y="{my-8}" width="44" height="16" rx="3" fill="{CHART_BG}"/>'
-                         f'<text x="{mx}" y="{my+4}" text-anchor="middle" font-size="10.5" fill="{INK}">{escape(label)}</text>')
+                         f'<text x="{mx}" y="{my+4}" text-anchor="middle" font-size="10.5" font-weight="{700 if ctrl else 400}" fill="{CONTROL if ctrl else INK}">{escape(label)}</text>')
     for n in nodes:
         x, y = pos[n["id"]]
         green = n["role"] == "target" or n["kind"] == "operating"
@@ -121,9 +151,29 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False) -> st
         parts.append(f'<rect x="{x}" y="{y}" width="5" height="{BOX_H}" rx="2" fill="{_accent(n["role"])}"/>')
         if n["kind"] != "individual":
             parts.append(f'<path d="M{x+BOX_W-16},{y+1} L{x+BOX_W-1},{y+1} L{x+BOX_W-1},{y+16} Z" fill="{RED}"/>')
-        nm = escape(n["name"])
-        nm = (nm[:38] + "…") if len(nm) > 39 else nm
-        parts.append(f'<text x="{x+12}" y="{y+24}" font-size="11.5" font-family="\'Source Serif 4\',Georgia,serif" fill="{"#0a6e38" if green else INK}">{nm}</text>')
+        lines, size = _fit_name(n["name"], BOX_W - 24)
+        name_fill = "#0a6e38" if green else INK
+        if len(lines) == 1:
+            parts.append(f'<text x="{x+12}" y="{y+25}" font-size="{size}" font-family="\'Source Serif 4\',Georgia,serif" fill="{name_fill}">{escape(lines[0])}</text>')
+        else:
+            parts.append(f'<text x="{x+12}" y="{y+19}" font-size="{size}" font-family="\'Source Serif 4\',Georgia,serif" fill="{name_fill}">{escape(lines[0])}</text>')
+            parts.append(f'<text x="{x+12}" y="{y+19+size+2}" font-size="{size}" font-family="\'Source Serif 4\',Georgia,serif" fill="{name_fill}">{escape(lines[1])}</text>')
         parts.append(f'<text x="{x+12}" y="{y+BOX_H-9}" font-size="9" fill="{FOG}">{escape(n["jurisdiction"] or n["kind"])}</text>')
+    if legend:
+        ly = h + 8
+        parts.append(f'<rect x="0" y="{h}" width="{w}" height="{legend_h}" fill="#ffffff"/>')
+        parts.append(f'<line x1="0" y1="{h}" x2="{w}" y2="{h}" stroke="#d9e4ee" stroke-width="1"/>')
+        lx = PAD
+        parts.append(f'<line x1="{lx}" y1="{ly+14}" x2="{lx+26}" y2="{ly+14}" stroke="{BLUE}" stroke-width="1.6"/>')
+        parts.append(f'<text x="{lx+32}" y="{ly+18}" font-size="10.5" fill="{INK}">Ownership (with %)</text>')
+        lx += 175
+        parts.append(f'<line x1="{lx}" y1="{ly+14}" x2="{lx+26}" y2="{ly+14}" stroke="{CONTROL}" stroke-width="1.6" stroke-dasharray="5 3"/>')
+        parts.append(f'<text x="{lx+32}" y="{ly+18}" font-size="10.5" fill="{INK}">Control (e.g. general partner / Komplementär)</text>')
+        lx += 320
+        parts.append(f'<rect x="{lx}" y="{ly+8}" width="12" height="12" rx="2" fill="{RED}"/>')
+        parts.append(f'<text x="{lx+18}" y="{ly+18}" font-size="10.5" fill="{INK}">UBO / acquisition vehicle</text>')
+        lx += 185
+        parts.append(f'<rect x="{lx}" y="{ly+8}" width="12" height="12" rx="2" fill="{GREEN}"/>')
+        parts.append(f'<text x="{lx+18}" y="{ly+18}" font-size="10.5" fill="{INK}">Target / operating</text>')
     parts.append("</svg>")
     return "".join(parts)
