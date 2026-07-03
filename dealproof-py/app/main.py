@@ -307,17 +307,23 @@ def structure_page(request: Request, pid: str, view: str = Query("excerpt"), sub
 async def ingest_structure(pid: str, file: UploadFile = File(None), pasted: str = Form(""),
                            replace: str = Form(""), mode: str = Form("replace"),
                            attach_to: str = Form(""), attach_rel: str = Form("")):
-    text = pasted
+    from .engine import chartpdf
+    text, spec = pasted, None
     if file is not None and file.filename:
         data = await file.read()
-        text = extract_text(file.filename, data)
-    if text.strip():
+        # a DRAWN chart PDF (vector org chart) is read geometrically, fully local
+        if file.filename.lower().endswith(".pdf") and chartpdf.is_chart_pdf(data):
+            spec = chartpdf.extract_spec(data)
+        if spec is None:
+            text = extract_text(file.filename, data)
+    if spec is None and text.strip():
         # An edited spec (manual correction) is the deterministic format — parse it
         # directly; an uploaded SPA goes through the (model-assisted) extractor.
         if replace == "spec":
             spec = spa_engine.parse_structure_spec(text)
         else:
             spec = spa_engine.extract_from_spa(text, pid)
+    if spec:
         if mode == "merge" and replace != "spec":
             spa_engine.merge_structure(pid, spec, attach_to=attach_to, attach_rel=attach_rel)
         else:

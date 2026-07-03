@@ -10,17 +10,17 @@
 <section class="card card-pad">
   <h2 class="card-title" style="margin-bottom:10px">Add or extend the structure</h2>
   <div class="row tabbar" style="gap:6px; margin-bottom:14px">
-    <button type="button" class="btn-ghost btn-sm tab-btn active" data-tab="tab-spa" onclick="showTab(this)"><span class="icon">description</span> From an SPA</button>
+    <button type="button" class="btn-ghost btn-sm tab-btn active" data-tab="tab-spa" onclick="showTab(this)"><span class="icon">description</span> From an SPA / chart PDF</button>
     {% if other_projects %}<button type="button" class="btn-ghost btn-sm tab-btn" data-tab="tab-copy" onclick="showTab(this)"><span class="icon">content_copy</span> From another project</button>{% endif %}
     <button type="button" class="btn-ghost btn-sm tab-btn" data-tab="tab-ubo" onclick="showTab(this)"><span class="icon">groups</span> UBOs from Transparenzregister</button>
   </div>
 
   <div id="tab-spa" class="tabpanel">
-  <p class="muted small" style="margin:0 0 12px">{% if has_key %}Upload the SPA — the model extracts entities, percentages and control.{% else %}No model key set, so paste the structure in the simple format below (the model emits the same when a key is configured).{% endif %}</p>
+  <p class="muted small" style="margin:0 0 12px">Upload an SPA{% if has_key %} (the model extracts entities, percentages and control){% endif %} — or a <b>drawn structure chart as a vector PDF</b>: boxes, percentages and connections are read geometrically, fully on this machine. The result is a draft; review it in the correction box below the chart.{% if not has_key %} Without a model key, free-text SPAs need the simple paste format below.{% endif %}</p>
   <form method="post" action="/projects/{{ project.id }}/structure" enctype="multipart/form-data">
     <label class="dropzone" id="drop" style="padding:18px">
       <span class="icon" style="font-size:24px; color:var(--blue)">description</span>
-      <span><b>Drop the SPA</b> (PDF/TXT) or click to choose</span>
+      <span><b>Drop the SPA or chart PDF</b> or click to choose</span>
       <input type="file" name="file" id="file" accept=".pdf,.txt,.md" style="display:none"/>
       <span id="fname" class="muted small"></span>
     </label>
