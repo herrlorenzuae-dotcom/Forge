@@ -70,10 +70,16 @@ def _startup():
 def ctx(request, **kw):
     out = {"request": request, "has_key": config.HAS_KEY, **kw}
     # The guided step rail renders on EVERY page that has a project in context —
-    # injected here centrally so no route can forget it.
+    # injected here centrally so no route can forget it. The highlighted step is
+    # the page the user is ON (the Overview hosts steps 1+2: highlight Project
+    # until the subject company is set, then Questionnaire).
     p = kw.get("project")
     if p and "wf" not in kw:
-        step_key = {"data": "data", "structure": "structure", "deliver": "deliver"}.get(kw.get("active", ""), "")
+        act = kw.get("active", "")
+        if act == "project":
+            step_key = "project" if not (p.get("subject_company") or "").strip() else "questionnaire"
+        else:
+            step_key = {"data": "data", "structure": "structure", "deliver": "deliver"}.get(act, "")
         out["wf"] = workflow.steps(p["id"], step_key)
     return out
 
@@ -178,8 +184,7 @@ def project_page(request: Request, pid: str):
     if not project:
         return RedirectResponse("/")
     return templates.TemplateResponse(request, "project.html",
-        ctx(request, active="project", project=project, documents=proj.list_documents(pid),
-            wf=workflow.steps(pid)))
+        ctx(request, active="project", project=project, documents=proj.list_documents(pid)))
 
 
 @app.post("/projects/{pid}/documents")
