@@ -55,8 +55,17 @@ def learn_from_document(filename: str, content: bytes, raw_text: str = "") -> di
     """Seed the Brain from a PAST, already-answered questionnaire: extract each
     question + its given answer and fold it in. Existing cases entered this way
     become the basis the connectors (Quantium / YSolutions) only verify.
-    Returns {total, learned, skipped}."""
+    A Transparenzregister extract is recognised and handled as what it is: the
+    beneficial owners are learned under the company they belong to.
+    Returns {total, learned, skipped[, kind, company]}."""
     from .intake import parse_document, docx_qa_pairs
+    from . import transparency
+    if raw_text and transparency.is_tr_extract(raw_text):
+        ubos = transparency.extract_ubos(raw_text)
+        company = transparency.tr_company(raw_text)
+        transparency.learn_ubos_into_brain(ubos, company=company)
+        return {"total": len(ubos), "learned": len(ubos) if company or ubos else 0,
+                "skipped": 0, "kind": "transparenzregister", "company": company}
     name = (filename or "").lower()
     if name.endswith(".docx") and content:
         pairs = docx_qa_pairs(content)

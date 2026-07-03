@@ -67,11 +67,18 @@ def build_analysis(questionnaire_id: str) -> dict:
         pid = qn[0]["client_id"] if qn else None
     structure = get_structure(pid) if pid else {"entities": [], "edges": [], "ubos": [], "attributes": []}
 
+    from .projects import get_project
+    company = ((get_project(pid) or {}).get("subject_company") or "").strip() if pid else ""
+
     items = []
     for q in qs:
         field = classify_field(q["prompt"])
         ft = field["fieldType"]
         opts = get_brain_options(q["prompt"])
+        if not (opts and opts[0]["share"] >= 0.5) and ft == "beneficial_owner" and company:
+            co_opts = get_brain_options(f"Beneficial owners of {company}")
+            if co_opts and co_opts[0]["share"] >= 0.5:
+                opts = co_opts
         if _source_answer(q):
             source, retrievable = "source", True
             detail = "Already answered in the source document."

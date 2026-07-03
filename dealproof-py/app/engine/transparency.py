@@ -117,8 +117,70 @@ def _model_ubos(text: str):
         return []
 
 
+# ── The official German Transparenzregister extract ──
+# Layout: label line(s) followed by the value line, no colons. Labels can wrap
+# ("Art des wirtschaftlichen / Interesses"). One block per beneficial owner.
+_TR_BLOCK = re.compile(
+    r"Name\s*\(Titel,\s*Nachname,\s*Vorname\)\s*(?P<name>.+?)\s*"
+    r"Staatsangehörigkeit(?:\s+von)?\s*(?P<nat>.+?)\s*"
+    r"Geburtsdatum\s*(?P<birth>[\d.]+)\s*"
+    r"(?:Wohnort\s*(?P<city>.+?)\s*)?"
+    r"(?:Wohnsitzland\s*(?P<country>.+?)\s*)?"
+    r"Art des\s*wirtschaftlichen\s*Interesses\s*(?P<art>.+?)\s*"
+    r"Umfang des\s*wirtschaftlichen\s*Interesses\s*(?P<umfang>.+?)(?=\s*Name\s*\(Titel|\s*Seite\s+\d|\s*Tag der Erstellung|$)",
+    re.I | re.S)
+
+
+def is_tr_extract(text: str) -> bool:
+    t = text.lower()
+    return "transparenzregister" in t and ("wirtschaftlich berechtigt" in t or "§ 19 gwg" in t)
+
+
+def tr_company(text: str) -> str:
+    """The legal entity the extract is about (line after the register header)."""
+    m = re.search(r"Name der Rechtseinheit[^\n]*\n(.+)", text)
+    if not m:
+        return ""
+    return m.group(1).split(",")[0].strip()
+
+
+def _official_ubos(text: str):
+    flat = re.sub(r"\s+", " ", text)
+    out = []
+    for m in _TR_BLOCK.finditer(flat):
+        raw_name = m.group("name").strip()
+        if "," in raw_name:                       # "Nachname, Vorname(n)" → flip
+            last, first = raw_name.split(",", 1)
+            name = f"{first.strip()} {last.strip()}"
+        else:
+            name = raw_name
+        basis, pct, mech = _extent(f"{m.group('art')} {m.group('umfang')}")
+        out.append({"name": name, "birthdate": m.group("birth"),
+                    "residence": ", ".join(x for x in ((m.group("city") or "").strip(),
+                                                       (m.group("country") or "").strip()) if x),
+                    "basis": basis, "pct": pct, "mechanism": mech,
+                    "extent": f"{m.group('art').strip()} — {m.group('umfang').strip()}"})
+    return out
+
+
+def ubo_answer_text(ubos: list) -> str:
+    """One sentence naming the UBOs, for the Brain and reports."""
+    parts = []
+    for u in ubos:
+        if u["basis"] == "control":
+            tag = f"control — {u['mechanism']}" if u.get("mechanism") else "control"
+        else:
+            tag = (f"{int(u['pct'])}%" if u.get("pct") else "beneficial interest")
+        parts.append(f"{u['name']} ({tag})")
+    return "; ".join(parts) + " — per Transparenzregister."
+
+
 def extract_ubos(text: str):
-    """Pick the best extractor: explicit spec, then model, then heuristic."""
+    """Pick the best extractor: the official register layout, an explicit spec,
+    then the model, then the label:value heuristic."""
+    official = _official_ubos(text)
+    if official:
+        return official
     spec = _spec_ubos(text)
     if spec:
         return spec
@@ -160,27 +222,29 @@ def apply_ubos(project_id: str, ubos: list) -> dict:
     return {"added": added, "company_id": company_id}
 
 
-def learn_ubos_into_brain(ubos: list) -> None:
-    """Fold the UBO list into the Brain under the canonical UBO question."""
+def learn_ubos_into_brain(ubos: list, company: str = "") -> None:
+    """Fold the UBO list into the Brain. With a company name the entry is
+    COMPANY-SPECIFIC ('Beneficial owners of X') so different companies never
+    contaminate each other; the generic prompts are only used without one
+    (structure-page import, where the project provides the context)."""
     if not ubos:
         return
     from .brain import record_finalized_answer
-    parts = []
-    for u in ubos:
-        if u["basis"] == "control":
-            tag = f"control — {u['mechanism']}" if u.get("mechanism") else "control"
-        else:
-            tag = (f"{int(u['pct'])}%+" if u.get("pct") else "beneficial interest")
-        parts.append(f"{u['name']} ({tag})")
-    value = "; ".join(parts) + " — per Transparenzregister."
-    for prompt in ("Identify all ultimate beneficial owners holding 25% or more.",
-                   "Please provide details of the ultimate beneficial owners."):
-        record_finalized_answer(prompt, value)
+    value = ubo_answer_text(ubos)
+    if company:
+        record_finalized_answer(f"Beneficial owners of {company}", value)
+    else:
+        for prompt in ("Identify all ultimate beneficial owners holding 25% or more.",
+                       "Please provide details of the ultimate beneficial owners."):
+            record_finalized_answer(prompt, value)
 
 
 def import_extract(project_id: str, text: str) -> dict:
-    """Full flow: extract UBOs, add to the structure, and learn them."""
+    """Full flow: extract UBOs, add to the structure, and learn them under the
+    company they belong to (subject company, else the extract's own entity)."""
+    from .projects import get_project
     ubos = extract_ubos(text)
     res = apply_ubos(project_id, ubos)
-    learn_ubos_into_brain(ubos)
+    company = ((get_project(project_id) or {}).get("subject_company") or "").strip() or tr_company(text)
+    learn_ubos_into_brain(ubos, company=company)
     return {"ubos": ubos, **res}

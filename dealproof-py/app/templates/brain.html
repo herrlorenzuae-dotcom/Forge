@@ -9,7 +9,11 @@
 
 {% if learned is not none %}
 <div class="card card-pad" style="border-left:4px solid var(--teal); background:rgba(0,178,169,.07)">
-  <b>Learned {{ learned }} answer{{ '' if learned==1 else 's' }}</b> from {{ total }} parsed question{{ '' if total==1 else 's' }}. They are now available to future questionnaires.
+  {% if kind == 'transparenzregister' %}
+    <b>Recognised a Transparenzregister extract{{ ' for ' ~ company if company }}</b> — learned {{ learned }} beneficial owner{{ '' if learned==1 else 's' }}. UBO questions for this company now answer themselves.
+  {% else %}
+    <b>Learned {{ learned }} answer{{ '' if learned==1 else 's' }}</b> from {{ total }} parsed question{{ '' if total==1 else 's' }}. They are now available to future questionnaires.
+  {% endif %}
 </div>
 {% endif %}
 

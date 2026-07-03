@@ -414,9 +414,10 @@ def backup():
 
 # ── Brain (cross-project memory) ──
 @app.get("/brain", response_class=HTMLResponse)
-def brain_page(request: Request, learned: int = Query(None), total: int = Query(None)):
+def brain_page(request: Request, learned: int = Query(None), total: int = Query(None),
+               kind: str = Query(""), company: str = Query("")):
     return templates.TemplateResponse(request, "brain.html", ctx(request, active="brain",
-        entries=brain_stats(), learned=learned, total=total))
+        entries=brain_stats(), learned=learned, total=total, kind=kind, company=company))
 
 
 @app.post("/brain/learn")
@@ -424,7 +425,9 @@ async def brain_learn(file: UploadFile = File(None)):
     if file is not None and file.filename:
         data = await file.read()
         res = learn_from_document(file.filename, data, extract_text(file.filename, data))
-        return RedirectResponse(f"/brain?learned={res['learned']}&total={res['total']}", status_code=303)
+        import urllib.parse
+        extra = f"&kind={res.get('kind','')}&company={urllib.parse.quote(res.get('company',''))}" if res.get("kind") else ""
+        return RedirectResponse(f"/brain?learned={res['learned']}&total={res['total']}{extra}", status_code=303)
     return RedirectResponse("/brain", status_code=303)
 
 

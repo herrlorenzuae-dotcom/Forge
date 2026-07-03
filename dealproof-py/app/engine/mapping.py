@@ -35,6 +35,18 @@ def answer_question(question_id: str) -> dict:
     if not q:
         raise ValueError("question not found")
     options = get_brain_options(q["prompt"])
+    # For UBO questions the Brain also knows COMPANY-SPECIFIC entries
+    # ("Beneficial owners of X", e.g. from a Transparenzregister extract) —
+    # look them up under the project's subject company.
+    if not (options and options[0]["share"] >= 0.5):
+        from .coverage import classify_field
+        if classify_field(q["prompt"])["fieldType"] == "beneficial_owner":
+            from .projects import get_project
+            company = ((get_project(q["client_id"]) or {}).get("subject_company") or "").strip()
+            if company:
+                co_opts = get_brain_options(f"Beneficial owners of {company}")
+                if co_opts and co_opts[0]["share"] >= 0.5:
+                    options = co_opts
     # 0) An answer already present in the source document (a completed form /
     #    prior submission) — the most authoritative starting point.
     if has_source_answer(q):
