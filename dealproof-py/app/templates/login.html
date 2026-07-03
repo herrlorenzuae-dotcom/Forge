@@ -24,6 +24,13 @@
     {% else %}
     <input type="hidden" name="tenant" value="{{ tenants[0].slug }}"/>
     <p class="muted small" style="margin:0 0 12px">Client: <b>{{ tenants[0].name }}</b></p>
+    {% if tenants[0].slug == 'demo' %}
+    <div class="small" style="background:rgba(0,94,184,.06); border:1px solid rgba(0,94,184,.18); border-radius:8px; padding:10px 12px; margin:0 0 12px; line-height:1.55">
+      No clients configured yet — this is the built-in <b>Demo</b> workspace (password: <code>demo</code>).<br/>
+      To set up your own client(s), add to the <code>.env</code> file and restart:<br/>
+      <code>DEALPROOF_TENANTS=ClientName:password</code>
+    </div>
+    {% endif %}
     {% endif %}
     <label class="formfield">
       <span class="field-label">Password</span>
