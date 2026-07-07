@@ -124,7 +124,15 @@ UBO_BASIS = {
 }
 
 
-def seed_demo() -> None:
+def seed_demo(tenant_slug: str = "") -> None:
+    # tenant-specific seeds (real client values, private repo) live in their
+    # own module and only load inside that client's own data store
+    if tenant_slug:
+        try:
+            from .demo_tenants import seed_for_tenant
+            seed_for_tenant(tenant_slug)
+        except ImportError:
+            pass
     with db() as con:
         existing = one(con, "SELECT 1 FROM clients WHERE id=?", (DEMO_ID,))
         current = one(con, "SELECT 1 FROM ubos WHERE client_id=? AND note!='' LIMIT 1", (DEMO_ID,)) if existing else None

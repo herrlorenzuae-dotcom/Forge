@@ -52,7 +52,7 @@ def _init_tenant(t) -> str:
     if path not in _initialized_dbs:
         init_db()
         from .demo import seed_demo
-        seed_demo()
+        seed_demo(tenant_slug=t["slug"])
         _initialized_dbs.add(path)
     return path
 
