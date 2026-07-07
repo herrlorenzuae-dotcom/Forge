@@ -8,9 +8,13 @@ store; other tenants never see it. Delete this file to remove the seed.
 from .db import db, one, gen_id
 
 
-def seed_for_tenant(slug: str) -> None:
+def seed_for_tenant(slug: str) -> bool:
+    """Seed real-client data for the tenant. Returns True when this tenant has
+    its own seed — its data store then stays free of the fictional demo."""
     if slug == "armira":
         _seed_armira()
+        return True
+    return False
 
 
 ARMIRA_ID = "proj_armira_beteiligungen"

@@ -124,13 +124,26 @@ UBO_BASIS = {
 }
 
 
+def _remove_fictional_demo() -> None:
+    """A tenant with its own real-client seed must not mix with the fictional
+    Cedar demo: remove the demo project, its Brain entries, and any answers
+    that were drawn from them into other projects."""
+    projects.delete_project(DEMO_ID)
+    with db() as con:
+        con.execute("DELETE FROM answer_library WHERE variants_json LIKE '%Cedar%'")
+        con.execute("DELETE FROM answers WHERE value LIKE '%Cedar%'")
+
+
 def seed_demo(tenant_slug: str = "") -> None:
     # tenant-specific seeds (real client values, private repo) live in their
-    # own module and only load inside that client's own data store
+    # own module and only load inside that client's own data store — and that
+    # store then carries ONLY real data (no fictional Cedar demo alongside)
     if tenant_slug:
         try:
             from .demo_tenants import seed_for_tenant
-            seed_for_tenant(tenant_slug)
+            if seed_for_tenant(tenant_slug):
+                _remove_fictional_demo()
+                return
         except ImportError:
             pass
     with db() as con:
