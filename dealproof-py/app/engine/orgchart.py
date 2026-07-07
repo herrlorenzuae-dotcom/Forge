@@ -165,10 +165,17 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
         dash = ' stroke-dasharray="2 3"' if attr else (' stroke-dasharray="5 3"' if ctrl else "")
         marker = "arru" if on_strand else ("arra" if attr else ("arrc" if ctrl else "arr"))
         width_ = "2.4" if on_strand else ("1.6" if ctrl else "1.3")
-        parts.append(f'<path d="M{x1},{y1} L{x1},{my} L{x2},{my} L{x2},{y2}" fill="none" stroke="{color}" stroke-width="{width_}"{dash} marker-end="url(#{marker})"/>')
+        if y2 - y1 > ROW * 1.5:
+            # spans several rows — route through a side lane so the line does
+            # not run invisibly through boxes sitting in the same column
+            lane = max(x1, x2) + BOX_W / 2 + 18
+            parts.append(f'<path d="M{x1},{y1} L{x1},{y1+14} L{lane},{y1+14} L{lane},{y2-14} L{x2},{y2-14} L{x2},{y2}" fill="none" stroke="{color}" stroke-width="{width_}"{dash} marker-end="url(#{marker})"/>')
+            mx, my = lane, (y1 + y2) / 2
+        else:
+            parts.append(f'<path d="M{x1},{y1} L{x1},{my} L{x2},{my} L{x2},{y2}" fill="none" stroke="{color}" stroke-width="{width_}"{dash} marker-end="url(#{marker})"/>')
+            mx = (x1 + x2) / 2
         label = ("per TR" if attr else ("Control" if ctrl else (pct(e["pct"]) if e["pct"] else "")))
         if label:
-            mx = (x1 + x2) / 2
             lw = 52 if attr else 44
             lcolor = RED if on_strand else (ATTR if attr else (CONTROL if ctrl else INK))
             parts.append(f'<rect x="{mx-lw/2}" y="{my-8}" width="{lw}" height="16" rx="3" fill="{CHART_BG}"/>'
@@ -181,8 +188,6 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
         parts.append(f'<rect x="{x+2}" y="{y+3}" width="{BOX_W}" height="{BOX_H}" rx="6" fill="rgba(19,52,77,.10)"/>')
         parts.append(f'<rect x="{x}" y="{y}" width="{BOX_W}" height="{BOX_H}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="1"/>')
         parts.append(f'<rect x="{x}" y="{y}" width="5" height="{BOX_H}" rx="2" fill="{_accent(n["role"])}"/>')
-        if n["kind"] != "individual":
-            parts.append(f'<path d="M{x+BOX_W-16},{y+1} L{x+BOX_W-1},{y+1} L{x+BOX_W-1},{y+16} Z" fill="{RED}"/>')
         lines, size = _fit_name(n["name"], BOX_W - 24)
         name_fill = "#0a6e38" if green else INK
         if len(lines) == 1:

@@ -34,6 +34,7 @@ ARMIRA_SPEC = f"""\
 Alexander Paul Schemann -> Armira Verwaltungs GmbH : 100%
 Armira Verwaltungs GmbH -> Armira GmbH & Co. KG : control (General partner / Komplementär)
 Armira GmbH & Co. KG -> {ARMIRA_KVG} : 100%
+Armira GmbH & Co. KG -> Armira Beteiligungen Verwaltungs GmbH : 100%
 Armira Beteiligungen Verwaltungs GmbH -> {ARMIRA_KVG} : control (General partner / Komplementär)
 {ARMIRA_KVG} -> Armira III GP GmbH : 100%
 Armira III GP GmbH -> {ARMIRA_COMPANY} : control (General partner / Komplementär)
@@ -91,7 +92,12 @@ def _seed_armira() -> None:
 
     with db() as con:
         existing = one(con, "SELECT 1 FROM clients WHERE id=?", (ARMIRA_ID,))
-        current = one(con, "SELECT 1 FROM ubos WHERE client_id=? AND note!='' LIMIT 1", (ARMIRA_ID,)) if existing else None
+        # up to date = UBO note present AND the GP-owner edge from the chart is in
+        current = existing and one(con, "SELECT 1 FROM ubos WHERE client_id=? AND note!='' LIMIT 1", (ARMIRA_ID,)) and one(con, """
+            SELECT 1 FROM ownership_edges e
+            JOIN entities p ON p.id=e.parent_id JOIN entities c ON c.id=e.child_id
+            WHERE e.client_id=? AND p.name='Armira GmbH & Co. KG'
+              AND c.name='Armira Beteiligungen Verwaltungs GmbH'""", (ARMIRA_ID,))
     if existing and current:
         return
     if existing:
