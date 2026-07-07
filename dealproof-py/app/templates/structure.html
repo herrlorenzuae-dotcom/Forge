@@ -141,22 +141,31 @@ UBO: Maximilian Stein | 1979 | Zürich, CH | control (gesetzlicher Vertreter)"><
         <div style="font-weight:700; font-size:15px">{{ d.name }}</div>
         <span class="pill {{ 'red' if d.pep else 'teal' }}">{{ 'PEP' if d.pep else 'not PEP' }}</span>
       </div>
+      {% if d.why %}
+      <p class="small" style="margin:6px 0 0; font-size:13.5px"><b>Why:</b> {{ d.why }}</p>
+      {% endif %}
       {% if d.note %}
       <div class="small" style="margin:6px 0 0; padding:8px 10px; background:rgba(214,37,24,.05); border-left:3px solid var(--red); border-radius:0 6px 6px 0">
-        <b>UBO basis:</b> {{ d.note }}
+        <b>Register basis:</b> {{ d.note }}
       </div>
       {% endif %}
       {% for s in d.strands %}
-      <div class="small" style="margin:8px 0 0; font-family:var(--mono); font-size:11.5px">
-        <span class="muted">Capital strand:</span>
-        {{ d.name }}{% for h in s.hops %} —{{ h.label }}→ {{ h.to }}{% endfor %}
-        {% if s.cum is not none %}<b style="color:var(--blue)"> · cumulative {{ ('%.2f'|format(s.cum)).replace('.', ',') }} %</b>{% endif %}
+      <div style="margin:10px 0 0">
+        <div class="small" style="font-family:var(--mono); font-size:11.5px">
+          <span class="muted">Capital strand:</span>
+          {{ d.name }}{% for h in s.hops %} —{{ h.label }}→ {{ h.to }}{% endfor %}
+          {% if s.cum is not none %}<b style="color:var(--blue)"> · cumulative {{ ('%.2f'|format(s.cum)).replace('.', ',') }} %</b>{% endif %}
+        </div>
+        <div class="small muted" style="margin:2px 0 0">{{ s.prose }}</div>
       </div>
       {% endfor %}
       {% for s in d.control_strands %}
-      <div class="small" style="margin:8px 0 0; font-family:var(--mono); font-size:11.5px; color:#b45a08">
-        <span style="color:#b45a08; font-weight:700">Control strand:</span>
-        {{ d.name }}{% for h in s.hops %} —{{ h.label }}→ {{ h.to }}{% endfor %}
+      <div style="margin:10px 0 0">
+        <div class="small" style="font-family:var(--mono); font-size:11.5px; color:#b45a08">
+          <span style="color:#b45a08; font-weight:700">Control strand:</span>
+          {{ d.name }}{% for h in s.hops %} —{{ h.label }}→ {{ h.to }}{% endfor %}
+        </div>
+        <div class="small muted" style="margin:2px 0 0">{{ s.prose }}</div>
       </div>
       {% endfor %}
       {% if d.attribution and not d.strands and not d.control_strands %}

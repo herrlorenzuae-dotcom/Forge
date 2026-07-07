@@ -54,6 +54,15 @@ def _layout(nodes, edges):
                 changed = True
         if not changed:
             break
+    # pull sources DOWN next to their highest child: feeder vehicles that feed
+    # straight into a deep node sit just above it instead of crowding the apex —
+    # only the longest chain (the UBO strand) keeps its head at the very top
+    has_parent = {e["child"] for e in edges if e["parent"] in idset and e["child"] in idset}
+    for i in ids:
+        if i not in has_parent:
+            kid_depths = [depth[e["child"]] for e in edges if e["parent"] == i and e["child"] in idset]
+            if kid_depths:
+                depth[i] = min(kid_depths) - 1
     maxd = max(depth.values()) if depth else 0
     layers = [[] for _ in range(maxd + 1)]
     for i in ids:
@@ -121,6 +130,18 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
         keep = ancestors(subj, edges) if subj else {n["id"] for n in nodes}
         nodes = [n for n in nodes if n["id"] in keep]
         edges = [e for e in edges if e["parent"] in keep and e["child"] in keep]
+    # the UBO derivation strand(s) — highlighted so the reviewer sees at a
+    # glance WHICH chain carries the beneficial-owner position
+    hl = set()
+    try:
+        from .derivation import ubo_derivation
+        for d in ubo_derivation(client_id, subject):
+            for st in d["strands"] + d["control_strands"]:
+                for hop in st["hops"]:
+                    hl.add((hop["frm"], hop["to"]))
+    except Exception:
+        pass
+    nname = {n["id"]: n["name"] for n in nodes}
     pos, w, h = _layout(nodes, edges)
     legend_h = 46 if legend else 0
     total_h = h + legend_h
@@ -128,25 +149,30 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" id="orgsvg" viewBox="0 0 {w} {total_h}" width="{w}" height="{total_h}" data-w="{w}" data-h="{total_h}" style="display:block;font-family:\'Hanken Grotesk\',sans-serif;background:{CHART_BG}">',
              f'<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{BLUE}"/></marker>'
              f'<marker id="arrc" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{CONTROL}"/></marker>'
-             f'<marker id="arra" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{ATTR}"/></marker></defs>']
-    for e in edges:
+             f'<marker id="arra" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{ATTR}"/></marker>'
+             f'<marker id="arru" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="{RED}"/></marker></defs>']
+    # highlighted strand edges render LAST so the red chain stays visible where
+    # many edges share a junction into the same box
+    for e in sorted(edges, key=lambda e: (nname.get(e["parent"]), nname.get(e["child"])) in hl):
         if e["parent"] not in pos or e["child"] not in pos:
             continue
         ax, ay = pos[e["parent"]]; bx, by = pos[e["child"]]
         x1, y1 = ax + BOX_W / 2, ay + BOX_H; x2, y2 = bx + BOX_W / 2, by; my = (y1 + y2) / 2
         ctrl = e["kind"] == "control"
         attr = e["kind"] == "attribution"
-        color = ATTR if attr else (CONTROL if ctrl else BLUE)
+        on_strand = (nname.get(e["parent"]), nname.get(e["child"])) in hl
+        color = RED if on_strand else (ATTR if attr else (CONTROL if ctrl else BLUE))
         dash = ' stroke-dasharray="2 3"' if attr else (' stroke-dasharray="5 3"' if ctrl else "")
-        marker = "arra" if attr else ("arrc" if ctrl else "arr")
-        width_ = "1.6" if ctrl else "1.3"
+        marker = "arru" if on_strand else ("arra" if attr else ("arrc" if ctrl else "arr"))
+        width_ = "2.4" if on_strand else ("1.6" if ctrl else "1.3")
         parts.append(f'<path d="M{x1},{y1} L{x1},{my} L{x2},{my} L{x2},{y2}" fill="none" stroke="{color}" stroke-width="{width_}"{dash} marker-end="url(#{marker})"/>')
         label = ("per TR" if attr else ("Control" if ctrl else (pct(e["pct"]) if e["pct"] else "")))
         if label:
             mx = (x1 + x2) / 2
             lw = 52 if attr else 44
+            lcolor = RED if on_strand else (ATTR if attr else (CONTROL if ctrl else INK))
             parts.append(f'<rect x="{mx-lw/2}" y="{my-8}" width="{lw}" height="16" rx="3" fill="{CHART_BG}"/>'
-                         f'<text x="{mx}" y="{my+4}" text-anchor="middle" font-size="{9.5 if attr else 10.5}" font-weight="{700 if ctrl else 400}" font-style="{"italic" if attr else "normal"}" fill="{ATTR if attr else (CONTROL if ctrl else INK)}">{escape(label)}</text>')
+                         f'<text x="{mx}" y="{my+4}" text-anchor="middle" font-size="{9.5 if attr else 10.5}" font-weight="{700 if (ctrl or on_strand) else 400}" font-style="{"italic" if attr else "normal"}" fill="{lcolor}">{escape(label)}</text>')
     for n in nodes:
         x, y = pos[n["id"]]
         green = n["role"] == "target" or n["kind"] == "operating"
@@ -182,6 +208,9 @@ def render_svg(client_id: str, subject: str = None, excerpt: bool = False, legen
         parts.append(f'<line x1="{lx}" y1="{ly+14}" x2="{lx+26}" y2="{ly+14}" stroke="{CONTROL}" stroke-width="1.6" stroke-dasharray="5 3"/>')
         parts.append(f'<text x="{lx+32}" y="{ly+18}" font-size="10.5" fill="{INK}">Control (e.g. general partner / Komplementär)</text>')
         lx += 320
+        parts.append(f'<line x1="{lx}" y1="{ly+14}" x2="{lx+26}" y2="{ly+14}" stroke="{RED}" stroke-width="2.4"/>')
+        parts.append(f'<text x="{lx+32}" y="{ly+18}" font-size="10.5" fill="{INK}">UBO derivation strand</text>')
+        lx += 185
         parts.append(f'<line x1="{lx}" y1="{ly+14}" x2="{lx+26}" y2="{ly+14}" stroke="{ATTR}" stroke-width="1.4" stroke-dasharray="2 3"/>')
         parts.append(f'<text x="{lx+32}" y="{ly+18}" font-size="10.5" fill="{INK}">UBO attribution (per Transparenzregister)</text>')
         lx += 265

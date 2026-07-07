@@ -17,6 +17,48 @@ from .orgchart import build_orgchart, default_subject
 MAX_PATHS, MAX_DEPTH = 6, 14
 
 
+def _fmt(p: float) -> str:
+    return f"{p:g}".replace(".", ",")
+
+
+def _prose(name: str, hops: list) -> str:
+    """The strand as one readable sentence — the wording a reviewer at the bank
+    would write themselves ("holds 100 % of X, which as Komplementär controls Y")."""
+    bits = []
+    for h in hops:
+        if h["kind"] == "control":
+            bits.append(f"as {h['label'] or 'controlling party'} controls {h['to']}")
+        elif h["kind"] == "attribution":
+            bits.append(f"is {h['label']} of {h['to']}")
+        else:
+            bits.append(f"holds {h['label']} of {h['to']}")
+    return f"{name} " + ", which ".join(bits) + "."
+
+
+def _why(u: dict, strands: list, control_strands: list) -> str:
+    """One plain sentence answering the reviewer's first question: capital or
+    control — and if control, why capital does NOT carry the position."""
+    note = u.get("note") or ""
+    best = max((s["cum"] or 0) for s in strands) if strands else 0.0
+    if u.get("basis") == "control" and control_strands:
+        if "Fiktiver" in note or "gesetzlicher Vertreter" in note:
+            return ("No actual beneficial owner could be determined, so the legal representative counts "
+                    "as (fictitious) beneficial owner — the strand below anchors that function in the structure.")
+        lead = "Not a capital position — the capital sits dispersed below"
+        if best <= 25:
+            lead += " (no modelled strand exceeds 25 %)"
+        return (lead + ". The position follows from control over the general-partner "
+                "(Komplementär) chain; every hop of that chain is shown below and in the chart (highlighted red).")
+    pct = float(u.get("pct") or 0)
+    if pct > 25:
+        return f"Capital position: {_fmt(pct)} % per register — above the 25 % threshold (§ 3 Abs. 2 S. 1 GwG)."
+    if best > 25:
+        return f"Capital position: cumulatively {_fmt(best)} % through the strand(s) below — above the 25 % threshold."
+    if strands or control_strands:
+        return "Basis per register (see note); the strand(s) below show how the position runs through the structure."
+    return ""
+
+
 def ubo_derivation(project_id: str, subject: str = None) -> list:
     s = get_structure(project_id)
     data = build_orgchart(project_id)
@@ -75,7 +117,9 @@ def ubo_derivation(project_id: str, subject: str = None) -> list:
                     cum *= (p / 100.0) if p else 0
                 hops.append({"frm": name.get(e["parent_id"], "?"), "to": name.get(e["child_id"], "?"),
                              "label": label, "kind": e["kind"]})
-            entry = {"hops": hops, "cum": round(cum * 100, 2) if pure_capital else None}
+            ubo_name = u.get("entity_name") or name.get(eid, "?")
+            entry = {"hops": hops, "cum": round(cum * 100, 2) if pure_capital else None,
+                     "prose": _prose(ubo_name, hops)}
             (strands if pure_capital else control_strands).append(entry)
         if not strands and not control_strands:
             attribution = attribution or any(
@@ -85,5 +129,6 @@ def ubo_derivation(project_id: str, subject: str = None) -> list:
                        "note": u.get("note", ""), "residence": u.get("residence", ""),
                        "pep": u.get("pep", 0),
                        "strands": strands, "control_strands": control_strands,
-                       "attribution": attribution})
+                       "attribution": attribution,
+                       "why": _why(u, strands, control_strands)})
     return result
