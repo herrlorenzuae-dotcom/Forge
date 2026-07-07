@@ -33,11 +33,18 @@
   {% endif %}
 </section>
 
+{% if learned %}
+<div class="card card-pad" style="border-left:4px solid var(--teal)">
+  <b>Review recorded — {{ learned }} answers folded into the KYC Brain.</b>
+  <span class="muted small">A signed-off questionnaire is verified knowledge: the next project starts from these answers. Review them any time in the <a href="/brain" style="color:var(--blue)">KYC Brain</a>.</span>
+</div>
+{% endif %}
+
 {% if qn %}
 <section class="card card-pad" style="border-left:4px solid {{ 'var(--teal)' if qn.reviewed_by else 'var(--amber, #b8860b)' }}">
   {% if qn.reviewed_by %}
   <div class="row" style="justify-content:space-between">
-    <div><b>Reviewed by {{ qn.reviewed_by }}</b> <span class="muted small">on {{ qn.reviewed_at }}</span> — the exports carry this sign-off.</div>
+    <div><b>Reviewed by {{ qn.reviewed_by }}</b> <span class="muted small">on {{ qn.reviewed_at }}</span> — the exports carry this sign-off, and the reviewed answers are in the KYC Brain.</div>
     <form method="post" action="/projects/{{ project.id }}/questionnaires/{{ qn.id }}/review">
       <input type="hidden" name="reviewer" value=""/>
       <button class="btn-ghost btn-sm" title="Remove the sign-off">Reset review</button>
@@ -45,7 +52,7 @@
   </div>
   {% else %}
   <h3 class="card-title" style="margin-bottom:6px">Review before sending</h3>
-  <p class="muted small" style="margin:0 0 10px">Four-eyes check: confirm the answers were reviewed. The reviewer and date appear in the exported documents.</p>
+  <p class="muted small" style="margin:0 0 10px">Four-eyes check: confirm the answers were reviewed. The reviewer and date appear in the exported documents — and the reviewed answers are folded into the KYC Brain as verified firm knowledge.</p>
   <form method="post" action="/projects/{{ project.id }}/questionnaires/{{ qn.id }}/review" class="row">
     <input type="text" name="reviewer" required placeholder="Reviewer name" style="max-width:260px"/>
     <button class="btn"><span class="icon">verified</span> Mark as reviewed</button>
@@ -98,6 +105,33 @@
   </div>
   {% else %}
   <p class="muted small" style="margin:6px 0 0">No structure yet — build it on the <a href="/projects/{{ project.id }}/structure" style="color:var(--blue)">Structure</a> page (import an SPA, take over an existing chart, or paste the chain).</p>
+  {% endif %}
+</section>
+
+<section class="card card-pad">
+  <h2 class="card-title" style="margin-bottom:6px">3 · ID annex (Ausweise)</h2>
+  {% if ids %}
+  <p class="muted small" style="margin:0 0 12px">Select whose identification documents go out with this package — persons recorded in this project (UBO / directors) are pre-selected. Managed centrally in <a href="/ids" style="color:var(--blue)">ID documents</a>.</p>
+  <form method="get" action="/projects/{{ project.id }}/deliver/annex.pdf">
+    {% if qn %}<input type="hidden" name="qn_id" value="{{ qn.id }}"/>{% endif %}
+    <div class="divide" style="margin-bottom:12px">
+      {% for d in ids %}
+      <label class="row" style="padding:8px 0; cursor:pointer; justify-content:space-between">
+        <span class="row" style="gap:10px">
+          <input type="checkbox" name="ids" value="{{ d.id }}" {{ 'checked' if d.id in suggested }}/>
+          <b>{{ d.person }}</b> <span class="pill teal">{{ d.role_label }}</span>
+        </span>
+        <span class="muted small">{{ d.filename }}{% if d.note %} · {{ d.note }}{% endif %}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="row">
+      <button class="btn" name="mode" value="annex"><span class="icon">badge</span> ID annex (PDF)</button>
+      {% if qn %}<button class="btn-ghost" name="mode" value="full"><span class="icon">picture_as_pdf</span> Questionnaire + ID annex in one PDF</button>{% endif %}
+    </div>
+  </form>
+  {% else %}
+  <p class="muted small" style="margin:6px 0 0">No identification documents on file yet — store them once in <a href="/ids" style="color:var(--blue)">ID documents</a>, then attach them to any project's package from here.</p>
   {% endif %}
 </section>
 {% endblock %}

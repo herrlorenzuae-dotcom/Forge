@@ -76,6 +76,11 @@ CREATE TABLE IF NOT EXISTS info_requests (
   field_type TEXT NOT NULL, prompt TEXT NOT NULL, channel TEXT NOT NULL, source TEXT DEFAULT '',
   status TEXT DEFAULT 'open', note TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS id_documents (
+  id TEXT PRIMARY KEY, person TEXT NOT NULL, role TEXT DEFAULT 'ubo',
+  filename TEXT NOT NULL, content BLOB, note TEXT DEFAULT '',
+  uploaded_at TEXT DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS ai_calls (
   id TEXT PRIMARY KEY, ts TEXT DEFAULT (datetime('now')), stage TEXT, model TEXT,
   sanitized_prompt TEXT, masked INTEGER DEFAULT 0, ok INTEGER DEFAULT 1

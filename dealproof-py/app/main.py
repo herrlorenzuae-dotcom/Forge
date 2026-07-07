@@ -22,7 +22,8 @@ from .engine.analysis import build_analysis
 from .engine import requests as reqs
 from .engine import mapping
 from .engine import templatefill
-from .engine.brain import brain_stats, get_brain_options, learn_from_document, update_entry, delete_entry
+from .engine.brain import brain_stats, get_brain_options, learn_from_document, update_entry, delete_entry, record_finalized_answer, NON_ANSWERS
+from .engine import idrepo
 
 BASE = os.path.dirname(__file__)
 app = FastAPI(title="DealProof")
@@ -442,7 +443,19 @@ def deliver_page(request: Request, pid: str, qn_id: str = Query(None)):
     return templates.TemplateResponse(request, "deliver.html", ctx(request,
         active="deliver", project=proj.get_project(pid), qn=qn, qns=qns, stats=stats,
         fillable=templatefill.is_fillable(qn["id"]) if qn else False,
+        ids=idrepo.list_all(), suggested=idrepo.suggest_for_project(pid),
+        learned=request.query_params.get("learned"),
         wf=workflow.steps(pid, "deliver")))
+
+
+@app.get("/projects/{pid}/deliver/annex.pdf")
+def deliver_annex(pid: str, ids: list = Query([]), qn_id: str = Query(""), mode: str = Query("annex")):
+    project = proj.get_project(pid)
+    lead = exporter.questionnaire_pdf(qn_id) if (mode == "full" and qn_id) else None
+    body = idrepo.annex_pdf(ids, project["name"] if project else pid, lead_pdf=lead)
+    fname = "questionnaire-with-id-annex.pdf" if lead else "id-annex.pdf"
+    return Response(body, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{fname}"'})
 
 
 @app.post("/projects/{pid}/questionnaires/{qid}/review")
@@ -451,7 +464,51 @@ def mark_reviewed(pid: str, qid: str, reviewer: str = Form(...)):
         con.execute("UPDATE questionnaires SET reviewed_by=?, reviewed_at=date('now') WHERE id=?",
                     (reviewer.strip(), qid))
     proj.touch(pid)
-    return RedirectResponse(f"/projects/{pid}/deliver?qn_id={qid}", status_code=303)
+    # a signed-off questionnaire IS verified firm knowledge: fold every reviewed
+    # answer into the KYC Brain, so the next project starts from it
+    learned = 0
+    if reviewer.strip():
+        with db() as con:
+            qa = rows(con, """SELECT q.prompt, a.value FROM questions q
+                              JOIN answers a ON a.question_id=q.id
+                              WHERE q.questionnaire_id=? AND a.value!=''""", (qid,))
+        for r in qa:
+            if r["value"].strip().lower() not in NON_ANSWERS:
+                record_finalized_answer(r["prompt"], r["value"].strip())
+                learned += 1
+    suffix = f"&learned={learned}" if learned else ""
+    return RedirectResponse(f"/projects/{pid}/deliver?qn_id={qid}{suffix}", status_code=303)
+
+
+# ── ID repository (Ausweise — tenant-wide, reusable across projects) ──
+@app.get("/ids", response_class=HTMLResponse)
+def ids_page(request: Request, saved: str = Query("")):
+    return templates.TemplateResponse(request, "ids.html", ctx(request, active="ids",
+        docs=idrepo.list_all(), roles=idrepo.ROLES, saved=saved))
+
+
+@app.post("/ids/upload")
+async def ids_upload(person: str = Form(...), role: str = Form("ubo"),
+                     note: str = Form(""), file: UploadFile = File(...)):
+    data = await file.read()
+    if person.strip() and data:
+        idrepo.add(person, role, file.filename, data, note)
+    return RedirectResponse("/ids?saved=1", status_code=303)
+
+
+@app.post("/ids/{doc_id}/delete")
+def ids_delete(doc_id: str):
+    idrepo.delete(doc_id)
+    return RedirectResponse("/ids", status_code=303)
+
+
+@app.get("/ids/{doc_id}/download")
+def ids_download(doc_id: str):
+    d = idrepo.get(doc_id)
+    if not d:
+        return RedirectResponse("/ids", status_code=303)
+    return Response(d["content"], media_type="application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="{d["filename"]}"'})
 
 
 # ── Backup (per tenant — the file IS the tenant's complete data) ──

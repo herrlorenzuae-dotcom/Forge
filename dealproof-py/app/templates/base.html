@@ -20,6 +20,7 @@
     <nav class="nav">
       <a href="/" class="{{ 'active' if active=='projects' else '' }}">Projects</a>
       <a href="/brain" class="{{ 'active' if active=='brain' else '' }}">KYC Brain</a>
+      <a href="/ids" class="{{ 'active' if active=='ids' else '' }}">IDs</a>
     </nav>
     <span class="statuschip" title="{{ 'Model ready' if has_key else 'No model key — the KYC Brain answers from the corpus' }}">
       <span class="dot" style="background: {{ '#00b2a9' if has_key else '#005eb8' }}"></span>
